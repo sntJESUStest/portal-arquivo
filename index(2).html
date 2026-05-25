@@ -1,0 +1,743 @@
+
+
+cat > /home/claude/portal-arquivos/index.html << 'HTMLEOF'
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HP Contabilidade</title>
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="theme-color" content="#4338ca" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="HP Conta" />
+  <link rel="apple-touch-icon" href="/icon-192.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #f7f6f3; --surface: #ffffff; --border: #e5e3de; --border-strong: #ccc9c0;
+      --text: #1a1916; --text-secondary: #6b6860; --text-tertiary: #a09d97;
+      --accent: #4338ca; --accent-fg: #ffffff;
+      --blue-bg: #eef4ff; --blue-text: #2d5be3;
+      --green-bg: #edfaf3; --green-text: #1a7a4a;
+      --red-bg: #fff0f0; --red-text: #c0392b;
+      --orange-bg: #fff7ed; --orange-text: #c2410c;
+      --radius: 10px; --radius-lg: 14px;
+    }
+    body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; font-size: 15px; }
+    .hidden { display: none !important; }
+
+    /* LOGIN */
+    #login-screen { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 2rem; }
+    .login-box { width: 100%; max-width: 380px; }
+    .logo { display: flex; align-items: center; gap: 10px; margin-bottom: 2rem; }
+    .logo-icon { width: 44px; height: 44px; background: var(--accent); border-radius: var(--radius); display: flex; align-items: center; justify-content: center; }
+    .logo-icon svg { width: 22px; height: 22px; stroke: #fff; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+    .logo-name { font-size: 17px; font-weight: 600; letter-spacing: -0.3px; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1.5rem; }
+    label { display: block; font-size: 13px; color: var(--text-secondary); margin-bottom: 5px; font-weight: 500; }
+    input, select, textarea { width: 100%; padding: 9px 12px; border: 1px solid var(--border); border-radius: var(--radius); font-family: 'DM Sans', sans-serif; font-size: 14px; background: var(--bg); color: var(--text); outline: none; transition: border-color 0.15s; }
+    input:focus, select:focus, textarea:focus { border-color: var(--border-strong); background: #fff; }
+    .field { margin-bottom: 14px; }
+    .btn { padding: 9px 18px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--surface); font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500; color: var(--text); cursor: pointer; transition: all 0.15s; display: inline-flex; align-items: center; gap: 6px; }
+    .btn:hover { background: var(--bg); border-color: var(--border-strong); }
+    .btn-primary { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
+    .btn-primary:hover { opacity: 0.88; background: var(--accent); }
+    .btn-full { width: 100%; justify-content: center; }
+    .btn-ghost { border-color: transparent; background: transparent; color: var(--text-secondary); padding: 6px 10px; }
+    .btn-ghost:hover { background: var(--bg); color: var(--text); border-color: transparent; }
+    .error-msg { font-size: 13px; color: var(--red-text); background: var(--red-bg); border-radius: var(--radius); padding: 8px 12px; margin-bottom: 12px; }
+    .success-msg { font-size: 13px; color: var(--green-text); background: var(--green-bg); border-radius: var(--radius); padding: 8px 12px; margin-bottom: 12px; }
+
+    /* TOPBAR */
+    #main-screen { min-height: 100vh; display: flex; flex-direction: column; }
+    .topbar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 1.25rem; height: 56px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
+    .topbar-left { display: flex; align-items: center; gap: 10px; }
+    .topbar-logo { font-size: 15px; font-weight: 600; letter-spacing: -0.2px; }
+    .topbar-badge { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 99px; background: var(--blue-bg); color: var(--blue-text); }
+    .content { flex: 1; padding: 1.5rem; max-width: 860px; margin: 0 auto; width: 100%; }
+
+    /* MENU 3 PONTOS */
+    .menu-btn { width: 36px; height: 36px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--surface); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0; flex-direction: column; transition: all 0.15s; }
+    .menu-btn:hover { background: var(--bg); }
+    .menu-btn span { width: 4px; height: 4px; background: var(--text-secondary); border-radius: 50%; margin: 1.5px 0; display: block; }
+    .menu-overlay { position: fixed; inset: 0; z-index: 200; }
+    .menu-dropdown { position: fixed; top: 56px; left: 0; width: 260px; background: var(--surface); border: 1px solid var(--border); border-radius: 0 0 var(--radius-lg) var(--radius-lg); box-shadow: 0 8px 24px rgba(0,0,0,0.10); z-index: 300; overflow: hidden; }
+    .menu-header { padding: 14px 16px 10px; border-bottom: 1px solid var(--border); }
+    .menu-user-name { font-size: 14px; font-weight: 600; }
+    .menu-user-email { font-size: 12px; color: var(--text-tertiary); margin-top: 2px; }
+    .menu-item { display: flex; align-items: center; gap: 12px; padding: 12px 16px; cursor: pointer; transition: background 0.12s; font-size: 14px; font-weight: 500; border: none; background: none; width: 100%; text-align: left; color: var(--text); }
+    .menu-item:hover { background: var(--bg); }
+    .menu-item svg { width: 17px; height: 17px; stroke: var(--text-secondary); fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
+    .menu-divider { height: 1px; background: var(--border); margin: 4px 0; }
+    .menu-item-logout { color: var(--red-text); }
+    .menu-item-logout svg { stroke: var(--red-text); }
+
+    /* PAINEL / MODAL */
+    .panel-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.35); z-index: 400; display: flex; align-items: flex-end; justify-content: center; }
+    .panel { background: var(--surface); border-radius: var(--radius-lg) var(--radius-lg) 0 0; width: 100%; max-width: 560px; max-height: 90vh; overflow-y: auto; padding: 1.5rem; }
+    .panel-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; }
+    .panel-title { font-size: 16px; font-weight: 600; }
+    .panel-close { width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--border); background: var(--bg); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px; color: var(--text-secondary); }
+
+    /* STATS */
+    .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 1.5rem; }
+    .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem 1.25rem; }
+    .stat-label { font-size: 12px; color: var(--text-secondary); font-weight: 500; margin-bottom: 4px; }
+    .stat-value { font-size: 26px; font-weight: 600; letter-spacing: -1px; }
+    .section-title { font-size: 13px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 10px; }
+    .divider { height: 1px; background: var(--border); margin: 1.5rem 0; }
+
+    /* FORM UPLOAD */
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .form-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+
+    /* ARQUIVOS */
+    .file-row { display: flex; align-items: center; gap: 12px; padding: 10px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 6px; }
+    .file-icon svg { width: 18px; height: 18px; stroke: var(--text-secondary); fill: none; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+    .file-info { flex: 1; min-width: 0; }
+    .file-name { font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .file-meta { font-size: 11px; color: var(--text-tertiary); margin-top: 2px; }
+    .badge { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 99px; white-space: nowrap; flex-shrink: 0; }
+    .badge-new { background: var(--blue-bg); color: var(--blue-text); }
+    .badge-read { background: var(--bg); color: var(--text-tertiary); border: 1px solid var(--border); }
+    .btn-delete { padding: 5px 8px; border-radius: var(--radius); border: 1px solid var(--border); background: transparent; cursor: pointer; color: var(--text-tertiary); transition: all 0.15s; display: flex; align-items: center; }
+    .btn-delete:hover { background: var(--red-bg); color: var(--red-text); border-color: #fca5a5; }
+    .btn-delete svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+    .download-btn { padding: 6px 14px; border-radius: var(--radius); background: var(--accent); color: #fff; border: none; cursor: pointer; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 5px; transition: opacity 0.15s; flex-shrink: 0; }
+    .download-btn:hover { opacity: 0.85; }
+    .download-btn svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+    /* ABAS */
+    .tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 1.25rem; }
+    .tab-btn { padding: 6px 14px; border-radius: 99px; border: 1px solid var(--border); background: var(--surface); font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500; color: var(--text-secondary); cursor: pointer; transition: all 0.15s; }
+    .tab-btn:hover { border-color: var(--border-strong); color: var(--text); }
+    .tab-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .tab-count { display: inline-block; margin-left: 5px; background: rgba(255,255,255,0.2); border-radius: 99px; padding: 0 6px; font-size: 11px; }
+    .tab-btn:not(.active) .tab-count { background: var(--bg); color: var(--text-tertiary); }
+
+    /* SETOR BADGE */
+    .setor-fiscal     { background: #e8f4fd; color: #1565c0; }
+    .setor-pessoal    { background: #fdf3e8; color: #b45309; }
+    .setor-contabil   { background: #f0fdf4; color: #166534; }
+    .setor-financeiro { background: #fdf2f8; color: #86198f; }
+    .setor-avisos     { background: #fff7ed; color: #c2410c; }
+    .setor-badge { font-size: 10px; font-weight: 700; padding: 2px 9px; border-radius: 99px; white-space: nowrap; flex-shrink: 0; }
+
+    /* NOTIF */
+    .notif-banner { display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; background: var(--green-bg); border: 1px solid #a7f3d0; border-radius: var(--radius); margin-bottom: 8px; font-size: 13px; color: var(--green-text); }
+
+    /* CHAT */
+    .chat-box { display: flex; flex-direction: column; height: 380px; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+    .chat-messages { flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 8px; background: var(--bg); }
+    .chat-bubble { max-width: 78%; padding: 8px 12px; border-radius: 14px; font-size: 13px; line-height: 1.45; }
+    .chat-bubble.mine { background: var(--accent); color: #fff; align-self: flex-end; border-bottom-right-radius: 4px; }
+    .chat-bubble.theirs { background: var(--surface); border: 1px solid var(--border); align-self: flex-start; border-bottom-left-radius: 4px; }
+    .chat-bubble .bubble-meta { font-size: 10px; opacity: 0.65; margin-top: 3px; }
+    .chat-input-row { display: flex; gap: 8px; padding: 10px; border-top: 1px solid var(--border); background: var(--surface); }
+    .chat-input-row input { flex: 1; }
+    .chat-send-btn { padding: 8px 14px; background: var(--accent); color: #fff; border: none; border-radius: var(--radius); font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500; cursor: pointer; flex-shrink: 0; }
+
+    /* CERTIFICADOS */
+    .cert-row { display: flex; align-items: center; gap: 12px; padding: 10px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 6px; }
+    .cert-info { flex: 1; }
+    .cert-name { font-size: 13px; font-weight: 500; }
+    .cert-date { font-size: 12px; color: var(--text-tertiary); margin-top: 2px; }
+    .cert-badge-ok { background: var(--green-bg); color: var(--green-text); font-size: 11px; font-weight: 600; padding: 2px 10px; border-radius: 99px; }
+    .cert-badge-warn { background: var(--orange-bg); color: var(--orange-text); font-size: 11px; font-weight: 600; padding: 2px 10px; border-radius: 99px; }
+    .cert-badge-exp { background: var(--red-bg); color: var(--red-text); font-size: 11px; font-weight: 600; padding: 2px 10px; border-radius: 99px; }
+
+    /* DADOS CLIENTE */
+    .dados-row { display: flex; flex-direction: column; gap: 4px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+    .dados-label { font-size: 12px; color: var(--text-tertiary); }
+    .dados-value { font-size: 14px; font-weight: 500; }
+
+    /* ADMIN CLIENTES LIST */
+    .avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--blue-bg); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; color: var(--blue-text); flex-shrink: 0; }
+    .client-header { display: flex; align-items: center; gap: 10px; padding: 10px 0; margin-bottom: 4px; }
+    .client-name { font-weight: 500; font-size: 14px; }
+    .client-email-label { font-size: 12px; color: var(--text-tertiary); }
+
+    .empty-state { text-align: center; padding: 3rem 1rem; color: var(--text-tertiary); font-size: 14px; }
+    .loading { text-align: center; padding: 2rem; color: var(--text-tertiary); font-size: 14px; }
+
+    @media (max-width: 600px) {
+      .content { padding: 1rem; }
+      .stats-grid { grid-template-columns: 1fr 1fr; }
+      .form-row, .form-row-3 { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="logo">
+      <div class="logo-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+      <span class="logo-name">HP Contabilidade</span>
+    </div>
+    <div class="card">
+      <div class="field"><label>E-mail</label><input id="email" type="email" placeholder="seu@email.com" /></div>
+      <div class="field"><label>Senha</label><input id="password" type="password" placeholder="••••••••" /></div>
+      <div id="login-error" class="error-msg hidden"></div>
+      <button class="btn btn-primary btn-full" onclick="login()">Entrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div id="main-screen" class="hidden">
+  <div class="topbar">
+    <div class="topbar-left">
+      <!-- MENU 3 PONTOS -->
+      <div style="position:relative;">
+        <button class="menu-btn" onclick="toggleMenu()" id="menu-trigger" aria-label="Menu">
+          <span></span><span></span><span></span>
+        </button>
+      </div>
+      <span class="topbar-logo">HP Contabilidade</span>
+      <span class="topbar-badge" id="role-badge">Admin</span>
+    </div>
+    <button class="btn btn-ghost" onclick="logout()">Sair</button>
+  </div>
+
+  <!-- DROPDOWN MENU -->
+  <div id="menu-overlay" class="menu-overlay hidden" onclick="closeMenu()"></div>
+  <div id="menu-dropdown" class="menu-dropdown hidden">
+    <div class="menu-header">
+      <div class="menu-user-name" id="menu-user-name">—</div>
+      <div class="menu-user-email" id="menu-user-email">—</div>
+    </div>
+    <button class="menu-item" onclick="openPanel('dados')">
+      <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      Dados do Cliente
+    </button>
+    <button class="menu-item" onclick="openPanel('chat')">
+      <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      Chat
+    </button>
+    <div class="menu-divider"></div>
+    <button class="menu-item" onclick="filterSetor('Fiscal')">
+      <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      Fiscal
+    </button>
+    <button class="menu-item" onclick="filterSetor('Pessoal')">
+      <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      Pessoal
+    </button>
+    <button class="menu-item" onclick="filterSetor('Contábil')">
+      <svg viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+      Contábil
+    </button>
+    <button class="menu-item" onclick="filterSetor('Financeiro')">
+      <svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+      Financeiro
+    </button>
+    <div class="menu-divider"></div>
+    <button class="menu-item" onclick="openPanel('certificados')">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/></svg>
+      Certificados
+    </button>
+    <div class="menu-divider"></div>
+    <button class="menu-item menu-item-logout" onclick="logout()">
+      <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      Sair
+    </button>
+  </div>
+
+  <div class="content">
+    <!-- ADMIN VIEW -->
+    <div id="admin-view" class="hidden">
+      <div class="stats-grid">
+        <div class="stat-card"><div class="stat-label">Clientes</div><div class="stat-value" id="count-clients">—</div></div>
+        <div class="stat-card"><div class="stat-label">Arquivos</div><div class="stat-value" id="count-files">—</div></div>
+        <div class="stat-card"><div class="stat-label">Não lidos</div><div class="stat-value" id="count-unread">—</div></div>
+      </div>
+      <div class="section-title">Enviar arquivo</div>
+      <div class="card" style="margin-bottom:1.5rem;">
+        <div class="form-row-3" style="margin-bottom:10px;">
+          <div class="field" style="margin:0;"><label>Cliente (e-mail)</label><input id="f-client" type="email" placeholder="cliente@email.com" /></div>
+          <div class="field" style="margin:0;"><label>Setor</label>
+            <select id="f-setor">
+              <option value="Fiscal">Fiscal</option>
+              <option value="Pessoal">Pessoal</option>
+              <option value="Contábil">Contábil</option>
+              <option value="Financeiro">Financeiro</option>
+              <option value="Avisos">Avisos</option>
+            </select>
+          </div>
+          <div class="field" style="margin:0;"><label>Arquivo</label><input id="f-file" type="file" style="padding:6px 10px;" /></div>
+        </div>
+        <div class="field"><label>Notificação</label><input id="f-note" type="text" placeholder="ex: Seu demonstrativo está pronto!" /></div>
+        <div id="upload-error" class="error-msg hidden"></div>
+        <div id="upload-success" class="success-msg hidden"></div>
+        <button class="btn btn-primary" onclick="uploadFile()" id="upload-btn">Enviar arquivo</button>
+      </div>
+      <div class="divider"></div>
+      <div class="section-title">Arquivos por cliente</div>
+      <div id="admin-files-list"><div class="loading">Carregando...</div></div>
+    </div>
+
+    <!-- CLIENT VIEW -->
+    <div id="client-view" class="hidden">
+      <div id="client-notifications"></div>
+      <div class="section-title" style="margin-top:1rem;">Seus arquivos</div>
+      <div class="tabs" id="setor-tabs"></div>
+      <div id="client-files-list"><div class="loading">Carregando...</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- PAINÉIS -->
+<div id="panel-overlay" class="panel-overlay hidden" onclick="closePanel(event)">
+  <div class="panel" onclick="event.stopPropagation()">
+    <div class="panel-header">
+      <span class="panel-title" id="panel-title">—</span>
+      <button class="panel-close" onclick="closePanel()">✕</button>
+    </div>
+    <div id="panel-body"></div>
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://nacdezqdsouhxgftqaku.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5hY2RlenFkc291aHhnZnRxYWt1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyODU4MjYsImV4cCI6MjA5NDg2MTgyNn0.C1eqGfu7h-oOC0ibw6hzecPsG49e6IrOXrxu0C-mOSY';
+const ADMIN_EMAIL = 'rh2@hporg.cnt.br';
+const SETOR_CLASS = { 'Fiscal':'setor-fiscal','Pessoal':'setor-pessoal','Contábil':'setor-contabil','Financeiro':'setor-financeiro','Avisos':'setor-avisos' };
+
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+let currentUser = null;
+let allClientFiles = [];
+let activeSetor = 'Todos';
+let isAdmin = false;
+let chatInterval = null;
+// Para admin: email do cliente sendo visto no chat
+let chatClientEmail = null;
+
+// ── AUTH ──────────────────────────────────────────────
+async function login() {
+  const email = document.getElementById('email').value.trim();
+  const pass  = document.getElementById('password').value.trim();
+  const errEl = document.getElementById('login-error');
+  errEl.classList.add('hidden');
+  const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
+  if (error) { errEl.textContent = 'E-mail ou senha incorretos.'; errEl.classList.remove('hidden'); return; }
+  currentUser = data.user;
+  showApp();
+}
+
+async function logout() {
+  clearInterval(chatInterval);
+  await sb.auth.signOut();
+  currentUser = null;
+  document.getElementById('main-screen').classList.add('hidden');
+  document.getElementById('login-screen').classList.remove('hidden');
+  closeMenu();
+}
+
+async function showApp() {
+  document.getElementById('login-screen').classList.add('hidden');
+  document.getElementById('main-screen').classList.remove('hidden');
+  isAdmin = currentUser.email === ADMIN_EMAIL;
+  document.getElementById('role-badge').textContent = isAdmin ? 'Admin' : 'Cliente';
+
+  // Buscar dados do cliente para nome
+  const { data: dadosCliente } = await sb.from('clientes').select('*').eq('email', currentUser.email).maybeSingle();
+  const displayName = dadosCliente?.nome || currentUser.email;
+  document.getElementById('menu-user-name').textContent = displayName;
+  document.getElementById('menu-user-email').textContent = currentUser.email;
+
+  if (isAdmin) {
+    document.getElementById('admin-view').classList.remove('hidden');
+    document.getElementById('client-view').classList.add('hidden');
+    loadAdminView();
+  } else {
+    document.getElementById('client-view').classList.remove('hidden');
+    document.getElementById('admin-view').classList.add('hidden');
+    loadClientView();
+  }
+}
+
+// ── MENU ──────────────────────────────────────────────
+function toggleMenu() {
+  const dd = document.getElementById('menu-dropdown');
+  const ov = document.getElementById('menu-overlay');
+  const open = !dd.classList.contains('hidden');
+  if (open) { dd.classList.add('hidden'); ov.classList.add('hidden'); }
+  else { dd.classList.remove('hidden'); ov.classList.remove('hidden'); }
+}
+function closeMenu() {
+  document.getElementById('menu-dropdown').classList.add('hidden');
+  document.getElementById('menu-overlay').classList.add('hidden');
+}
+
+function filterSetor(setor) {
+  closeMenu();
+  if (isAdmin) return;
+  activeSetor = setor;
+  renderTabs();
+  renderClientFiles();
+  // scroll ao topo
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ── PAINÉIS ───────────────────────────────────────────
+function openPanel(type) {
+  closeMenu();
+  document.getElementById('panel-overlay').classList.remove('hidden');
+  const title = { dados:'Dados do Cliente', chat:'Chat', certificados:'Certificados' }[type];
+  document.getElementById('panel-title').textContent = title;
+  const body = document.getElementById('panel-body');
+  body.innerHTML = '<div class="loading">Carregando...</div>';
+  if (type === 'dados') renderPanelDados(body);
+  if (type === 'chat') renderPanelChat(body);
+  if (type === 'certificados') renderPanelCertificados(body);
+}
+
+function closePanel(e) {
+  if (e && e.target !== document.getElementById('panel-overlay')) return;
+  document.getElementById('panel-overlay').classList.add('hidden');
+  clearInterval(chatInterval);
+}
+
+// ── PAINEL DADOS ──────────────────────────────────────
+async function renderPanelDados(body) {
+  if (isAdmin) {
+    // Admin vê lista de clientes e pode editar
+    const { data: lista } = await sb.from('clientes').select('*').order('criado_em', { ascending: false });
+    let html = `<div class="section-title" style="margin-bottom:10px;">Cadastrar / Editar Cliente</div>
+    <div class="card" style="margin-bottom:1rem;">
+      <div class="form-row" style="margin-bottom:10px;">
+        <div class="field" style="margin:0;"><label>E-mail do cliente</label><input id="d-email" type="email" placeholder="cliente@email.com" /></div>
+        <div class="field" style="margin:0;"><label>Nome completo</label><input id="d-nome" type="text" placeholder="João da Silva" /></div>
+      </div>
+      <div class="field"><label>Empresa</label><input id="d-empresa" type="text" placeholder="Nome da empresa" /></div>
+      <div id="d-msg" class="hidden"></div>
+      <button class="btn btn-primary" onclick="salvarDados()">Salvar</button>
+    </div>`;
+    if (lista && lista.length > 0) {
+      html += `<div class="section-title" style="margin-bottom:10px;">Clientes cadastrados</div>`;
+      lista.forEach(c => {
+        html += `<div class="cert-row">
+          <div class="cert-info">
+            <div class="cert-name">${c.nome || '—'}</div>
+            <div class="cert-date">${c.email} · ${c.empresa || 'Sem empresa'}</div>
+          </div>
+          <button class="btn" style="font-size:12px;padding:5px 10px;" onclick="preencherDados('${c.email}','${c.nome||''}','${c.empresa||''}')">Editar</button>
+        </div>`;
+      });
+    }
+    body.innerHTML = html;
+  } else {
+    // Cliente vê seus dados
+    const { data: d } = await sb.from('clientes').select('*').eq('email', currentUser.email).maybeSingle();
+    if (!d) { body.innerHTML = '<div class="empty-state">Nenhum dado cadastrado ainda. Fale com a HP Contabilidade.</div>'; return; }
+    body.innerHTML = `
+      <div class="dados-row"><div class="dados-label">Nome</div><div class="dados-value">${d.nome || '—'}</div></div>
+      <div class="dados-row"><div class="dados-label">E-mail</div><div class="dados-value">${d.email}</div></div>
+      <div class="dados-row"><div class="dados-label">Empresa</div><div class="dados-value">${d.empresa || '—'}</div></div>`;
+  }
+}
+
+function preencherDados(email, nome, empresa) {
+  document.getElementById('d-email').value = email;
+  document.getElementById('d-nome').value = nome;
+  document.getElementById('d-empresa').value = empresa;
+}
+
+async function salvarDados() {
+  const email   = document.getElementById('d-email').value.trim();
+  const nome    = document.getElementById('d-nome').value.trim();
+  const empresa = document.getElementById('d-empresa').value.trim();
+  const msg     = document.getElementById('d-msg');
+  if (!email) { msg.className = 'error-msg'; msg.textContent = 'Informe o e-mail.'; msg.classList.remove('hidden'); return; }
+  const { error } = await sb.from('clientes').upsert({ email, nome, empresa }, { onConflict: 'email' });
+  if (error) { msg.className = 'error-msg'; msg.textContent = 'Erro: ' + error.message; }
+  else { msg.className = 'success-msg'; msg.textContent = '✓ Dados salvos com sucesso!'; }
+  msg.classList.remove('hidden');
+}
+
+// ── PAINEL CHAT ───────────────────────────────────────
+async function renderPanelChat(body) {
+  if (isAdmin) {
+    // Admin escolhe cliente para conversar
+    const { data: clientes } = await sb.from('clientes').select('email, nome').order('nome');
+    let html = `<div class="field"><label>Selecione o cliente</label>
+      <select id="chat-client-select" onchange="loadAdminChat()">
+        <option value="">Escolha um cliente...</option>
+        ${(clientes||[]).map(c => `<option value="${c.email}">${c.nome || c.email} (${c.email})</option>`).join('')}
+      </select></div>
+    <div id="chat-area"></div>`;
+    body.innerHTML = html;
+  } else {
+    chatClientEmail = currentUser.email;
+    body.innerHTML = buildChatUI();
+    loadChat(currentUser.email, false);
+    clearInterval(chatInterval);
+    chatInterval = setInterval(() => loadChat(currentUser.email, false), 4000);
+  }
+}
+
+function buildChatUI() {
+  return `<div class="chat-box">
+    <div class="chat-messages" id="chat-messages"><div class="loading">Carregando mensagens...</div></div>
+    <div class="chat-input-row">
+      <input id="chat-input" type="text" placeholder="Digite uma mensagem..." onkeydown="if(event.key==='Enter')sendChat()" />
+      <button class="chat-send-btn" onclick="sendChat()">Enviar</button>
+    </div>
+  </div>`;
+}
+
+async function loadAdminChat() {
+  const email = document.getElementById('chat-client-select').value;
+  if (!email) return;
+  chatClientEmail = email;
+  document.getElementById('chat-area').innerHTML = buildChatUI();
+  loadChat(email, true);
+  clearInterval(chatInterval);
+  chatInterval = setInterval(() => loadChat(email, true), 4000);
+}
+
+async function loadChat(clientEmail, adminSide) {
+  const { data: msgs } = await sb.from('chat').select('*').eq('cliente_email', clientEmail).order('criado_em', { ascending: true });
+  const el = document.getElementById('chat-messages');
+  if (!el) return;
+  if (!msgs || msgs.length === 0) { el.innerHTML = '<div style="text-align:center;color:var(--text-tertiary);font-size:13px;padding:1rem;">Nenhuma mensagem ainda.</div>'; return; }
+  el.innerHTML = msgs.map(m => {
+    const mine = adminSide ? m.autor === 'admin' : m.autor === 'cliente';
+    return `<div class="chat-bubble ${mine ? 'mine' : 'theirs'}">
+      ${m.mensagem}
+      <div class="bubble-meta">${formatDate(m.criado_em)}</div>
+    </div>`;
+  }).join('');
+  el.scrollTop = el.scrollHeight;
+}
+
+async function sendChat() {
+  const input = document.getElementById('chat-input');
+  const text = input?.value.trim();
+  if (!text) return;
+  input.value = '';
+  const autor = isAdmin ? 'admin' : 'cliente';
+  const clientEmail = isAdmin ? chatClientEmail : currentUser.email;
+  await sb.from('chat').insert({ cliente_email: clientEmail, autor, mensagem: text, criado_em: new Date().toISOString() });
+  loadChat(clientEmail, isAdmin);
+}
+
+// ── PAINEL CERTIFICADOS ───────────────────────────────
+async function renderPanelCertificados(body) {
+  if (isAdmin) {
+    const { data: certs } = await sb.from('certificados').select('*').order('vencimento', { ascending: true });
+    let html = `<div class="section-title" style="margin-bottom:10px;">Adicionar Certificado</div>
+    <div class="card" style="margin-bottom:1rem;">
+      <div class="form-row" style="margin-bottom:10px;">
+        <div class="field" style="margin:0;"><label>E-mail do cliente</label><input id="c-email" type="email" placeholder="cliente@email.com" /></div>
+        <div class="field" style="margin:0;"><label>Descrição</label><input id="c-desc" type="text" placeholder="ex: e-CNPJ A1" /></div>
+      </div>
+      <div class="field"><label>Data de vencimento</label><input id="c-data" type="date" /></div>
+      <div id="c-msg" class="hidden"></div>
+      <button class="btn btn-primary" onclick="salvarCert()">Salvar certificado</button>
+    </div>
+    <div class="section-title" style="margin-bottom:10px;">Todos os certificados</div>`;
+    if (!certs || certs.length === 0) {
+      html += '<div class="empty-state">Nenhum certificado cadastrado.</div>';
+    } else {
+      certs.forEach(c => {
+        const badge = certBadge(c.vencimento);
+        html += `<div class="cert-row">
+          <div class="cert-info">
+            <div class="cert-name">${c.descricao || 'Certificado'}</div>
+            <div class="cert-date">${c.cliente_email} · Vence em ${formatDateBR(c.vencimento)}</div>
+          </div>
+          ${badge}
+          <button class="btn-delete" onclick="deleteCert('${c.id}')"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg></button>
+        </div>`;
+      });
+    }
+    body.innerHTML = html;
+  } else {
+    const { data: certs } = await sb.from('certificados').select('*').eq('cliente_email', currentUser.email).order('vencimento', { ascending: true });
+    if (!certs || certs.length === 0) { body.innerHTML = '<div class="empty-state">Nenhum certificado cadastrado.</div>'; return; }
+    body.innerHTML = certs.map(c => `
+      <div class="cert-row">
+        <div class="cert-info">
+          <div class="cert-name">${c.descricao || 'Certificado'}</div>
+          <div class="cert-date">Vence em ${formatDateBR(c.vencimento)}</div>
+        </div>
+        ${certBadge(c.vencimento)}
+      </div>`).join('');
+  }
+}
+
+function certBadge(vencimento) {
+  const hoje = new Date(); hoje.setHours(0,0,0,0);
+  const venc = new Date(vencimento + 'T00:00:00');
+  const diff = Math.ceil((venc - hoje) / (1000*60*60*24));
+  if (diff < 0) return `<span class="cert-badge-exp">Vencido</span>`;
+  if (diff <= 30) return `<span class="cert-badge-warn">Vence em ${diff}d</span>`;
+  return `<span class="cert-badge-ok">Válido</span>`;
+}
+
+async function salvarCert() {
+  const email = document.getElementById('c-email').value.trim();
+  const desc  = document.getElementById('c-desc').value.trim();
+  const data  = document.getElementById('c-data').value;
+  const msg   = document.getElementById('c-msg');
+  if (!email || !data) { msg.className = 'error-msg'; msg.textContent = 'Preencha e-mail e data.'; msg.classList.remove('hidden'); return; }
+  const { error } = await sb.from('certificados').insert({ cliente_email: email, descricao: desc, vencimento: data, criado_em: new Date().toISOString() });
+  if (error) { msg.className = 'error-msg'; msg.textContent = 'Erro: ' + error.message; }
+  else { msg.className = 'success-msg'; msg.textContent = '✓ Certificado salvo!'; document.getElementById('c-email').value=''; document.getElementById('c-desc').value=''; document.getElementById('c-data').value=''; }
+  msg.classList.remove('hidden');
+  renderPanelCertificados(document.getElementById('panel-body'));
+}
+
+async function deleteCert(id) {
+  if (!confirm('Excluir este certificado?')) return;
+  await sb.from('certificados').delete().eq('id', id);
+  renderPanelCertificados(document.getElementById('panel-body'));
+}
+
+// ── ADMIN VIEW ────────────────────────────────────────
+async function loadAdminView() {
+  const { data: files } = await sb.from('notificacoes').select('*').order('criado_em', { ascending: false });
+  if (!files) return;
+  const unread = files.filter(f => !f.lido).length;
+  document.getElementById('count-files').textContent = files.length;
+  document.getElementById('count-unread').textContent = unread;
+  const byClient = {};
+  files.forEach(f => { if (!byClient[f.cliente_email]) byClient[f.cliente_email] = []; byClient[f.cliente_email].push(f); });
+  const clientEmails = Object.keys(byClient);
+  document.getElementById('count-clients').textContent = clientEmails.length;
+  const container = document.getElementById('admin-files-list');
+  if (files.length === 0) { container.innerHTML = '<div class="empty-state">Nenhum arquivo enviado ainda.</div>'; return; }
+  container.innerHTML = clientEmails.map(email => {
+    const initials = email.slice(0,2).toUpperCase();
+    const clientFiles = byClient[email];
+    return `<div style="margin-bottom:1rem;">
+      <div class="client-header">
+        <div class="avatar">${initials}</div>
+        <div><div class="client-name">${email}</div><div class="client-email-label">${clientFiles.length} arquivo(s)</div></div>
+      </div>
+      ${clientFiles.map(f => {
+        const sc = SETOR_CLASS[f.setor] || '';
+        return `<div class="file-row" id="row-${f.id}">
+          <div class="file-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+          <div class="file-info">
+            <div class="file-name">${f.arquivo_nome}</div>
+            <div class="file-meta">${formatDate(f.criado_em)} · ${f.lido ? 'Visualizado' : 'Não lido'}</div>
+          </div>
+          ${f.setor ? `<span class="setor-badge ${sc}">${f.setor}</span>` : ''}
+          <span class="badge ${f.lido ? 'badge-read' : 'badge-new'}">${f.lido ? 'Visto' : 'Novo'}</span>
+          <button class="btn-delete" onclick="deleteFile('${f.id}','${f.arquivo_path}')"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg></button>
+        </div>`;
+      }).join('')}
+    </div>`;
+  }).join('');
+}
+
+async function uploadFile() {
+  const clientEmail = document.getElementById('f-client').value.trim();
+  const fileInput   = document.getElementById('f-file');
+  const note        = document.getElementById('f-note').value.trim();
+  const setor       = document.getElementById('f-setor').value;
+  const errEl = document.getElementById('upload-error');
+  const okEl  = document.getElementById('upload-success');
+  const btn   = document.getElementById('upload-btn');
+  errEl.classList.add('hidden'); okEl.classList.add('hidden');
+  if (!clientEmail || !fileInput.files[0]) { errEl.textContent = 'Preencha o e-mail e selecione um arquivo.'; errEl.classList.remove('hidden'); return; }
+  const file = fileInput.files[0];
+  const path = `${clientEmail}/${setor}/${Date.now()}_${file.name}`;
+  btn.textContent = 'Enviando...'; btn.disabled = true;
+  const { error: uploadErr } = await sb.storage.from('arquivos').upload(path, file);
+  if (uploadErr) { errEl.textContent = 'Erro: ' + uploadErr.message; errEl.classList.remove('hidden'); btn.textContent = 'Enviar arquivo'; btn.disabled = false; return; }
+  const { error: dbErr } = await sb.from('notificacoes').insert({ cliente_email: clientEmail, arquivo_nome: file.name, arquivo_path: path, mensagem: note || `Novo arquivo em ${setor}: ${file.name}`, setor, lido: false, criado_em: new Date().toISOString() });
+  if (dbErr) { errEl.textContent = 'Erro: ' + dbErr.message; errEl.classList.remove('hidden'); }
+  else { okEl.textContent = `✓ Arquivo enviado para ${clientEmail} (${setor})!`; okEl.classList.remove('hidden'); fileInput.value=''; document.getElementById('f-client').value=''; document.getElementById('f-note').value=''; loadAdminView(); }
+  btn.textContent = 'Enviar arquivo'; btn.disabled = false;
+}
+
+async function deleteFile(id, path) {
+  if (!confirm('Excluir este arquivo?')) return;
+  await sb.storage.from('arquivos').remove([path]);
+  await sb.from('notificacoes').delete().eq('id', id);
+  loadAdminView();
+}
+
+// ── CLIENT VIEW ───────────────────────────────────────
+async function loadClientView() {
+  const { data: files } = await sb.from('notificacoes').select('*').eq('cliente_email', currentUser.email).order('criado_em', { ascending: false });
+  if (!files) return;
+  allClientFiles = files;
+  activeSetor = 'Todos';
+  const newFiles = files.filter(f => !f.lido);
+  document.getElementById('client-notifications').innerHTML = newFiles.map(f => `
+    <div class="notif-banner">
+      <svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:var(--green-text);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0;margin-top:1px;"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+      <span>${f.mensagem}</span>
+    </div>`).join('');
+  renderTabs(); renderClientFiles();
+}
+
+function renderTabs() {
+  const setoresPresentes = ['Todos', ...new Set(allClientFiles.map(f => f.setor).filter(Boolean))];
+  document.getElementById('setor-tabs').innerHTML = setoresPresentes.map(s => {
+    const count = s === 'Todos' ? allClientFiles.length : allClientFiles.filter(f => f.setor === s).length;
+    return `<button class="tab-btn ${s === activeSetor ? 'active' : ''}" onclick="selectSetor('${s}')">${s}<span class="tab-count">${count}</span></button>`;
+  }).join('');
+}
+
+function selectSetor(setor) { activeSetor = setor; renderTabs(); renderClientFiles(); }
+
+function renderClientFiles() {
+  const filtered = activeSetor === 'Todos' ? allClientFiles : allClientFiles.filter(f => f.setor === activeSetor);
+  const listEl = document.getElementById('client-files-list');
+  if (filtered.length === 0) { listEl.innerHTML = '<div class="empty-state">Nenhum arquivo neste setor ainda.</div>'; return; }
+  listEl.innerHTML = filtered.map(f => {
+    const fsc = SETOR_CLASS[f.setor] || '';
+    return `<div class="file-row">
+      <div class="file-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+      <div class="file-info">
+        <div class="file-name">${f.arquivo_nome}</div>
+        <div class="file-meta">Disponível desde ${formatDate(f.criado_em)}</div>
+      </div>
+      ${f.setor ? `<span class="setor-badge ${fsc}">${f.setor}</span>` : ''}
+      <span class="badge ${f.lido ? 'badge-read' : 'badge-new'}">${f.lido ? 'Visto' : 'Novo'}</span>
+      <button class="download-btn" onclick="downloadFile('${f.id}','${f.arquivo_path}','${f.arquivo_nome}')">
+        <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Baixar
+      </button>
+    </div>`;
+  }).join('');
+}
+
+async function downloadFile(id, path, name) {
+  const { data, error } = await sb.storage.from('arquivos').download(path);
+  if (error) { alert('Erro ao baixar arquivo.'); return; }
+  const url = URL.createObjectURL(data);
+  const a = document.createElement('a'); a.href = url; a.download = name; a.click();
+  URL.revokeObjectURL(url);
+  await sb.from('notificacoes').update({ lido: true }).eq('id', id);
+  const f = allClientFiles.find(x => x.id === id);
+  if (f) f.lido = true;
+  renderTabs(); renderClientFiles();
+}
+
+// ── UTILS ─────────────────────────────────────────────
+function formatDate(iso) { if (!iso) return ''; return new Date(iso).toLocaleDateString('pt-BR', { day:'2-digit', month:'2-digit', year:'numeric' }); }
+function formatDateBR(d) { if (!d) return ''; const [y,m,day] = d.split('-'); return `${day}/${m}/${y}`; }
+
+sb.auth.getSession().then(({ data }) => { if (data.session) { currentUser = data.session.user; showApp(); } });
+
+if ('serviceWorker' in navigator) { window.addEventListener('load', () => { navigator.serviceWorker.register('/sw.js'); }); }
+</script>
+</body>
+</html>
+HTMLEOF
+echo "Arquivo gerado com sucesso!"
+Saída
+
+Arquivo gerado com sucesso!
