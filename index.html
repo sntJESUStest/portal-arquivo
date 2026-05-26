@@ -339,6 +339,27 @@
           <p style="font-size:11px;color:var(--text-tertiary);margin-top:4px;">Detectado automaticamente pelo nome do arquivo. Você pode alterar manualmente.</p>
         </div>
         <div class="field"><label>Notificação</label><input id="f-note" type="text" placeholder="ex: Seu demonstrativo está pronto!" /></div>
+        <div style="background:var(--bg);border-radius:var(--radius);padding:12px;border:1px solid var(--border);margin-bottom:12px;">
+          <p style="font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.05em;">📅 Lançar no Calendário (opcional)</p>
+          <div class="form-row">
+            <div class="field" style="margin:0;"><label>Tipo de Guia</label>
+              <select id="f-guia-tipo">
+                <option value="">Não lançar</option>
+                <option value="DAS Simples Nacional">DAS Simples Nacional</option>
+                <option value="DARF IRPJ">DARF IRPJ</option>
+                <option value="DARF CSLL">DARF CSLL</option>
+                <option value="DARF PIS/COFINS">DARF PIS/COFINS</option>
+                <option value="GPS INSS">GPS INSS</option>
+                <option value="FGTS">FGTS</option>
+                <option value="ISS">ISS</option>
+                <option value="Outros">Outros</option>
+              </select>
+            </div>
+            <div class="field" style="margin:0;"><label>Data de Vencimento</label>
+              <input id="f-guia-data" type="date" />
+            </div>
+          </div>
+        </div>
         <div id="upload-error" class="error-msg hidden"></div>
         <div id="upload-success" class="success-msg hidden"></div>
         <button class="btn btn-primary" onclick="uploadFile()" id="upload-btn">Enviar arquivo</button>
@@ -767,7 +788,31 @@ async function uploadFile() {
   if (uploadErr) { errEl.textContent = 'Erro: ' + uploadErr.message; errEl.classList.remove('hidden'); btn.textContent = 'Enviar arquivo'; btn.disabled = false; return; }
   const { error: dbErr } = await sb.from('notificacoes').insert({ cliente_email: clientEmail, arquivo_nome: file.name, arquivo_path: path, mensagem: note || `Novo arquivo em ${subcat ? setor+' › '+subcat : setor}: ${file.name}`, setor, subcategoria: subcat, lido: false, criado_em: new Date().toISOString() });
   if (dbErr) { errEl.textContent = 'Erro: ' + dbErr.message; errEl.classList.remove('hidden'); }
-  else { okEl.textContent = `✓ Arquivo enviado para ${clientEmail} (${setor})!`; okEl.classList.remove('hidden'); fileInput.value=''; document.getElementById('f-client').value=''; document.getElementById('f-note').value=''; loadAdminView(); }
+  else {
+    // Lançar no calendário se preenchido
+    const guiaTipo = document.getElementById('f-guia-tipo').value;
+    const guiaData = document.getElementById('f-guia-data').value;
+    if (guiaTipo && guiaData) {
+      await sb.from('guias').insert({
+        cliente_email: clientEmail,
+        tipo: guiaTipo,
+        vencimento: guiaData,
+        status: 'pendente',
+        observacao: `Ref: ${file.name}`,
+        criado_em: new Date().toISOString()
+      });
+      okEl.textContent = `✓ Arquivo enviado para ${clientEmail} (${setor}) e lançado no calendário!`;
+    } else {
+      okEl.textContent = `✓ Arquivo enviado para ${clientEmail} (${setor})!`;
+    }
+    okEl.classList.remove('hidden');
+    fileInput.value='';
+    document.getElementById('f-client').value='';
+    document.getElementById('f-note').value='';
+    document.getElementById('f-guia-tipo').value='';
+    document.getElementById('f-guia-data').value='';
+    loadAdminView();
+  }
   btn.textContent = 'Enviar arquivo'; btn.disabled = false;
 }
 
