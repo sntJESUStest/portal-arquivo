@@ -161,6 +161,20 @@
     .empty-state { text-align: center; padding: 3rem 1rem; color: var(--text-tertiary); font-size: 14px; }
     .loading { text-align: center; padding: 2rem; color: var(--text-tertiary); font-size: 14px; }
 
+    /* NOTIF CHAT TOPBAR */
+    .chat-notif-btn { position: relative; width: 36px; height: 36px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--surface); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
+    .chat-notif-btn:hover { background: var(--bg); }
+    .chat-notif-btn svg { width: 18px; height: 18px; stroke: var(--text-secondary); fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+    .chat-notif-badge { position: absolute; top: -5px; right: -5px; background: #ef4444; color: #fff; font-size: 10px; font-weight: 700; min-width: 18px; height: 18px; border-radius: 99px; display: flex; align-items: center; justify-content: center; padding: 0 4px; border: 2px solid var(--surface); }
+    .chat-notif-popup { position: fixed; top: 56px; right: 0; width: 280px; background: var(--surface); border: 1px solid var(--border); border-radius: 0 0 var(--radius-lg) var(--radius-lg); box-shadow: 0 8px 24px rgba(0,0,0,0.10); z-index: 300; overflow: hidden; }
+    .chat-notif-header { padding: 12px 16px; border-bottom: 1px solid var(--border); font-size: 13px; font-weight: 600; }
+    .chat-notif-item { padding: 10px 16px; border-bottom: 1px solid var(--border); cursor: pointer; transition: background 0.12s; }
+    .chat-notif-item:hover { background: var(--bg); }
+    .chat-notif-item-name { font-size: 13px; font-weight: 600; }
+    .chat-notif-item-msg { font-size: 12px; color: var(--text-secondary); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .chat-notif-item-time { font-size: 11px; color: var(--text-tertiary); margin-top: 2px; }
+    .chat-notif-empty { padding: 1.5rem; text-align: center; font-size: 13px; color: var(--text-tertiary); }
+
     @media (max-width: 600px) {
       .content { padding: 1rem; }
       .stats-grid { grid-template-columns: 1fr 1fr; }
@@ -199,7 +213,15 @@
       <span class="topbar-logo">HP Contabilidade</span>
       <span class="topbar-badge" id="role-badge">Admin</span>
     </div>
-    <button class="btn btn-ghost" onclick="logout()">Sair</button>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <div style="position:relative;">
+        <button class="chat-notif-btn" onclick="toggleChatNotif()" id="chat-notif-trigger" title="Mensagens">
+          <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          <span class="chat-notif-badge hidden" id="chat-notif-count">0</span>
+        </button>
+      </div>
+      <button class="btn btn-ghost" onclick="logout()">Sair</button>
+    </div>
   </div>
 
   <!-- DROPDOWN MENU -->
@@ -244,6 +266,13 @@
       <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
       Sair
     </button>
+  </div>
+
+  <!-- CHAT NOTIF POPUP -->
+  <div id="chat-notif-overlay" class="menu-overlay hidden" onclick="closeChatNotif()"></div>
+  <div id="chat-notif-popup" class="chat-notif-popup hidden">
+    <div class="chat-notif-header">💬 Mensagens não lidas</div>
+    <div id="chat-notif-list"><div class="chat-notif-empty">Nenhuma mensagem nova.</div></div>
   </div>
 
   <div class="content">
@@ -387,6 +416,11 @@ async function showApp() {
   const displayName = dadosCliente?.nome || currentUser.email;
   document.getElementById('menu-user-name').textContent = displayName;
   document.getElementById('menu-user-email').textContent = currentUser.email;
+
+  // Iniciar polling de notificações de chat
+  clearInterval(chatNotifInterval);
+  chatNotifInterval = setInterval(pollChatNotifs, 8000);
+  pollChatNotifs();
 
   if (isAdmin) {
     document.getElementById('admin-view').classList.remove('hidden');
@@ -785,6 +819,99 @@ async function downloadFile(id, path, name) {
   const f = allClientFiles.find(x => x.id === id);
   if (f) f.lido = true;
   renderTabs(); renderClientFiles();
+}
+
+// ── CHAT NOTIF TOPBAR ────────────────────────────────
+let chatNotifInterval = null;
+
+function toggleChatNotif() {
+  const popup = document.getElementById('chat-notif-popup');
+  const ov    = document.getElementById('chat-notif-overlay');
+  const open  = !popup.classList.contains('hidden');
+  if (open) { popup.classList.add('hidden'); ov.classList.add('hidden'); }
+  else { popup.classList.remove('hidden'); ov.classList.remove('hidden'); loadChatNotifs(); }
+}
+
+function closeChatNotif() {
+  document.getElementById('chat-notif-popup').classList.add('hidden');
+  document.getElementById('chat-notif-overlay').classList.add('hidden');
+}
+
+async function loadChatNotifs() {
+  // Para admin: busca últimas mensagens de clientes não lidas
+  // Para cliente: busca últimas mensagens do admin não lidas
+  let query = sb.from('chat').select('*').order('criado_em', { ascending: false });
+
+  if (isAdmin) {
+    query = query.eq('autor', 'cliente');
+  } else {
+    query = query.eq('cliente_email', currentUser.email).eq('autor', 'admin');
+  }
+
+  const { data: msgs } = await query.limit(20);
+  if (!msgs) return;
+
+  // Agrupar por cliente, pegar última mensagem de cada
+  const byClient = {};
+  msgs.forEach(m => {
+    if (!byClient[m.cliente_email]) byClient[m.cliente_email] = m;
+  });
+
+  const notifs = Object.values(byClient);
+  const badge = document.getElementById('chat-notif-count');
+  const list  = document.getElementById('chat-notif-list');
+
+  if (notifs.length === 0) {
+    badge.classList.add('hidden');
+    list.innerHTML = '<div class="chat-notif-empty">Nenhuma mensagem nova.</div>';
+    return;
+  }
+
+  badge.textContent = notifs.length;
+  badge.classList.remove('hidden');
+
+  if (isAdmin) {
+    // Buscar nomes dos clientes
+    const emails = notifs.map(n => n.cliente_email);
+    const { data: clientes } = await sb.from('clientes').select('email, nome').in('email', emails);
+    const nomeMap = {};
+    (clientes || []).forEach(c => { nomeMap[c.email] = c.nome || c.email; });
+
+    list.innerHTML = notifs.map(m => `
+      <div class="chat-notif-item" onclick="abrirChatCliente('${m.cliente_email}')">
+        <div class="chat-notif-item-name">👤 ${nomeMap[m.cliente_email] || m.cliente_email}</div>
+        <div class="chat-notif-item-msg">${m.mensagem}</div>
+        <div class="chat-notif-item-time">${formatDate(m.criado_em)}</div>
+      </div>`).join('');
+  } else {
+    list.innerHTML = notifs.map(m => `
+      <div class="chat-notif-item" onclick="openPanel('chat')">
+        <div class="chat-notif-item-name">💼 HP Contabilidade</div>
+        <div class="chat-notif-item-msg">${m.mensagem}</div>
+        <div class="chat-notif-item-time">${formatDate(m.criado_em)}</div>
+      </div>`).join('');
+  }
+}
+
+async function abrirChatCliente(email) {
+  closeChatNotif();
+  openPanel('chat');
+  // Aguardar o painel abrir e selecionar o cliente
+  setTimeout(async () => {
+    const sel = document.getElementById('chat-client-select');
+    if (sel) { sel.value = email; await loadAdminChat(); }
+  }, 300);
+}
+
+async function pollChatNotifs() {
+  // Verificar novas mensagens periodicamente
+  let query = sb.from('chat').select('id', { count: 'exact' }).order('criado_em', { ascending: false }).limit(1);
+  if (isAdmin) query = query.eq('autor', 'cliente');
+  else query = query.eq('cliente_email', currentUser.email).eq('autor', 'admin');
+  const { count } = await query;
+  const badge = document.getElementById('chat-notif-count');
+  if (count > 0) { badge.textContent = count > 9 ? '9+' : count; badge.classList.remove('hidden'); }
+  else badge.classList.add('hidden');
 }
 
 // ── UTILS ─────────────────────────────────────────────
