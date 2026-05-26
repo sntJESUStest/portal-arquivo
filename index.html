@@ -267,16 +267,18 @@
               <option value="Avisos">Avisos</option>
             </select>
           </div>
-          <div class="field" style="margin:0;"><label>Arquivo</label><input id="f-file" type="file" style="padding:6px 10px;" /></div>
+          <div class="field" style="margin:0;"><label>Arquivo</label><input id="f-file" type="file" style="padding:6px 10px;" onchange="autoDetectSubcat()" /></div>
         </div>
         <div class="field hidden" id="subcategoria-field">
           <label>Subcategoria (Pessoal)</label>
           <select id="f-subcategoria">
+            <option value="Geral">Geral</option>
             <option value="Encargos">Encargos</option>
             <option value="Admissões">Admissões</option>
             <option value="Rescisões">Rescisões</option>
             <option value="Férias">Férias</option>
           </select>
+          <p style="font-size:11px;color:var(--text-tertiary);margin-top:4px;">Detectado automaticamente pelo nome do arquivo. Você pode alterar manualmente.</p>
         </div>
         <div class="field"><label>Notificação</label><input id="f-note" type="text" placeholder="ex: Seu demonstrativo está pronto!" /></div>
         <div id="upload-error" class="error-msg hidden"></div>
@@ -314,7 +316,7 @@
 const SUPABASE_URL = 'https://nacdezqdsouhxgftqaku.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5hY2RlenFkc291aHhnZnRxYWt1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyODU4MjYsImV4cCI6MjA5NDg2MTgyNn0.C1eqGfu7h-oOC0ibw6hzecPsG49e6IrOXrxu0C-mOSY';
 const ADMIN_EMAIL = 'rh2@hporg.cnt.br';
-const SUBCATEGORIAS_PESSOAL = ['Encargos', 'Admissões', 'Rescisões', 'Férias'];
+const SUBCATEGORIAS_PESSOAL = ['Encargos', 'Admissões', 'Rescisões', 'Férias', 'Geral'];
 const SETOR_CLASS = { 'Fiscal':'setor-fiscal','Pessoal':'setor-pessoal','Contábil':'setor-contabil','Financeiro':'setor-financeiro','Avisos':'setor-avisos' };
 
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -333,6 +335,24 @@ function toggleSubcategoria() {
   const field = document.getElementById('subcategoria-field');
   if (setor === 'Pessoal') field.classList.remove('hidden');
   else field.classList.add('hidden');
+}
+
+function detectarSubcategoria(nomeArquivo) {
+  const nome = nomeArquivo.toLowerCase();
+  if (nome.includes('rescis') ) return 'Rescisões';
+  if (nome.includes('admiss') ) return 'Admissões';
+  if (nome.includes('fgts') || nome.includes('darf') || nome.includes('inss') || nome.includes('holerite')) return 'Encargos';
+  if (nome.includes('feria') || nome.includes('féria') || nome.includes('recibo')) return 'Férias';
+  return 'Geral';
+}
+
+function autoDetectSubcat() {
+  const setor = document.getElementById('f-setor').value;
+  if (setor !== 'Pessoal') return;
+  const fileInput = document.getElementById('f-file');
+  if (!fileInput.files[0]) return;
+  const subcat = detectarSubcategoria(fileInput.files[0].name);
+  document.getElementById('f-subcategoria').value = subcat;
 }
 
 // ── AUTH ──────────────────────────────────────────────
@@ -662,7 +682,13 @@ async function uploadFile() {
   const fileInput   = document.getElementById('f-file');
   const note        = document.getElementById('f-note').value.trim();
   const setor       = document.getElementById('f-setor').value;
-  const subcat      = setor === 'Pessoal' ? document.getElementById('f-subcategoria').value : null;
+  let subcat = null;
+  if (setor === 'Pessoal') {
+    const fileInput2 = document.getElementById('f-file');
+    const autoSubcat = fileInput2.files[0] ? detectarSubcategoria(fileInput2.files[0].name) : 'Geral';
+    const manualSubcat = document.getElementById('f-subcategoria').value;
+    subcat = manualSubcat || autoSubcat;
+  }
   const errEl = document.getElementById('upload-error');
   const okEl  = document.getElementById('upload-success');
   const btn   = document.getElementById('upload-btn');
