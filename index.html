@@ -586,6 +586,8 @@ async function loadChat(clientEmail, adminSide) {
     </div>`;
   }).join('');
   el.scrollTop = el.scrollHeight;
+  // Marcar mensagens recebidas como lidas
+  await marcarChatLido(clientEmail);
 }
 
 async function sendChat() {
@@ -838,26 +840,17 @@ function closeChatNotif() {
 }
 
 async function loadChatNotifs() {
-  // Para admin: busca últimas mensagens de clientes não lidas
-  // Para cliente: busca últimas mensagens do admin não lidas
-  let query = sb.from('chat').select('*').order('criado_em', { ascending: false });
-
-  if (isAdmin) {
-    query = query.eq('autor', 'cliente');
-  } else {
-    query = query.eq('cliente_email', currentUser.email).eq('autor', 'admin');
-  }
+  let query = sb.from('chat').select('*').eq('lido', false).order('criado_em', { ascending: false });
+  if (isAdmin) query = query.eq('autor', 'cliente');
+  else query = query.eq('cliente_email', currentUser.email).eq('autor', 'admin');
 
   const { data: msgs } = await query.limit(20);
   if (!msgs) return;
 
-  // Agrupar por cliente, pegar última mensagem de cada
   const byClient = {};
-  msgs.forEach(m => {
-    if (!byClient[m.cliente_email]) byClient[m.cliente_email] = m;
-  });
-
+  msgs.forEach(m => { if (!byClient[m.cliente_email]) byClient[m.cliente_email] = m; });
   const notifs = Object.values(byClient);
+
   const badge = document.getElementById('chat-notif-count');
   const list  = document.getElementById('chat-notif-list');
 
@@ -867,11 +860,10 @@ async function loadChatNotifs() {
     return;
   }
 
-  badge.textContent = notifs.length;
+  badge.textContent = notifs.length > 9 ? '9+' : notifs.length;
   badge.classList.remove('hidden');
 
   if (isAdmin) {
-    // Buscar nomes dos clientes
     const emails = notifs.map(n => n.cliente_email);
     const { data: clientes } = await sb.from('clientes').select('email, nome').in('email', emails);
     const nomeMap = {};
@@ -885,7 +877,7 @@ async function loadChatNotifs() {
       </div>`).join('');
   } else {
     list.innerHTML = notifs.map(m => `
-      <div class="chat-notif-item" onclick="openPanel('chat')">
+      <div class="chat-notif-item" onclick="abrirChatClienteNotif()">
         <div class="chat-notif-item-name">💼 HP Contabilidade</div>
         <div class="chat-notif-item-msg">${m.mensagem}</div>
         <div class="chat-notif-item-time">${formatDate(m.criado_em)}</div>
@@ -893,10 +885,28 @@ async function loadChatNotifs() {
   }
 }
 
+async function marcarChatLido(clienteEmail) {
+  // Marca como lido as mensagens recebidas (não enviadas por mim)
+  const autorOutro = isAdmin ? 'cliente' : 'admin';
+  await sb.from('chat')
+    .update({ lido: true })
+    .eq('cliente_email', clienteEmail)
+    .eq('autor', autorOutro)
+    .eq('lido', false);
+  // Atualizar badge
+  pollChatNotifs();
+}
+
+async function abrirChatClienteNotif() {
+  closeChatNotif();
+  await marcarChatLido(currentUser.email);
+  openPanel('chat');
+}
+
 async function abrirChatCliente(email) {
   closeChatNotif();
+  await marcarChatLido(email);
   openPanel('chat');
-  // Aguardar o painel abrir e selecionar o cliente
   setTimeout(async () => {
     const sel = document.getElementById('chat-client-select');
     if (sel) { sel.value = email; await loadAdminChat(); }
@@ -904,8 +914,7 @@ async function abrirChatCliente(email) {
 }
 
 async function pollChatNotifs() {
-  // Verificar novas mensagens periodicamente
-  let query = sb.from('chat').select('id', { count: 'exact' }).order('criado_em', { ascending: false }).limit(1);
+  let query = sb.from('chat').select('*', { count: 'exact', head: true }).eq('lido', false);
   if (isAdmin) query = query.eq('autor', 'cliente');
   else query = query.eq('cliente_email', currentUser.email).eq('autor', 'admin');
   const { count } = await query;
