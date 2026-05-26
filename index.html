@@ -259,7 +259,7 @@
         <div class="form-row-3" style="margin-bottom:10px;">
           <div class="field" style="margin:0;"><label>Cliente (e-mail)</label><input id="f-client" type="email" placeholder="cliente@email.com" /></div>
           <div class="field" style="margin:0;"><label>Setor</label>
-            <select id="f-setor">
+            <select id="f-setor" onchange="toggleSubcategoria()">
               <option value="Fiscal">Fiscal</option>
               <option value="Pessoal">Pessoal</option>
               <option value="Contábil">Contábil</option>
@@ -268,6 +268,15 @@
             </select>
           </div>
           <div class="field" style="margin:0;"><label>Arquivo</label><input id="f-file" type="file" style="padding:6px 10px;" /></div>
+        </div>
+        <div class="field hidden" id="subcategoria-field">
+          <label>Subcategoria (Pessoal)</label>
+          <select id="f-subcategoria">
+            <option value="Encargos">Encargos</option>
+            <option value="Admissões">Admissões</option>
+            <option value="Rescisões">Rescisões</option>
+            <option value="Férias">Férias</option>
+          </select>
         </div>
         <div class="field"><label>Notificação</label><input id="f-note" type="text" placeholder="ex: Seu demonstrativo está pronto!" /></div>
         <div id="upload-error" class="error-msg hidden"></div>
@@ -284,6 +293,7 @@
       <div id="client-notifications"></div>
       <div class="section-title" style="margin-top:1rem;">Seus arquivos</div>
       <div class="tabs" id="setor-tabs"></div>
+      <div class="tabs" id="subcat-tabs" style="margin-top:-8px;padding-left:8px;border-left:3px solid var(--border);"></div>
       <div id="client-files-list"><div class="loading">Carregando...</div></div>
     </div>
   </div>
@@ -304,16 +314,26 @@
 const SUPABASE_URL = 'https://nacdezqdsouhxgftqaku.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5hY2RlenFkc291aHhnZnRxYWt1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyODU4MjYsImV4cCI6MjA5NDg2MTgyNn0.C1eqGfu7h-oOC0ibw6hzecPsG49e6IrOXrxu0C-mOSY';
 const ADMIN_EMAIL = 'rh2@hporg.cnt.br';
+const SUBCATEGORIAS_PESSOAL = ['Encargos', 'Admissões', 'Rescisões', 'Férias'];
 const SETOR_CLASS = { 'Fiscal':'setor-fiscal','Pessoal':'setor-pessoal','Contábil':'setor-contabil','Financeiro':'setor-financeiro','Avisos':'setor-avisos' };
 
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 let currentUser = null;
 let allClientFiles = [];
 let activeSetor = 'Todos';
+let activeSubcat = null;
 let isAdmin = false;
 let chatInterval = null;
 // Para admin: email do cliente sendo visto no chat
 let chatClientEmail = null;
+
+// ── SUBCATEGORIA ──────────────────────────────────────
+function toggleSubcategoria() {
+  const setor = document.getElementById('f-setor').value;
+  const field = document.getElementById('subcategoria-field');
+  if (setor === 'Pessoal') field.classList.remove('hidden');
+  else field.classList.add('hidden');
+}
 
 // ── AUTH ──────────────────────────────────────────────
 async function login() {
@@ -634,6 +654,7 @@ async function loadAdminView() {
       }).join('')}
     </div>`;
   }).join('');
+  renderSubcatTabs();
 }
 
 async function uploadFile() {
@@ -641,17 +662,18 @@ async function uploadFile() {
   const fileInput   = document.getElementById('f-file');
   const note        = document.getElementById('f-note').value.trim();
   const setor       = document.getElementById('f-setor').value;
+  const subcat      = setor === 'Pessoal' ? document.getElementById('f-subcategoria').value : null;
   const errEl = document.getElementById('upload-error');
   const okEl  = document.getElementById('upload-success');
   const btn   = document.getElementById('upload-btn');
   errEl.classList.add('hidden'); okEl.classList.add('hidden');
   if (!clientEmail || !fileInput.files[0]) { errEl.textContent = 'Preencha o e-mail e selecione um arquivo.'; errEl.classList.remove('hidden'); return; }
   const file = fileInput.files[0];
-  const path = `${clientEmail}/${setor}/${Date.now()}_${file.name}`;
+  const path = subcat ? `${clientEmail}/${setor}/${subcat}/${Date.now()}_${file.name}` : `${clientEmail}/${setor}/${Date.now()}_${file.name}`;
   btn.textContent = 'Enviando...'; btn.disabled = true;
   const { error: uploadErr } = await sb.storage.from('arquivos').upload(path, file);
   if (uploadErr) { errEl.textContent = 'Erro: ' + uploadErr.message; errEl.classList.remove('hidden'); btn.textContent = 'Enviar arquivo'; btn.disabled = false; return; }
-  const { error: dbErr } = await sb.from('notificacoes').insert({ cliente_email: clientEmail, arquivo_nome: file.name, arquivo_path: path, mensagem: note || `Novo arquivo em ${setor}: ${file.name}`, setor, lido: false, criado_em: new Date().toISOString() });
+  const { error: dbErr } = await sb.from('notificacoes').insert({ cliente_email: clientEmail, arquivo_nome: file.name, arquivo_path: path, mensagem: note || `Novo arquivo em ${subcat ? setor+' › '+subcat : setor}: ${file.name}`, setor, subcategoria: subcat, lido: false, criado_em: new Date().toISOString() });
   if (dbErr) { errEl.textContent = 'Erro: ' + dbErr.message; errEl.classList.remove('hidden'); }
   else { okEl.textContent = `✓ Arquivo enviado para ${clientEmail} (${setor})!`; okEl.classList.remove('hidden'); fileInput.value=''; document.getElementById('f-client').value=''; document.getElementById('f-note').value=''; loadAdminView(); }
   btn.textContent = 'Enviar arquivo'; btn.disabled = false;
@@ -670,6 +692,7 @@ async function loadClientView() {
   if (!files) return;
   allClientFiles = files;
   activeSetor = 'Todos';
+  activeSubcat = null;
   const newFiles = files.filter(f => !f.lido);
   document.getElementById('client-notifications').innerHTML = newFiles.map(f => `
     <div class="notif-banner">
@@ -687,10 +710,25 @@ function renderTabs() {
   }).join('');
 }
 
-function selectSetor(setor) { activeSetor = setor; renderTabs(); renderClientFiles(); }
+function selectSetor(setor) { activeSetor = setor; activeSubcat = null; renderTabs(); renderSubcatTabs(); renderClientFiles(); }
+function selectSubcat(subcat) { activeSubcat = subcat; renderSubcatTabs(); renderClientFiles(); }
+
+function renderSubcatTabs() {
+  const el = document.getElementById('subcat-tabs');
+  if (!el) return;
+  if (activeSetor !== 'Pessoal') { el.innerHTML = ''; return; }
+  const subcats = ['Todos', ...SUBCATEGORIAS_PESSOAL];
+  el.innerHTML = subcats.map(s => {
+    const count = s === 'Todos' ? allClientFiles.filter(f => f.setor === 'Pessoal').length : allClientFiles.filter(f => f.setor === 'Pessoal' && f.subcategoria === s).length;
+    return `<button class="tab-btn ${s === (activeSubcat||'Todos') ? 'active' : ''}" style="font-size:12px;padding:4px 12px;" onclick="selectSubcat('${s}')">${s}<span class="tab-count">${count}</span></button>`;
+  }).join('');
+}
 
 function renderClientFiles() {
-  const filtered = activeSetor === 'Todos' ? allClientFiles : allClientFiles.filter(f => f.setor === activeSetor);
+  let filtered = activeSetor === 'Todos' ? allClientFiles : allClientFiles.filter(f => f.setor === activeSetor);
+  if (activeSetor === 'Pessoal' && activeSubcat && activeSubcat !== 'Todos') {
+    filtered = filtered.filter(f => f.subcategoria === activeSubcat);
+  }
   const listEl = document.getElementById('client-files-list');
   if (filtered.length === 0) { listEl.innerHTML = '<div class="empty-state">Nenhum arquivo neste setor ainda.</div>'; return; }
   listEl.innerHTML = filtered.map(f => {
@@ -699,7 +737,7 @@ function renderClientFiles() {
       <div class="file-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
       <div class="file-info">
         <div class="file-name">${f.arquivo_nome}</div>
-        <div class="file-meta">Disponível desde ${formatDate(f.criado_em)}</div>
+        <div class="file-meta">Disponível desde ${formatDate(f.criado_em)}${f.subcategoria ? ' · '+f.subcategoria : ''}</div>
       </div>
       ${f.setor ? `<span class="setor-badge ${fsc}">${f.setor}</span>` : ''}
       <span class="badge ${f.lido ? 'badge-read' : 'badge-new'}">${f.lido ? 'Visto' : 'Novo'}</span>
