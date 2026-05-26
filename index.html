@@ -339,6 +339,10 @@
           <p style="font-size:11px;color:var(--text-tertiary);margin-top:4px;">Detectado automaticamente pelo nome do arquivo. Você pode alterar manualmente.</p>
         </div>
         <div class="field"><label>Notificação</label><input id="f-note" type="text" placeholder="ex: Seu demonstrativo está pronto!" /></div>
+        <div class="field">
+          <label>WhatsApp do cliente (com DDD, ex: 5541999999999)</label>
+          <input id="f-whatsapp" type="text" placeholder="5541999999999 — opcional" />
+        </div>
         <div style="background:var(--bg);border-radius:var(--radius);padding:12px;border:1px solid var(--border);margin-bottom:12px;">
           <p style="font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.05em;">📅 Lançar no Calendário (opcional)</p>
           <div class="form-row">
@@ -395,6 +399,8 @@
 const SUPABASE_URL = 'https://nacdezqdsouhxgftqaku.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5hY2RlenFkc291aHhnZnRxYWt1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyODU4MjYsImV4cCI6MjA5NDg2MTgyNn0.C1eqGfu7h-oOC0ibw6hzecPsG49e6IrOXrxu0C-mOSY';
 const ADMIN_EMAIL = 'rh2@hporg.cnt.br';
+const WA_TOKEN = 'EAANf8ZClPMkQBRmk9fNYuQzZBl2h0ABnw3cJDx8TYEjHNE82FC3SnXFL6lJLzr0omNnY26RwhZA0qJPEyADu1cDiy1xesdU6HI843gLf32puVxZAYkZCgYJOdg59kmbMSBPs6A4PewGfZCMgw3wMeUbKXUtm3eoNRZA6IfcZAdRa1gUQkvsnXIhVPLpybfZCTHcmGg3Rl2dtusPDGz5x9wuCCvswX0MkKrIeSvT23USrvWUZAZCnubOBVmhEF32j025kY7jZAkPgi1BovzxVnjDxS1hV';
+const WA_PHONE_ID = '1144342742092824';
 const SUBCATEGORIAS_PESSOAL = ['Encargos', 'Admissões', 'Rescisões', 'Férias', 'Geral'];
 const SETOR_CLASS = { 'Fiscal':'setor-fiscal','Pessoal':'setor-pessoal','Contábil':'setor-contabil','Financeiro':'setor-financeiro','Avisos':'setor-avisos' };
 
@@ -538,6 +544,7 @@ async function renderPanelDados(body) {
         <div class="field" style="margin:0;"><label>Nome completo</label><input id="d-nome" type="text" placeholder="João da Silva" /></div>
       </div>
       <div class="field"><label>Empresa</label><input id="d-empresa" type="text" placeholder="Nome da empresa" /></div>
+      <div class="field"><label>WhatsApp (com DDD, ex: 5541999999999)</label><input id="d-whatsapp" type="text" placeholder="5541999999999" /></div>
       <div id="d-msg" class="hidden"></div>
       <button class="btn btn-primary" onclick="salvarDados()">Salvar</button>
     </div>`;
@@ -549,7 +556,7 @@ async function renderPanelDados(body) {
             <div class="cert-name">${c.nome || '—'}</div>
             <div class="cert-date">${c.email} · ${c.empresa || 'Sem empresa'}</div>
           </div>
-          <button class="btn" style="font-size:12px;padding:5px 10px;" onclick="preencherDados('${c.email}','${c.nome||''}','${c.empresa||''}')">Editar</button>
+          <button class="btn" style="font-size:12px;padding:5px 10px;" onclick="preencherDados('${c.email}','${c.nome||''}','${c.empresa||''}','${c.whatsapp||''}')">Editar</button>
         </div>`;
       });
     }
@@ -565,10 +572,11 @@ async function renderPanelDados(body) {
   }
 }
 
-function preencherDados(email, nome, empresa) {
+function preencherDados(email, nome, empresa, whatsapp) {
   document.getElementById('d-email').value = email;
   document.getElementById('d-nome').value = nome;
   document.getElementById('d-empresa').value = empresa;
+  if (document.getElementById('d-whatsapp')) document.getElementById('d-whatsapp').value = whatsapp||'';
 }
 
 async function salvarDados() {
@@ -577,7 +585,8 @@ async function salvarDados() {
   const empresa = document.getElementById('d-empresa').value.trim();
   const msg     = document.getElementById('d-msg');
   if (!email) { msg.className = 'error-msg'; msg.textContent = 'Informe o e-mail.'; msg.classList.remove('hidden'); return; }
-  const { error } = await sb.from('clientes').upsert({ email, nome, empresa }, { onConflict: 'email' });
+  const whatsappDados = document.getElementById('d-whatsapp') ? document.getElementById('d-whatsapp').value.trim() : null;
+  const { error } = await sb.from('clientes').upsert({ email, nome, empresa, whatsapp: whatsappDados||null }, { onConflict: 'email' });
   if (error) { msg.className = 'error-msg'; msg.textContent = 'Erro: ' + error.message; }
   else { msg.className = 'success-msg'; msg.textContent = '✓ Dados salvos com sucesso!'; }
   msg.classList.remove('hidden');
@@ -764,6 +773,29 @@ async function loadAdminView() {
   renderSubcatTabs();
 }
 
+async function enviarWhatsApp(telefone, clientEmail, fileName, setor, note) {
+  if (!telefone) return;
+  const mensagem = note || `Novo documento disponível no seu portal HP Contabilidade!\n\n📄 *${fileName}*\n📂 Setor: ${setor}\n\nAcesse agora: https://portal-arquivo.vercel.app`;
+  try {
+    await fetch(`https://graph.facebook.com/v19.0/${WA_PHONE_ID}/messages`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${WA_TOKEN}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        messaging_product: 'whatsapp',
+        to: telefone.replace(/\D/g, ''),
+        type: 'text',
+        text: { body: mensagem }
+      })
+    });
+    console.log('WhatsApp enviado para', telefone);
+  } catch(e) {
+    console.error('Erro WhatsApp:', e);
+  }
+}
+
 async function uploadFile() {
   const clientEmail = document.getElementById('f-client').value.trim();
   const fileInput   = document.getElementById('f-file');
@@ -789,6 +821,10 @@ async function uploadFile() {
   const { error: dbErr } = await sb.from('notificacoes').insert({ cliente_email: clientEmail, arquivo_nome: file.name, arquivo_path: path, mensagem: note || `Novo arquivo em ${subcat ? setor+' › '+subcat : setor}: ${file.name}`, setor, subcategoria: subcat, lido: false, criado_em: new Date().toISOString() });
   if (dbErr) { errEl.textContent = 'Erro: ' + dbErr.message; errEl.classList.remove('hidden'); }
   else {
+    // Enviar WhatsApp
+    const whatsapp = document.getElementById('f-whatsapp').value.trim();
+    await enviarWhatsApp(whatsapp, clientEmail, file.name, setor, note);
+
     // Lançar no calendário se preenchido
     const guiaTipo = document.getElementById('f-guia-tipo').value;
     const guiaData = document.getElementById('f-guia-data').value;
@@ -811,6 +847,7 @@ async function uploadFile() {
     document.getElementById('f-note').value='';
     document.getElementById('f-guia-tipo').value='';
     document.getElementById('f-guia-data').value='';
+    document.getElementById('f-whatsapp').value='';
     loadAdminView();
   }
   btn.textContent = 'Enviar arquivo'; btn.disabled = false;
