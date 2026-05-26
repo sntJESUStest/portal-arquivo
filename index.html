@@ -983,8 +983,8 @@ function renderCalendario() {
             <div class="guia-meta">${g.valor ? 'R$ '+parseFloat(g.valor).toFixed(2).replace('.',',') : 'Sem valor'} ${g.observacao ? '· '+g.observacao : ''}</div>
           </div>
           <span class="${badgeClass}">${badgeLabel}</span>
-          ${isAdmin ? `<button class="btn" style="font-size:11px;padding:4px 8px;" onclick="toggleGuiaStatus('${g.id}','${g.status}')">${g.status==='pago'?'Reabrir':'Marcar pago'}</button>
-          <button class="btn-delete" onclick="deletarGuia('${g.id}')"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg></button>` : ''}
+          <button class="btn" style="font-size:11px;padding:4px 8px;" onclick="toggleGuiaStatus('${g.id}','${g.status}')">${g.status==='pago'?'Reabrir':'Marcar pago'}</button>
+          ${isAdmin ? `<button class="btn-delete" onclick="deletarGuia('${g.id}')"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg></button>` : ''}
         </div>`;
       }).join('')}
     </div>`;
