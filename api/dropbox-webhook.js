@@ -6,17 +6,17 @@ const DROPBOX_TOKEN = 'sl.u.AGhmlm6wcjFkvAdrRjEXHzRh8Mg0A8Ci3-6b7NPud6TR43O7TKEt
 
 const DROPBOX_ROOT = '/BACKUP/RH';
 
-const MESES = {
-  '01': 'Janeiro', '02': 'Fevereiro', '03': 'Março', '04': 'Abril',
-  '05': 'Maio', '06': 'Junho', '07': 'Julho', '08': 'Agosto',
-  '09': 'Setembro', '10': 'Outubro', '11': 'Novembro', '12': 'Dezembro'
-};
-
 const SETORES_MAP = {
   'FISCAL': 'Fiscal', 'PESSOAL': 'Pessoal', 'CONTABIL': 'Contábil',
   'CONTÁBIL': 'Contábil', 'FINANCEIRO': 'Financeiro', 'AVISOS': 'Avisos',
   'fiscal': 'Fiscal', 'pessoal': 'Pessoal', 'contabil': 'Contábil',
   'financeiro': 'Financeiro', 'avisos': 'Avisos'
+};
+
+const MESES = {
+  '01': 'Janeiro', '02': 'Fevereiro', '03': 'Março', '04': 'Abril',
+  '05': 'Maio', '06': 'Junho', '07': 'Julho', '08': 'Agosto',
+  '09': 'Setembro', '10': 'Outubro', '11': 'Novembro', '12': 'Dezembro'
 };
 
 const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
