@@ -344,10 +344,7 @@
           <p style="font-size:11px;color:var(--text-tertiary);margin-top:4px;">Detectado automaticamente pelo nome do arquivo. Você pode alterar manualmente.</p>
         </div>
         <div class="field"><label>Notificação</label><input id="f-note" type="text" placeholder="ex: Seu demonstrativo está pronto!" /></div>
-        <div class="field">
-          <label>WhatsApp do cliente (com DDD, ex: 5541999999999)</label>
-          <input id="f-whatsapp" type="text" placeholder="5541999999999 — opcional" />
-        </div>
+
         <div style="background:var(--bg);border-radius:var(--radius);padding:12px;border:1px solid var(--border);margin-bottom:12px;">
           <p style="font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.05em;">📅 Lançar no Calendário (opcional)</p>
           <div class="form-row">
@@ -857,8 +854,9 @@ async function uploadFile() {
   const { error: dbErr } = await sb.from('notificacoes').insert({ cliente_email: clientEmail, arquivo_nome: file.name, arquivo_path: path, mensagem: note || `Novo arquivo em ${subcat ? setor+' › '+subcat : setor}: ${file.name}`, setor, subcategoria: subcat, lido: false, criado_em: new Date().toISOString() });
   if (dbErr) { errEl.textContent = 'Erro: ' + dbErr.message; errEl.classList.remove('hidden'); }
   else {
-    // Enviar WhatsApp
-    const whatsapp = document.getElementById('f-whatsapp').value.trim();
+    // Enviar WhatsApp automaticamente pelo cadastro
+    const clienteWa = clientesCache.find(c => c.email === clientEmail);
+    const whatsapp = clienteWa?.whatsapp || '';
     await enviarWhatsApp(whatsapp, clientEmail, file.name, setor, note);
 
     // Lançar no calendário se preenchido
@@ -883,7 +881,6 @@ async function uploadFile() {
     document.getElementById('f-note').value='';
     document.getElementById('f-guia-tipo').value='';
     document.getElementById('f-guia-data').value='';
-    document.getElementById('f-whatsapp').value='';
     loadAdminView();
   }
   btn.textContent = 'Enviar arquivo'; btn.disabled = false;
