@@ -315,7 +315,12 @@
       <div class="section-title">Enviar arquivo</div>
       <div class="card" style="margin-bottom:1.5rem;">
         <div class="form-row-3" style="margin-bottom:10px;">
-          <div class="field" style="margin:0;"><label>Cliente (e-mail)</label><input id="f-client" type="email" placeholder="cliente@email.com" /></div>
+          <div class="field" style="margin:0;"><label>Cliente</label>
+            <select id="f-client-select" onchange="selecionarCliente()">
+              <option value="">Selecione o cliente...</option>
+            </select>
+            <input type="hidden" id="f-client" />
+          </div>
           <div class="field" style="margin:0;"><label>Setor</label>
             <select id="f-setor" onchange="toggleSubcategoria()">
               <option value="Fiscal">Fiscal</option>
@@ -414,6 +419,31 @@ let chatInterval = null;
 // Para admin: email do cliente sendo visto no chat
 let chatClientEmail = null;
 
+// ── CLIENTES SELECT ───────────────────────────────────
+let clientesCache = [];
+
+async function carregarClientesSelect() {
+  const { data } = await sb.from('clientes').select('email, nome, codigo, whatsapp').order('codigo');
+  clientesCache = data || [];
+  const sel = document.getElementById('f-client-select');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">Selecione o cliente...</option>' +
+    clientesCache.map(c => {
+      const label = c.codigo ? `${c.codigo} - ${c.nome || c.email}` : (c.nome || c.email);
+      return `<option value="${c.email}">${label}</option>`;
+    }).join('');
+}
+
+function selecionarCliente() {
+  const sel = document.getElementById('f-client-select');
+  document.getElementById('f-client').value = sel.value;
+  // Preencher whatsapp automaticamente
+  const cliente = clientesCache.find(c => c.email === sel.value);
+  if (cliente && document.getElementById('f-whatsapp')) {
+    document.getElementById('f-whatsapp').value = cliente.whatsapp || '';
+  }
+}
+
 // ── SUBCATEGORIA ──────────────────────────────────────
 function toggleSubcategoria() {
   const setor = document.getElementById('f-setor').value;
@@ -481,6 +511,7 @@ async function showApp() {
   if (isAdmin) {
     document.getElementById('admin-view').classList.remove('hidden');
     document.getElementById('client-view').classList.add('hidden');
+    carregarClientesSelect();
     loadAdminView();
   } else {
     document.getElementById('client-view').classList.remove('hidden');
@@ -542,6 +573,9 @@ async function renderPanelDados(body) {
       <div class="form-row" style="margin-bottom:10px;">
         <div class="field" style="margin:0;"><label>E-mail do cliente</label><input id="d-email" type="email" placeholder="cliente@email.com" /></div>
         <div class="field" style="margin:0;"><label>Nome completo</label><input id="d-nome" type="text" placeholder="João da Silva" /></div>
+          </div>
+          <div class="form-row" style="margin-bottom:10px;">
+            <div class="field" style="margin:0;"><label>Código do cliente</label><input id="d-codigo" type="text" placeholder="ex: 2" /></div>
       </div>
       <div class="field"><label>Empresa</label><input id="d-empresa" type="text" placeholder="Nome da empresa" /></div>
       <div class="field"><label>WhatsApp (com DDD, ex: 5541999999999)</label><input id="d-whatsapp" type="text" placeholder="5541999999999" /></div>
@@ -556,7 +590,7 @@ async function renderPanelDados(body) {
             <div class="cert-name">${c.nome || '—'}</div>
             <div class="cert-date">${c.email} · ${c.empresa || 'Sem empresa'}</div>
           </div>
-          <button class="btn" style="font-size:12px;padding:5px 10px;" onclick="preencherDados('${c.email}','${c.nome||''}','${c.empresa||''}','${c.whatsapp||''}')">Editar</button>
+          <button class="btn" style="font-size:12px;padding:5px 10px;" onclick="preencherDados('${c.email}','${c.nome||''}','${c.empresa||''}','${c.whatsapp||''}','${c.codigo||''}')">Editar</button>
         </div>`;
       });
     }
@@ -572,11 +606,12 @@ async function renderPanelDados(body) {
   }
 }
 
-function preencherDados(email, nome, empresa, whatsapp) {
+function preencherDados(email, nome, empresa, whatsapp, codigo) {
   document.getElementById('d-email').value = email;
   document.getElementById('d-nome').value = nome;
   document.getElementById('d-empresa').value = empresa;
   if (document.getElementById('d-whatsapp')) document.getElementById('d-whatsapp').value = whatsapp||'';
+  if (document.getElementById('d-codigo')) document.getElementById('d-codigo').value = codigo||'';
 }
 
 async function salvarDados() {
@@ -586,7 +621,8 @@ async function salvarDados() {
   const msg     = document.getElementById('d-msg');
   if (!email) { msg.className = 'error-msg'; msg.textContent = 'Informe o e-mail.'; msg.classList.remove('hidden'); return; }
   const whatsappDados = document.getElementById('d-whatsapp') ? document.getElementById('d-whatsapp').value.trim() : null;
-  const { error } = await sb.from('clientes').upsert({ email, nome, empresa, whatsapp: whatsappDados||null }, { onConflict: 'email' });
+  const codigoDados = document.getElementById('d-codigo') ? document.getElementById('d-codigo').value.trim() : null;
+  const { error } = await sb.from('clientes').upsert({ email, nome, empresa, whatsapp: whatsappDados||null, codigo: codigoDados||null }, { onConflict: 'email' });
   if (error) { msg.className = 'error-msg'; msg.textContent = 'Erro: ' + error.message; }
   else { msg.className = 'success-msg'; msg.textContent = '✓ Dados salvos com sucesso!'; }
   msg.classList.remove('hidden');
