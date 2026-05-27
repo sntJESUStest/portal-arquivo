@@ -429,7 +429,7 @@ async function carregarClientesSelect() {
   if (!sel) return;
   sel.innerHTML = '<option value="">Selecione o cliente...</option>' +
     clientesCache.map(c => {
-      const label = c.codigo && c.empresa ? `${c.codigo} - ${c.empresa}` : c.codigo ? `${c.codigo} - ${c.nome || c.email}` : (c.empresa || c.nome || c.email);
+      const label = c.codigo ? `${c.codigo} - ${c.empresa || c.nome || c.email}` : (c.empresa || c.nome || c.email);
       return `<option value="${c.email}">${label}</option>`;
     }).join('');
 }
