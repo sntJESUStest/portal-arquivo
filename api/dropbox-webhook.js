@@ -34,20 +34,35 @@ module.exports = async (req, res) => {
 
 async function processarAlteracoes() {
   try {
-    // Listar BACKUP/RH
-    const response = await fetch('https://api.dropboxapi.com/2/files/list_folder', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${DROPBOX_TOKEN}`,
-        'Content-Type': 'application/json',
-        'Dropbox-API-Path-Root': JSON.stringify({".tag": "home"})
-      },
-      body: JSON.stringify({
-        path: DROPBOX_ROOT,
-        recursive: true,
-        include_deleted: false
-      })
-    });
+    // Testar caminhos possíveis para encontrar BACKUP/RH
+    const caminhos = ['/BACKUP/RH', '/Backup/RH', '/backup/rh', '/PC/BACKUP/RH', '/PC/Backup/RH'];
+    let data = null;
+    for (const caminho of caminhos) {
+      const testRes = await fetch('https://api.dropboxapi.com/2/files/list_folder', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${DROPBOX_TOKEN}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ path: caminho, recursive: false, include_deleted: false })
+      });
+      const testText = await testRes.text();
+      console.log(`Testando ${caminho}: status ${testRes.status}`);
+      if (testRes.status === 200) {
+        console.log(`✓ ENCONTRADO: ${caminho}`);
+        data = { entries: [] }; // placeholder
+        // Agora listar recursivamente
+        const fullRes = await fetch('https://api.dropboxapi.com/2/files/list_folder', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${DROPBOX_TOKEN}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ path: caminho, recursive: true, include_deleted: false })
+        });
+        data = await fullRes.json();
+        break;
+      }
+    }
+    if (!data) { console.error('Nenhum caminho encontrado!'); return; }
+    const response = { status: 200 };
 
     const rawText = await response.text();
     console.log('Dropbox status:', response.status);
