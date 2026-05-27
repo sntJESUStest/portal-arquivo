@@ -47,7 +47,18 @@ async function processarAlteracoes() {
       })
     });
 
-    const data = await response.json();
+    const rawText = await response.text();
+    console.log('Dropbox status:', response.status);
+    console.log('Dropbox resposta:', rawText.substring(0, 200));
+
+    let data;
+    try {
+      data = JSON.parse(rawText);
+    } catch(e) {
+      console.error('Erro ao parsear resposta:', rawText.substring(0, 300));
+      return;
+    }
+
     if (!data.entries) { console.error('Erro Dropbox:', JSON.stringify(data)); return; }
 
     const arquivos = data.entries.filter(e => e['.tag'] === 'file');
