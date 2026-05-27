@@ -34,6 +34,20 @@ module.exports = async (req, res) => {
 
 async function processarAlteracoes() {
   try {
+    // Primeiro listar a raiz para descobrir estrutura
+    const rootRes = await fetch('https://api.dropboxapi.com/2/files/list_folder', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${DROPBOX_TOKEN}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ path: '', recursive: false, include_deleted: false })
+    });
+    const rootText = await rootRes.text();
+    console.log('ROOT status:', rootRes.status);
+    console.log('ROOT pastas:', rootText.substring(0, 500));
+
+    // Agora listar BACKUP/RH
     const response = await fetch('https://api.dropboxapi.com/2/files/list_folder', {
       method: 'POST',
       headers: {
