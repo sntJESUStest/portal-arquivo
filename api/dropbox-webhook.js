@@ -1,22 +1,24 @@
 const { createClient } = require('@supabase/supabase-js');
 
 const SUPABASE_URL = 'https://nacdezqdsouhxgftqaku.supabase.co';
-const SUPABASE_KEY = 'REDACTED_SUPABASE_KEY';
-const DROPBOX_TOKEN = 'sl.u.AGhmlm6wcjFkvAdrRjEXHzRh8Mg0A8Ci3-6b7NPud6TR43O7TKEtwG8TJ36PRv2OiMsmuQxm0ubL64R48ypmSQHO4ZxI2dDMp5RXmVSUzHyc4X3MSo6DXAC8nXcdDJaUCP-9YfUwmrshByoNGT_yanZDh6x8QzK_HvJkaaer1AtNH0lQMiSv32OLKiWyP5IMlMfCrNy-GW4D3t1QlQ5j1KoRG0Kum6ieReVl2EoEC-LW-ZcGNLgyNKGt-R8l4qHfkAK4EILqOl33qZklteb26uZlE4tC10d_SvJ14QoXpxAaqjl2YLW4FgZnxf1ZQL_njrCUqxqgeedI7QYQavZUTPoVO6WwgqztDOGrjMzObjVzVvFCh05sqnF9VoGjHAikFwiR6sp7y7ucdUWNBZANqbL7sjeCmqL8Ixgqv0UQSCIUoYl53Qj1tKr8NgNquXeotNCWRS51SCJFAk9Z9Bu2RvnQeY2dOWOd9DeFz4PEyslAJkbZ9CdXR3NdgwHTPZk08lG_YlVFMaSbjfM97H_zSn_vwfbuLNCW-IhqGCEXCxXFrWmAQ2002r0LrTd83UcBevsPX60gym0WNuaE-On7S8xxuEML_dpWYSKPgMan358vVl4WOeDdr2pacavVjAtIc4kqZJoiSOwxCjkRMMkkjA3fcwglcPd8PvVxfdHUJK2YC7EdhXGrG7dXXDqrmCGVRigRN6DewgPkUJ-7GuJVWL0hH3MH5aBUr3h9WgCd5cDXgmJ8LnHxRnL-PadEC7uTAjokPXC7FzQZrUYHWAWKCQ2Xp-xHBoCFvDIsqgi8vvfxW0PxOMXFL5QRCrme_brbyI_3chfpZ1Ii-QaMCC-X0gOjYSr7ZZVwc9-ISnIWS51GaY4e1BU19Zg3-9GgonkiD1mel_Mh5pdSKtK7E_7BId7HbyxQJ-tMcl048JdjbGex1wnF8IEAQ6uASFtCBfIH5Hfew-zFDEGCP_gp2ypBqBgobZ4JhjnDYTlSmP9etffe0P1CGAiQcSbe3P3OPuwwJ8Txp8gos9AyFDsM8z6L6rvs7PQqnLWpZOaDgokmHuqHmjY_Yyt7En5u-HTxHAUHMm9QoLgkL1-5tMpzkWjH8Y-BiYlErI1BByZa9Juzi5-dxc48vncbhOT-KmMvR8vTs_Rpsbmb34UQMk8jpr5_Vz5BZGnQWgRr9iER5GvW0fCTEUl_8HvGE2MRWKpDx2YX3VVJOWw9fTaJyeDPWp_aa3LdW_3atTG81nmiZGZnEIC34O1RjTplU-SFjxvwXbBnwGSCozYSdMnpkYGp_o1RIUN3X4qLzS6H9mtBFWuBvBa-S7DYwi2KzR6bexJiMpxnTQoKYCQoJ7tSy992dG0Tr-w96vd25UbVodNrziLwnNV20mVxAmRJHWpWXDUWcy5Ghb7VvsAMswYKEadlhg1CYk6I';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5hY2RlenFkc291aHhnZnRxYWt1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyODU4MjYsImV4cCI6MjA5NDg2MTgyNn0.C1eqGfu7h-oOC0ibw6hzecPsG49e6IrOXrxu0C-mOSY';
+const DROPBOX_TOKEN = 'sl.u.AGglqTmVmfrATsfTKaUhv-sHSShtDDZee_VlYxRwKuM7jNWqJ9tXet3-taovm1Vb9UZFJfGAmMZzg7GgwDCGA1zJM6kseaCJ7upXpk24OqEc526krmWSdLZF5mJz0_zWZlaOLolOaS70dOnWjpo-y3Ol9I3hD5VRUz8nG8A9yetzj97BKBzQAfQg7SwZo7YVuqXp0G5TsrRU9tCsCyF2lfQ7hJweVWULIhM2hoDQcPTAUdwl21tFzW2BbQyC5kpFgRqR51dZW5ZffaiL0X7A6GkcKJfEXKBI5n_c9B_nx3WNG7HeImi56Y0jCn4me8btekboc4wYsHHmUvEhG9rgZptD5wypk-YXlVDr5xZI-lNh2RFSmOxI8YPdbZ2t3DDd07rRRDovbHzUwY6epclGbsBWfAeJ7WzvnzLDDI7p6LMZYUlJyGKcwToVEnJLaT8nbO2qWdGzBFV1EDJd4BH98TpsuZ4NOiJBvkBkBJFlHf7frUikOvKhMUI93Y6qAmc08Q_j0LTwkwUJGAFEnBklXB9hxzcPBVURy5vuz97ajJuQCrNZubzJJQfPHA020g61HzbC0I3q0CLtSB0RD7bkNFEn1U0DCFOukvyoiAZkNJUoLFUDqKWLffYj6IFG2OxKLhihlR3yDJBTYj6l1BuBuc5eMJ6nBkF54fxa2Q4tgchfj6nUpj-9ZUmHQDtkMjKVfq9nDpAUlng9CiRdPzI25zqSYs_O3b9KGHRSTTc6vcPLAXfQGMAV5J6yGA16RuSl2Fk2jGP3bNNuqjqzx5XCAeKWulITTEGqJ9RMWprHDYqle-lE70i9lh5hU9Hfej8aoqMQlW6CTHX4aRVsXLtY1PLbo5_HPedPA5zQ1UKwoAhToi2uJo-1g8b-r9jXSBQ3NiIt8Gj2QdG6rEb1AcW1tOzc25VNTPzbcplKkW3AKjy7Dtk8xwqjjgc5NA6oO_TQR0lt0TDpJWMeo7KHUBd1JOW-0OFKbcq95ket5o3AmHGBoiMz2OvRInzmRm5oadHM9HIFUFJdA-lO6QFtw1qWQdQcXwpIaWtvk0wJPtLoncRN-CPHZA_e6blPisdO6NB-6ibmVMSBsCxNCV9Cqne6NCiteY5Z4oyomCmPJLXsqQkY46oM-qDvo_EwldPiiTqHrDLsFV3Y2HuLuaD_L2sfearadRvZk-5zwvAmtHykX_gayuUCXbwnV8FjGOoKKUfrTiALdOJNcmDOnghtITB3aZ4o7mH1pl-AR-r9TKeHPVsfJqDwIYFubr_cWbEp4lo8KCG4dQzvKfuZ7Ib5oZ-kj3kxHVR9meVWBU2SekCWxT67m47Xy-5JCRxKklFBxdQuE4gtmN_w8pKSLuljoU8wUama41MgqJVuIl2yOv28SXP2Wif6Uf-GHqKhh4MP71rE4fv_P21CwCjxn2_hd9aH9uX_';
 
-const DROPBOX_ROOT = '/BACKUP/RH';
-
-const SETORES_MAP = {
-  'FISCAL': 'Fiscal', 'PESSOAL': 'Pessoal', 'CONTABIL': 'Contábil',
-  'CONTÁBIL': 'Contábil', 'FINANCEIRO': 'Financeiro', 'AVISOS': 'Avisos',
-  'fiscal': 'Fiscal', 'pessoal': 'Pessoal', 'contabil': 'Contábil',
-  'financeiro': 'Financeiro', 'avisos': 'Avisos'
-};
+const DROPBOX_ROOT = '/app';
 
 const MESES = {
   '01': 'Janeiro', '02': 'Fevereiro', '03': 'Março', '04': 'Abril',
   '05': 'Maio', '06': 'Junho', '07': 'Julho', '08': 'Agosto',
   '09': 'Setembro', '10': 'Outubro', '11': 'Novembro', '12': 'Dezembro'
+};
+
+const SETORES_MAP = {
+  'FISCAL': 'Fiscal', 'PESSOAL': 'Pessoal', 'CONTABIL': 'Contábil',
+  'CONTÁBIL': 'Contábil', 'FINANCEIRO': 'Financeiro', 'AVISOS': 'Avisos',
+  'fiscal': 'Fiscal', 'pessoal': 'Pessoal', 'contabil': 'Contábil',
+  'financeiro': 'Financeiro', 'avisos': 'Avisos',
+  'Fiscal': 'Fiscal', 'Pessoal': 'Pessoal', 'Contábil': 'Contábil',
+  'Financeiro': 'Financeiro', 'Avisos': 'Avisos'
 };
 
 const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -25,92 +27,73 @@ module.exports = async (req, res) => {
   if (req.method === 'GET') {
     return res.status(200).send(req.query.challenge);
   }
-
   await processarAlteracoes();
   res.status(200).send('OK');
 };
 
 async function processarAlteracoes() {
   try {
-    const caminhos = ['/BACKUP/RH', '/Backup/RH', '/backup/rh', '/PC/BACKUP/RH', '/PC/Backup/RH'];
+    console.log('Iniciando busca no Dropbox:', DROPBOX_ROOT);
 
-    let data = null;
-    let caminhoEncontrado = null;
+    const response = await fetch('https://api.dropboxapi.com/2/files/list_folder', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${DROPBOX_TOKEN}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        path: DROPBOX_ROOT,
+        recursive: true,
+        include_deleted: false
+      })
+    });
 
-    for (const caminho of caminhos) {
-      const res = await fetch('https://api.dropboxapi.com/2/files/list_folder', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${DROPBOX_TOKEN}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          path: caminho,
-          recursive: true,
-          include_deleted: false
-        })
-      });
+    const rawText = await response.text();
+    console.log('Status:', response.status);
+    console.log('Resposta:', rawText.substring(0, 300));
 
-      console.log(`Testando ${caminho}: status ${res.status}`);
-
-      if (res.status === 200) {
-        data = await res.json();
-        caminhoEncontrado = caminho;
-        console.log(`✓ ENCONTRADO: ${caminhoEncontrado}`);
-        break;
-      }
-    }
-
-    if (!data || !data.entries) {
-      console.error('Nenhum caminho válido encontrado no Dropbox');
+    if (response.status !== 200) {
+      console.error('Erro Dropbox:', rawText);
       return;
     }
 
-    console.log('Dropbox OK, itens:', data.entries.length);
-
+    const data = JSON.parse(rawText);
     const arquivos = data.entries.filter(e => e['.tag'] === 'file');
+    console.log(`Arquivos encontrados: ${arquivos.length}`);
 
     const { data: clientes } = await sb.from('clientes').select('*');
 
     for (const arquivo of arquivos) {
       const pathSemRoot = arquivo.path_display.replace(DROPBOX_ROOT + '/', '');
       const partes = pathSemRoot.split('/').filter(Boolean);
+      console.log(`Processando: ${arquivo.path_display} → partes: ${JSON.stringify(partes)}`);
 
       if (partes.length < 4) continue;
 
       const [nomeEmpresa, setorRaw, mesAno, nomeArquivo] = partes;
+      const setor = SETORES_MAP[setorRaw] || SETORES_MAP[setorRaw?.toUpperCase()];
+      if (!setor) { console.log(`Setor não reconhecido: ${setorRaw}`); continue; }
 
-      const setor =
-        SETORES_MAP[setorRaw] ||
-        SETORES_MAP[setorRaw?.toUpperCase()] ||
-        SETORES_MAP[setorRaw?.toLowerCase()];
-
-      if (!setor) continue;
-
-      const [mes, ano] = mesAno.split('-');
+      const partesMesAno = mesAno.split('-');
+      if (partesMesAno.length < 2) continue;
+      const mes = partesMesAno[0];
+      const ano = partesMesAno[1];
       const mesNome = MESES[mes];
-
-      if (!mesNome || !ano) continue;
+      if (!mesNome || !ano) { console.log(`Mês/ano inválido: ${mesAno}`); continue; }
 
       const cliente = clientes?.find(c =>
         c.empresa?.toLowerCase().trim() === nomeEmpresa.toLowerCase().trim()
       );
+      if (!cliente) { console.log(`Cliente não encontrado: "${nomeEmpresa}"`); continue; }
 
-      if (!cliente) {
-        console.log(`Cliente não encontrado: ${nomeEmpresa}`);
-        continue;
-      }
-
-      const { data: existente } = await sb
-        .from('notificacoes')
+      const { data: existente } = await sb.from('notificacoes')
         .select('id')
         .eq('arquivo_nome', nomeArquivo)
         .eq('cliente_email', cliente.email)
         .eq('ano', ano)
         .eq('mes', mesNome)
         .maybeSingle();
-
-      if (existente) continue;
+      if (existente) { console.log(`Já importado: ${nomeArquivo}`); continue; }
 
       const fileRes = await fetch('https://content.dropboxapi.com/2/files/download', {
         method: 'POST',
@@ -121,38 +104,27 @@ async function processarAlteracoes() {
       });
 
       const fileBuffer = await fileRes.arrayBuffer();
-
-      const storagePath =
-        `${cliente.email}/${setor}/${ano}/${mes}/${Date.now()}_${nomeArquivo}`;
+      const storagePath = `${cliente.email}/${setor}/${ano}/${mes}/${Date.now()}_${nomeArquivo}`;
 
       const { error: uploadErr } = await sb.storage
         .from('arquivos')
-        .upload(storagePath, fileBuffer, {
-          contentType: 'application/octet-stream',
-          upsert: false
-        });
+        .upload(storagePath, fileBuffer, { contentType: 'application/octet-stream', upsert: false });
 
-      if (uploadErr) {
-        console.error('Erro upload:', uploadErr.message);
-        continue;
-      }
+      if (uploadErr) { console.error('Erro upload:', uploadErr.message); continue; }
 
       await sb.from('notificacoes').insert({
         cliente_email: cliente.email,
         arquivo_nome: nomeArquivo,
         arquivo_path: storagePath,
         mensagem: `Novo documento disponível em ${setor} - ${mesNome}/${ano}`,
-        setor,
-        ano,
-        mes: mesNome,
+        setor, ano, mes: mesNome,
         lido: false,
         criado_em: new Date().toISOString()
       });
 
       console.log(`✓ Importado: ${nomeArquivo} → ${cliente.email}`);
     }
-
   } catch (err) {
-    console.error('Erro geral:', err);
+    console.error('Erro geral:', err.message);
   }
 }
