@@ -314,7 +314,7 @@
       </div>
       <div class="section-title">Enviar arquivo</div>
       <div class="card" style="margin-bottom:1.5rem;">
-        <div class="form-row-3" style="margin-bottom:10px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr;gap:10px;margin-bottom:10px;">
           <div class="field" style="margin:0;"><label>Cliente</label>
             <select id="f-client-select" onchange="selecionarCliente()">
               <option value="">Selecione o cliente...</option>
@@ -328,6 +328,32 @@
               <option value="Contábil">Contábil</option>
               <option value="Financeiro">Financeiro</option>
               <option value="Avisos">Avisos</option>
+            </select>
+          </div>
+          <div class="field" style="margin:0;"><label>Ano</label>
+            <select id="f-ano">
+              <option value="">Atual</option>
+              <option value="2023">2023</option>
+              <option value="2024">2024</option>
+              <option value="2025">2025</option>
+              <option value="2026">2026</option>
+            </select>
+          </div>
+          <div class="field" style="margin:0;"><label>Mês</label>
+            <select id="f-mes">
+              <option value="">Todos</option>
+              <option value="Janeiro">Janeiro</option>
+              <option value="Fevereiro">Fevereiro</option>
+              <option value="Março">Março</option>
+              <option value="Abril">Abril</option>
+              <option value="Maio">Maio</option>
+              <option value="Junho">Junho</option>
+              <option value="Julho">Julho</option>
+              <option value="Agosto">Agosto</option>
+              <option value="Setembro">Setembro</option>
+              <option value="Outubro">Outubro</option>
+              <option value="Novembro">Novembro</option>
+              <option value="Dezembro">Dezembro</option>
             </select>
           </div>
           <div class="field" style="margin:0;"><label>Arquivo</label><input id="f-file" type="file" style="padding:6px 10px;" onchange="autoDetectSubcat()" /></div>
@@ -379,6 +405,36 @@
     <div id="client-view" class="hidden">
       <div id="client-notifications"></div>
       <div class="section-title" style="margin-top:1rem;">Seus arquivos</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:1rem;align-items:center;">
+        <div style="display:flex;gap:6px;align-items:center;">
+          <label style="font-size:12px;color:var(--text-secondary);margin:0;">Ano</label>
+          <select id="filtro-ano" onchange="aplicarFiltros()" style="font-size:13px;padding:5px 10px;width:auto;">
+            <option value="">Todos</option>
+            <option value="2023">2023</option>
+            <option value="2024">2024</option>
+            <option value="2025">2025</option>
+            <option value="2026">2026</option>
+          </select>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center;">
+          <label style="font-size:12px;color:var(--text-secondary);margin:0;">Mês</label>
+          <select id="filtro-mes" onchange="aplicarFiltros()" style="font-size:13px;padding:5px 10px;width:auto;">
+            <option value="">Todos</option>
+            <option value="Janeiro">Janeiro</option>
+            <option value="Fevereiro">Fevereiro</option>
+            <option value="Março">Março</option>
+            <option value="Abril">Abril</option>
+            <option value="Maio">Maio</option>
+            <option value="Junho">Junho</option>
+            <option value="Julho">Julho</option>
+            <option value="Agosto">Agosto</option>
+            <option value="Setembro">Setembro</option>
+            <option value="Outubro">Outubro</option>
+            <option value="Novembro">Novembro</option>
+            <option value="Dezembro">Dezembro</option>
+          </select>
+        </div>
+      </div>
       <div class="tabs" id="setor-tabs"></div>
       <div class="tabs" id="subcat-tabs" style="margin-top:-8px;padding-left:8px;border-left:3px solid var(--border);"></div>
       <div id="client-files-list"><div class="loading">Carregando...</div></div>
@@ -879,6 +935,8 @@ async function uploadFile() {
     fileInput.value='';
     document.getElementById('f-client').value='';
     document.getElementById('f-note').value='';
+    document.getElementById('f-ano').value='';
+    document.getElementById('f-mes').value='';
     document.getElementById('f-guia-tipo').value='';
     document.getElementById('f-guia-data').value='';
     loadAdminView();
@@ -918,6 +976,8 @@ function renderTabs() {
 }
 
 function selectSetor(setor) { activeSetor = setor; activeSubcat = null; renderTabs(); renderSubcatTabs(); renderClientFiles(); }
+
+function aplicarFiltros() { renderTabs(); renderSubcatTabs(); renderClientFiles(); }
 function selectSubcat(subcat) { activeSubcat = subcat; renderSubcatTabs(); renderClientFiles(); }
 
 function renderSubcatTabs() {
@@ -932,10 +992,14 @@ function renderSubcatTabs() {
 }
 
 function renderClientFiles() {
+  const filtroAno = document.getElementById('filtro-ano')?.value || '';
+  const filtroMes = document.getElementById('filtro-mes')?.value || '';
   let filtered = activeSetor === 'Todos' ? allClientFiles : allClientFiles.filter(f => f.setor === activeSetor);
   if (activeSetor === 'Pessoal' && activeSubcat && activeSubcat !== 'Todos') {
     filtered = filtered.filter(f => f.subcategoria === activeSubcat);
   }
+  if (filtroAno) filtered = filtered.filter(f => f.ano === filtroAno);
+  if (filtroMes) filtered = filtered.filter(f => f.mes === filtroMes);
   const listEl = document.getElementById('client-files-list');
   if (filtered.length === 0) { listEl.innerHTML = '<div class="empty-state">Nenhum arquivo neste setor ainda.</div>'; return; }
   listEl.innerHTML = filtered.map(f => {
@@ -944,7 +1008,7 @@ function renderClientFiles() {
       <div class="file-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
       <div class="file-info">
         <div class="file-name">${f.arquivo_nome}</div>
-        <div class="file-meta">Disponível desde ${formatDate(f.criado_em)}${f.subcategoria ? ' · '+f.subcategoria : ''}</div>
+        <div class="file-meta">${f.ano||''} ${f.mes||''} ${f.ano||f.mes ? '·' : ''} ${f.subcategoria ? f.subcategoria+' · ' : ''}${formatDate(f.criado_em)}</div>
       </div>
       ${f.setor ? `<span class="setor-badge ${fsc}">${f.setor}</span>` : ''}
       <span class="badge ${f.lido ? 'badge-read' : 'badge-new'}">${f.lido ? 'Visto' : 'Novo'}</span>
