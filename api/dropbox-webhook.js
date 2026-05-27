@@ -21,7 +21,45 @@ const SETORES_MAP = {
   'Financeiro': 'Financeiro', 'Avisos': 'Avisos'
 };
 
+const RESEND_KEY = 're_RYZ69Shp_81aSh4AwWTMqRLjZxTLZcV8w';
 const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+async function enviarEmail(destinatario, nomeCliente, nomeArquivo, setor, mes, ano) {
+  try {
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${RESEND_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        from: 'HP Contabilidade <onboarding@resend.dev>',
+        to: destinatario,
+        subject: `Novo documento disponível - ${setor}`,
+        html: `
+          <div style="font-family: sans-serif; max-width: 500px; margin: 0 auto; padding: 2rem;">
+            <h2 style="color: #4338ca;">HP Contabilidade</h2>
+            <p>Olá, <strong>${nomeCliente || 'Cliente'}</strong>!</p>
+            <p>Um novo documento foi disponibilizado no seu portal:</p>
+            <div style="background: #f7f6f3; border-radius: 8px; padding: 1rem; margin: 1rem 0;">
+              <p><strong>📄 Arquivo:</strong> ${nomeArquivo}</p>
+              <p><strong>📂 Setor:</strong> ${setor}</p>
+              <p><strong>📅 Período:</strong> ${mes}/${ano}</p>
+            </div>
+            <a href="https://portal-arquivo.vercel.app" style="display:inline-block;background:#4338ca;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;margin-top:1rem;">
+              Acessar Portal
+            </a>
+            <p style="color: #999; font-size: 12px; margin-top: 2rem;">HP Contabilidade · portal-arquivo.vercel.app</p>
+          </div>
+        `
+      })
+    });
+    const data = await res.json();
+    console.log('E-mail enviado:', data.id || JSON.stringify(data));
+  } catch(e) {
+    console.error('Erro e-mail:', e.message);
+  }
+}
 
 module.exports = async (req, res) => {
   if (req.method === 'GET') {
@@ -124,6 +162,7 @@ async function processarAlteracoes() {
       });
 
       console.log(`✓ Importado: ${nomeArquivo} → ${cliente.email}`);
+      await enviarEmail(cliente.email, cliente.nome, nomeArquivo, setor, mesNome, ano);
     }
   } catch (err) {
     console.error('Erro geral:', err.message);
