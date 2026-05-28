@@ -14,6 +14,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-messaging-compat.js"></script>
+  <!-- Firebase carregado apenas para FCM token -->
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
@@ -1313,54 +1314,40 @@ async function deletarGuia(id) {
   await loadCalendario();
 }
 
-// ── NOTIFICAÇÕES PUSH (Firebase) ─────────────────────
-const FIREBASE_CONFIG = {
-  apiKey: "AIzaSyBpcfRgaensCCNcQJcjc30S3Amsa8koArI",
-  authDomain: "hp-contabilidade.firebaseapp.com",
-  projectId: "hp-contabilidade",
-  storageBucket: "hp-contabilidade.firebasestorage.app",
-  messagingSenderId: "928003631327",
-  appId: "1:928003631327:web:3eb9bf210d9cd69cc3a16a"
-};
-const VAPID_KEY = 'BDVoFxDwo_g5b5u8ns9dpfOcr0TIjxk_wI2dIRwjgAONWtQN0h6TB8K5xXf9_fv2gDp2SYJX1aEYs8k6_TqkMOM';
-
-let fcmMessaging = null;
+// ── NOTIFICAÇÕES PUSH ─────────────────────────────────
 let fcmToken = null;
 
 async function solicitarPermissaoNotificacao() {
   try {
-    if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
-    fcmMessaging = firebase.messaging();
-
+    if (!('Notification' in window)) return;
     const permission = await Notification.requestPermission();
     if (permission !== 'granted') return;
 
-    const swReg = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
-    fcmToken = await fcmMessaging.getToken({ vapidKey: VAPID_KEY, serviceWorkerRegistration: swReg });
-
-    if (fcmToken) {
-      // Salvar token no banco para enviar notificações depois
-      await sb.from('clientes').update({ fcm_token: fcmToken }).eq('email', currentUser.email);
-      console.log('FCM token salvo!');
+    // Registrar service worker do Firebase para push em background
+    if ('serviceWorker' in navigator) {
+      const swReg = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+      if (!firebase.apps.length) {
+        firebase.initializeApp({
+          apiKey: "AIzaSyBpcfRgaensCCNcQJcjc30S3Amsa8koArI",
+          authDomain: "hp-contabilidade.firebaseapp.com",
+          projectId: "hp-contabilidade",
+          storageBucket: "hp-contabilidade.firebasestorage.app",
+          messagingSenderId: "928003631327",
+          appId: "1:928003631327:web:3eb9bf210d9cd69cc3a16a"
+        });
+      }
+      const messaging = firebase.messaging();
+      fcmToken = await messaging.getToken({
+        vapidKey: 'BDVoFxDwo_g5b5u8ns9dpfOcr0TIjxk_wI2dIRwjgAONWtQN0h6TB8K5xXf9_fv2gDp2SYJX1aEYs8k6_TqkMOM',
+        serviceWorkerRegistration: swReg
+      });
+      if (fcmToken) {
+        await sb.from('clientes').update({ fcm_token: fcmToken }).eq('email', currentUser.email);
+      }
     }
-
-    // onMessage desativado para evitar duplicatas
-    // O Service Worker já cuida das notificações em background
   } catch(e) {
-    console.log('Notificações não disponíveis:', e.message);
+    console.log('Notificações:', e.message);
   }
-}
-
-function enviarNotificacaoPush(titulo, mensagem, urgente) {
-  if (!('Notification' in window) || Notification.permission !== 'granted') return;
-  const notif = new Notification(titulo, {
-    body: mensagem,
-    icon: '/icon-192.png',
-    badge: '/icon-192.png',
-    tag: 'hp-notif',
-    requireInteraction: urgente || false
-  });
-  notif.onclick = () => { window.focus(); notif.close(); };
 }
 
 async function enviarPushParaCliente(clienteEmail, titulo, corpo, urgente) {
@@ -1373,6 +1360,10 @@ async function enviarPushParaCliente(clienteEmail, titulo, corpo, urgente) {
       body: JSON.stringify({ fcm_token: cliente.fcm_token, title: titulo, body: corpo, urgente })
     });
   } catch(e) { console.log('Push erro:', e.message); }
+}
+
+function enviarNotificacaoPush(titulo, mensagem, urgente) {
+  // Não usado — push feito via servidor
 }
 
 async function verificarGuiasVencendo() {
