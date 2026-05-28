@@ -12,6 +12,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-messaging-compat.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
@@ -1319,29 +1321,57 @@ async function deletarGuia(id) {
   await loadCalendario();
 }
 
-// ── NOTIFICAÇÕES PUSH ────────────────────────────────
+// ── NOTIFICAÇÕES PUSH (Firebase) ─────────────────────
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyBpcfRgaensCCNcQJcjc30S3Amsa8koArI",
+  authDomain: "hp-contabilidade.firebaseapp.com",
+  projectId: "hp-contabilidade",
+  storageBucket: "hp-contabilidade.firebasestorage.app",
+  messagingSenderId: "928003631327",
+  appId: "1:928003631327:web:3eb9bf210d9cd69cc3a16a"
+};
+const VAPID_KEY = 'BDVoFxDwo_g5b5u8ns9dpfOcr0TIjxk_wI2dIRwjgAONWtQN0h6TB8K5xXf9_fv2gDp2SYJX1aEYs8k6_TqkMOM';
+
+let fcmMessaging = null;
+let fcmToken = null;
+
 async function solicitarPermissaoNotificacao() {
-  if (!('Notification' in window)) return;
-  if (Notification.permission === 'default') {
-    await Notification.requestPermission();
+  try {
+    if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
+    fcmMessaging = firebase.messaging();
+
+    const permission = await Notification.requestPermission();
+    if (permission !== 'granted') return;
+
+    const swReg = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+    fcmToken = await fcmMessaging.getToken({ vapidKey: VAPID_KEY, serviceWorkerRegistration: swReg });
+
+    if (fcmToken) {
+      // Salvar token no banco para enviar notificações depois
+      await sb.from('clientes').update({ fcm_token: fcmToken }).eq('email', currentUser.email);
+      console.log('FCM token salvo!');
+    }
+
+    // Notificações quando o app está aberto
+    fcmMessaging.onMessage((payload) => {
+      const { title, body } = payload.notification;
+      enviarNotificacaoPush(title, body, payload.data?.urgente === 'true');
+    });
+  } catch(e) {
+    console.log('Notificações não disponíveis:', e.message);
   }
 }
 
 function enviarNotificacaoPush(titulo, mensagem, urgente) {
   if (!('Notification' in window) || Notification.permission !== 'granted') return;
-  const icon = '/icon-192.png';
   const notif = new Notification(titulo, {
     body: mensagem,
-    icon,
-    badge: icon,
-    tag: 'guia-vencendo',
+    icon: '/icon-192.png',
+    badge: '/icon-192.png',
+    tag: 'hp-notif',
     requireInteraction: urgente || false
   });
-  notif.onclick = () => {
-    window.focus();
-    openPanel('calendario');
-    notif.close();
-  };
+  notif.onclick = () => { window.focus(); notif.close(); };
 }
 
 async function verificarGuiasVencendo() {
