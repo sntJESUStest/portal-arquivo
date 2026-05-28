@@ -822,7 +822,7 @@ async function sendChat() {
     await sb.from('chat').insert({ cliente_email: clientEmail, autor, mensagem: text, criado_em: new Date().toISOString() });
     // Enviar push para o outro lado
     if (isAdmin) {
-      await enviarPushParaCliente(clientEmail, '💬 HP Contabilidade', text, false);
+      await enviarPushParaCliente(clientEmail, 'HP Contabilidade', text, false);
     }
   }
 
@@ -1009,7 +1009,7 @@ async function uploadFile() {
       okEl.textContent = `✓ Arquivo enviado para ${clientEmail} (${setor}) e lançado no calendário!`;
     } else {
       okEl.textContent = `✓ Arquivo enviado para ${clientEmail} (${setor})!`;
-    await enviarPushParaCliente(clientEmail, '📄 Novo documento disponível', `${file.name} — ${setor}`, false);
+    await enviarPushParaCliente(clientEmail, 'Novo documento disponivel', `${file.name} — ${setor}`, false);
     }
     okEl.classList.remove('hidden');
     fileInput.value='';
@@ -1393,7 +1393,7 @@ async function verificarGuiasVencendo() {
     // Push via servidor para funcionar com app fechado
     await enviarPushParaCliente(
       currentUser.email,
-      '⚠️ Guia vence HOJE!',
+      'Guia vence HOJE!',
       vencendoHoje.map(g => g.tipo).join(', '),
       true
     );
@@ -1403,7 +1403,7 @@ async function verificarGuiasVencendo() {
     const diff = Math.ceil((venc - hoje) / (1000*60*60*24));
     await enviarPushParaCliente(
       currentUser.email,
-      `📅 Guia vence em ${diff} dia(s)`,
+      `Guia vence em ${diff} dia(s)`,
       `${g.tipo} — ${formatDateBR(g.vencimento)}`,
       false
     );
