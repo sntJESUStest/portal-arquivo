@@ -1238,6 +1238,12 @@ async function deletarGuia(id) {
 let chatNotifInterval = null;
 
 function toggleChatNotif() {
+  // Para cliente: abre o chat direto sem popup
+  if (!isAdmin) {
+    abrirChatClienteNotif();
+    return;
+  }
+  // Para admin: abre o popup com lista de clientes
   const popup = document.getElementById('chat-notif-popup');
   const ov    = document.getElementById('chat-notif-overlay');
   const open  = !popup.classList.contains('hidden');
