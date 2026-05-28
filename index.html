@@ -134,9 +134,19 @@
     .chat-bubble.mine { background: var(--accent); color: #fff; align-self: flex-end; border-bottom-right-radius: 4px; }
     .chat-bubble.theirs { background: var(--surface); border: 1px solid var(--border); align-self: flex-start; border-bottom-left-radius: 4px; }
     .chat-bubble .bubble-meta { font-size: 10px; opacity: 0.65; margin-top: 3px; }
-    .chat-input-row { display: flex; gap: 8px; padding: 10px; border-top: 1px solid var(--border); background: var(--surface); }
+    .chat-input-row { display: flex; gap: 8px; padding: 10px; border-top: 1px solid var(--border); background: var(--surface); align-items: center; }
     .chat-input-row input { flex: 1; }
     .chat-send-btn { padding: 8px 14px; background: var(--accent); color: #fff; border: none; border-radius: var(--radius); font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500; cursor: pointer; flex-shrink: 0; }
+    .chat-attach-btn { width: 36px; height: 36px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--surface); cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.15s; }
+    .chat-attach-btn:hover { background: var(--bg); }
+    .chat-attach-btn svg { width: 16px; height: 16px; stroke: var(--text-secondary); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .chat-file-preview { display: flex; align-items: center; gap: 8px; padding: 6px 10px; background: var(--blue-bg); border-radius: var(--radius); margin: 0 10px 6px; font-size: 12px; color: var(--blue-text); }
+    .chat-file-preview span { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .chat-file-cancel { cursor: pointer; font-size: 16px; color: var(--text-tertiary); background: none; border: none; padding: 0; }
+    .chat-bubble-file { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 14px; font-size: 13px; text-decoration: none; }
+    .chat-bubble-file.mine { background: var(--accent); color: #fff; align-self: flex-end; border-bottom-right-radius: 4px; }
+    .chat-bubble-file.theirs { background: var(--surface); border: 1px solid var(--border); align-self: flex-start; border-bottom-left-radius: 4px; color: var(--text); }
+    .chat-bubble-file svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
 
     /* CERTIFICADOS */
     .cert-row { display: flex; align-items: center; gap: 12px; padding: 10px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 6px; }
@@ -705,7 +715,16 @@ async function renderPanelChat(body) {
 function buildChatUI() {
   return `<div class="chat-box">
     <div class="chat-messages" id="chat-messages"><div class="loading">Carregando mensagens...</div></div>
+    <div id="chat-file-preview" style="display:none;" class="chat-file-preview">
+      <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:var(--blue-text);fill:none;stroke-width:2;flex-shrink:0;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      <span id="chat-file-name">arquivo.pdf</span>
+      <button class="chat-file-cancel" onclick="cancelarAnexo()">×</button>
+    </div>
     <div class="chat-input-row">
+      <button class="chat-attach-btn" onclick="document.getElementById('chat-file-input').click()" title="Anexar arquivo">
+        <svg viewBox="0 0 24 24"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+      </button>
+      <input type="file" id="chat-file-input" style="display:none;" onchange="selecionarAnexo()" />
       <input id="chat-input" type="text" placeholder="Digite uma mensagem..." onkeydown="if(event.key==='Enter')sendChat()" />
       <button class="chat-send-btn" onclick="sendChat()">Enviar</button>
     </div>
@@ -729,6 +748,18 @@ async function loadChat(clientEmail, adminSide) {
   if (!msgs || msgs.length === 0) { el.innerHTML = '<div style="text-align:center;color:var(--text-tertiary);font-size:13px;padding:1rem;">Nenhuma mensagem ainda.</div>'; return; }
   el.innerHTML = msgs.map(m => {
     const mine = adminSide ? m.autor === 'admin' : m.autor === 'cliente';
+    if (m.mensagem.startsWith('__ARQUIVO__')) {
+      const parts = m.mensagem.split('__URL__');
+      const fileName = parts[0].replace('__ARQUIVO__', '');
+      const filePath = parts[1];
+      return `<a class="chat-bubble-file ${mine ? 'mine' : 'theirs'}" href="#" onclick="downloadChatFile('${filePath}', '${fileName}'); return false;">
+        <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        <div>
+          <div style="font-weight:600;font-size:12px;">${fileName}</div>
+          <div style="font-size:10px;opacity:0.7;">Toque para baixar · ${formatDate(m.criado_em)}</div>
+        </div>
+      </a>`;
+    }
     return `<div class="chat-bubble ${mine ? 'mine' : 'theirs'}">
       ${m.mensagem}
       <div class="bubble-meta">${formatDate(m.criado_em)}</div>
@@ -739,14 +770,47 @@ async function loadChat(clientEmail, adminSide) {
   await marcarChatLido(clientEmail);
 }
 
+function selecionarAnexo() {
+  const input = document.getElementById('chat-file-input');
+  const preview = document.getElementById('chat-file-preview');
+  const nameEl = document.getElementById('chat-file-name');
+  if (input.files[0]) {
+    nameEl.textContent = input.files[0].name;
+    preview.style.display = 'flex';
+  }
+}
+
+function cancelarAnexo() {
+  document.getElementById('chat-file-input').value = '';
+  document.getElementById('chat-file-preview').style.display = 'none';
+}
+
 async function sendChat() {
   const input = document.getElementById('chat-input');
   const text = input?.value.trim();
-  if (!text) return;
-  input.value = '';
+  const fileInput = document.getElementById('chat-file-input');
+  const file = fileInput?.files[0];
+  if (!text && !file) return;
+
   const autor = isAdmin ? 'admin' : 'cliente';
   const clientEmail = isAdmin ? chatClientEmail : currentUser.email;
-  await sb.from('chat').insert({ cliente_email: clientEmail, autor, mensagem: text, criado_em: new Date().toISOString() });
+
+  if (file) {
+    // Upload do arquivo para o Supabase Storage
+    const path = `chat/${clientEmail}/${Date.now()}_${file.name}`;
+    const { error: uploadErr } = await sb.storage.from('arquivos').upload(path, file);
+    if (uploadErr) { alert('Erro ao enviar arquivo.'); return; }
+    const { data: urlData } = sb.storage.from('arquivos').getPublicUrl(path);
+    const mensagem = `__ARQUIVO__${file.name}__URL__${path}`;
+    await sb.from('chat').insert({ cliente_email: clientEmail, autor, mensagem, criado_em: new Date().toISOString() });
+    cancelarAnexo();
+  }
+
+  if (text) {
+    input.value = '';
+    await sb.from('chat').insert({ cliente_email: clientEmail, autor, mensagem: text, criado_em: new Date().toISOString() });
+  }
+
   loadChat(clientEmail, isAdmin);
 }
 
@@ -1341,6 +1405,14 @@ async function pollChatNotifs() {
 }
 
 // ── UTILS ─────────────────────────────────────────────
+async function downloadChatFile(path, name) {
+  const { data, error } = await sb.storage.from('arquivos').download(path);
+  if (error) { alert('Erro ao baixar arquivo.'); return; }
+  const url = URL.createObjectURL(data);
+  const a = document.createElement('a'); a.href = url; a.download = name; a.click();
+  URL.revokeObjectURL(url);
+}
+
 function formatDate(iso) { if (!iso) return ''; return new Date(iso).toLocaleDateString('pt-BR', { day:'2-digit', month:'2-digit', year:'numeric' }); }
 function formatDateBR(d) { if (!d) return ''; const [y,m,day] = d.split('-'); return `${day}/${m}/${y}`; }
 
