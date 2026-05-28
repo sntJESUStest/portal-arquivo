@@ -1344,11 +1344,8 @@ async function solicitarPermissaoNotificacao() {
       console.log('FCM token salvo!');
     }
 
-    // Notificações quando o app está aberto
-    fcmMessaging.onMessage((payload) => {
-      const { title, body } = payload.notification;
-      enviarNotificacaoPush(title, body, payload.data?.urgente === 'true');
-    });
+    // onMessage desativado para evitar duplicatas
+    // O Service Worker já cuida das notificações em background
   } catch(e) {
     console.log('Notificações não disponíveis:', e.message);
   }
