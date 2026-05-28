@@ -776,19 +776,6 @@ async function loadChat(clientEmail, adminSide) {
   }).join('');
   el.scrollTop = el.scrollHeight;
 
-  // Notificação push para novas mensagens
-  if (msgs && msgs.length > 0) {
-    const ultimaMsg = msgs[msgs.length - 1];
-    const autorOutro = adminSide ? 'cliente' : 'admin';
-    if (ultimaMsg.autor === autorOutro && !ultimaMsg.lido) {
-      const remetente = adminSide ? 'Cliente' : 'HP Contabilidade';
-      const texto = ultimaMsg.mensagem.startsWith('__ARQUIVO__') 
-        ? '📎 Enviou um arquivo' 
-        : ultimaMsg.mensagem;
-      enviarNotificacaoPush(`💬 ${remetente}`, texto, false);
-    }
-  }
-
   // Marcar mensagens recebidas como lidas
   await marcarChatLido(clientEmail);
 }
@@ -1415,7 +1402,9 @@ async function verificarGuiasVencendo() {
   });
 
   if (vencendoHoje.length > 0) {
-    enviarNotificacaoPush(
+    // Push via servidor para funcionar com app fechado
+    await enviarPushParaCliente(
+      currentUser.email,
       '⚠️ Guia vence HOJE!',
       vencendoHoje.map(g => g.tipo).join(', '),
       true
@@ -1424,7 +1413,8 @@ async function verificarGuiasVencendo() {
     const g = vencendoEm3[0];
     const venc = new Date(g.vencimento + 'T00:00:00');
     const diff = Math.ceil((venc - hoje) / (1000*60*60*24));
-    enviarNotificacaoPush(
+    await enviarPushParaCliente(
+      currentUser.email,
       `📅 Guia vence em ${diff} dia(s)`,
       `${g.tipo} — ${formatDateBR(g.vencimento)}`,
       false
