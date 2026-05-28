@@ -832,6 +832,10 @@ async function sendChat() {
   if (text) {
     input.value = '';
     await sb.from('chat').insert({ cliente_email: clientEmail, autor, mensagem: text, criado_em: new Date().toISOString() });
+    // Enviar push para o outro lado
+    if (isAdmin) {
+      await enviarPushParaCliente(clientEmail, '💬 HP Contabilidade', text, false);
+    }
   }
 
   loadChat(clientEmail, isAdmin);
@@ -1017,6 +1021,7 @@ async function uploadFile() {
       okEl.textContent = `✓ Arquivo enviado para ${clientEmail} (${setor}) e lançado no calendário!`;
     } else {
       okEl.textContent = `✓ Arquivo enviado para ${clientEmail} (${setor})!`;
+    await enviarPushParaCliente(clientEmail, '📄 Novo documento disponível', `${file.name} — ${setor}`, false);
     }
     okEl.classList.remove('hidden');
     fileInput.value='';
@@ -1372,6 +1377,18 @@ function enviarNotificacaoPush(titulo, mensagem, urgente) {
     requireInteraction: urgente || false
   });
   notif.onclick = () => { window.focus(); notif.close(); };
+}
+
+async function enviarPushParaCliente(clienteEmail, titulo, corpo, urgente) {
+  try {
+    const { data: cliente } = await sb.from('clientes').select('fcm_token').eq('email', clienteEmail).maybeSingle();
+    if (!cliente?.fcm_token) return;
+    await fetch('/api/send-notification', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fcm_token: cliente.fcm_token, title: titulo, body: corpo, urgente })
+    });
+  } catch(e) { console.log('Push erro:', e.message); }
 }
 
 async function verificarGuiasVencendo() {
