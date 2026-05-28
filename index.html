@@ -571,6 +571,11 @@ async function showApp() {
   chatNotifInterval = setInterval(pollChatNotifs, 8000);
   pollChatNotifs();
 
+  // Solicitar permissão de notificações push
+  solicitarPermissaoNotificacao();
+  // Verificar guias a vencer
+  setTimeout(verificarGuiasVencendo, 3000);
+
   if (isAdmin) {
     document.getElementById('admin-view').classList.remove('hidden');
     document.getElementById('client-view').classList.add('hidden');
@@ -742,6 +747,8 @@ async function loadAdminChat() {
 }
 
 async function loadChat(clientEmail, adminSide) {
+  if (!clientEmail) return;
+  chatClientEmail = clientEmail;
   const { data: msgs } = await sb.from('chat').select('*').eq('cliente_email', clientEmail).order('criado_em', { ascending: true });
   const el = document.getElementById('chat-messages');
   if (!el) return;
@@ -1298,13 +1305,80 @@ async function deletarGuia(id) {
   await loadCalendario();
 }
 
+// ── NOTIFICAÇÕES PUSH ────────────────────────────────
+async function solicitarPermissaoNotificacao() {
+  if (!('Notification' in window)) return;
+  if (Notification.permission === 'default') {
+    await Notification.requestPermission();
+  }
+}
+
+function enviarNotificacaoPush(titulo, mensagem, urgente) {
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+  const icon = '/icon-192.png';
+  const notif = new Notification(titulo, {
+    body: mensagem,
+    icon,
+    badge: icon,
+    tag: 'guia-vencendo',
+    requireInteraction: urgente || false
+  });
+  notif.onclick = () => {
+    window.focus();
+    openPanel('calendario');
+    notif.close();
+  };
+}
+
+async function verificarGuiasVencendo() {
+  if (isAdmin) return; // Só para clientes
+  const hoje = new Date(); hoje.setHours(0,0,0,0);
+  const em3dias = new Date(hoje); em3dias.setDate(hoje.getDate() + 3);
+
+  const { data: guias } = await sb.from('guias')
+    .select('*')
+    .eq('cliente_email', currentUser.email)
+    .eq('status', 'pendente')
+    .order('vencimento', { ascending: true });
+
+  if (!guias || guias.length === 0) return;
+
+  const vencendoHoje = [];
+  const vencendoEm3 = [];
+
+  guias.forEach(g => {
+    const venc = new Date(g.vencimento + 'T00:00:00');
+    const diff = Math.ceil((venc - hoje) / (1000*60*60*24));
+    if (diff === 0) vencendoHoje.push(g);
+    else if (diff > 0 && diff <= 3) vencendoEm3.push(g);
+  });
+
+  if (vencendoHoje.length > 0) {
+    enviarNotificacaoPush(
+      '⚠️ Guia vence HOJE!',
+      vencendoHoje.map(g => g.tipo).join(', '),
+      true
+    );
+  } else if (vencendoEm3.length > 0) {
+    const g = vencendoEm3[0];
+    const venc = new Date(g.vencimento + 'T00:00:00');
+    const diff = Math.ceil((venc - hoje) / (1000*60*60*24));
+    enviarNotificacaoPush(
+      `📅 Guia vence em ${diff} dia(s)`,
+      `${g.tipo} — ${formatDateBR(g.vencimento)}`,
+      false
+    );
+  }
+}
+
 // ── CHAT NOTIF TOPBAR ────────────────────────────────
 let chatNotifInterval = null;
 
 function toggleChatNotif() {
   // Para cliente: abre o chat direto sem popup
   if (!isAdmin) {
-    abrirChatClienteNotif();
+    closeChatNotif();
+    openPanel('chat');
     return;
   }
   // Para admin: abre o popup com lista de clientes
