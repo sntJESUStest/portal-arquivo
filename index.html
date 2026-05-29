@@ -674,6 +674,7 @@ async function renderPanelDados(body) {
             <div class="cert-date">${c.email} · ${c.empresa || 'Sem empresa'}</div>
           </div>
           <button class="btn" style="font-size:12px;padding:5px 10px;" onclick="preencherDados('${c.email}','${c.nome||''}','${c.empresa||''}','${c.whatsapp||''}','${c.codigo||''}')">Editar</button>
+          <button class="btn-delete" onclick="excluirCliente('${c.email}')" title="Excluir"><svg viewBox="0 0 24 24" style="width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg></button>
         </div>`;
       });
     }
