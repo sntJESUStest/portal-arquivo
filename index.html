@@ -428,6 +428,7 @@
 
     <!-- CLIENT VIEW -->
     <div id="client-view" class="hidden">
+      <div id="filial-selector" class="hidden" style="margin-bottom:1rem;"></div>
       <div id="client-notifications"></div>
       <div class="section-title" style="margin-top:1rem;">Seus arquivos</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:1rem;align-items:center;">
@@ -662,6 +663,18 @@ async function renderPanelDados(body) {
       </div>
       <div class="field"><label>Empresa</label><input id="d-empresa" type="text" placeholder="Nome da empresa" /></div>
       <div class="field"><label>WhatsApp (com DDD, ex: 5541999999999)</label><input id="d-whatsapp" type="text" placeholder="5541999999999" /></div>
+      <div class="form-row" style="margin-bottom:10px;">
+        <div class="field" style="margin:0;"><label>Tipo</label>
+          <select id="d-tipo" onchange="toggleMatrizField()">
+            <option value="matriz">Matriz</option>
+            <option value="filial">Filial</option>
+          </select>
+        </div>
+        <div class="field" style="margin:0;" id="d-matriz-field" style="display:none;">
+          <label>E-mail da Matriz</label>
+          <input id="d-matriz" type="email" placeholder="matriz@email.com" />
+        </div>
+      </div>
       <div id="d-msg" class="hidden"></div>
       <button class="btn btn-primary" onclick="salvarDados()">Salvar</button>
     </div>`;
@@ -673,7 +686,7 @@ async function renderPanelDados(body) {
             <div class="cert-name">${c.nome || '—'}</div>
             <div class="cert-date">${c.email} · ${c.empresa || 'Sem empresa'}</div>
           </div>
-          <button class="btn" style="font-size:12px;padding:5px 10px;" onclick="preencherDados('${c.email}','${c.nome||''}','${c.empresa||''}','${c.whatsapp||''}','${c.codigo||''}')">Editar</button>
+          <button class="btn" style="font-size:12px;padding:5px 10px;" onclick="preencherDados('${c.email}','${c.nome||''}','${c.empresa||''}','${c.whatsapp||''}','${c.codigo||''}','${c.tipo||'matriz'}','${c.matriz_email||''}')">Editar</button>
           <button class="btn-delete" onclick="excluirCliente('${c.email}')" title="Excluir"><svg viewBox="0 0 24 24" style="width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg></button>
         </div>`;
       });
@@ -690,6 +703,12 @@ async function renderPanelDados(body) {
   }
 }
 
+function toggleMatrizField() {
+  const tipo = document.getElementById('d-tipo')?.value;
+  const field = document.getElementById('d-matriz-field');
+  if (field) field.style.display = tipo === 'filial' ? 'block' : 'none';
+}
+
 async function excluirCliente(email) {
   if (!confirm(`Excluir o cliente ${email}?\n\nIsso vai remover os dados cadastrais. Os arquivos postados serão mantidos.`)) return;
   const { error } = await sb.from('clientes').delete().eq('email', email);
@@ -698,12 +717,14 @@ async function excluirCliente(email) {
   renderPanelDados(document.getElementById('panel-body'));
 }
 
-function preencherDados(email, nome, empresa, whatsapp, codigo) {
+function preencherDados(email, nome, empresa, whatsapp, codigo, tipo, matriz) {
   document.getElementById('d-email').value = email;
   document.getElementById('d-nome').value = nome;
   document.getElementById('d-empresa').value = empresa;
   if (document.getElementById('d-whatsapp')) document.getElementById('d-whatsapp').value = whatsapp||'';
   if (document.getElementById('d-codigo')) document.getElementById('d-codigo').value = codigo||'';
+  if (document.getElementById('d-tipo')) { document.getElementById('d-tipo').value = tipo||'matriz'; toggleMatrizField(); }
+  if (document.getElementById('d-matriz')) document.getElementById('d-matriz').value = matriz||'';
 }
 
 async function salvarDados() {
@@ -714,7 +735,9 @@ async function salvarDados() {
   if (!email) { msg.className = 'error-msg'; msg.textContent = 'Informe o e-mail.'; msg.classList.remove('hidden'); return; }
   const whatsappDados = document.getElementById('d-whatsapp') ? document.getElementById('d-whatsapp').value.trim() : null;
   const codigoDados = document.getElementById('d-codigo') ? document.getElementById('d-codigo').value.trim() : null;
-  const { error } = await sb.from('clientes').upsert({ email, nome, empresa, whatsapp: whatsappDados||null, codigo: codigoDados||null }, { onConflict: 'email' });
+  const tipoDados = document.getElementById('d-tipo') ? document.getElementById('d-tipo').value : 'matriz';
+  const matrizDados = document.getElementById('d-matriz') ? document.getElementById('d-matriz').value.trim() : null;
+  const { error } = await sb.from('clientes').upsert({ email, nome, empresa, whatsapp: whatsappDados||null, codigo: codigoDados||null, tipo: tipoDados, matriz_email: tipoDados === 'filial' ? matrizDados : null }, { onConflict: 'email' });
   if (error) { msg.className = 'error-msg'; msg.textContent = 'Erro: ' + error.message; }
   else { msg.className = 'success-msg'; msg.textContent = '✓ Dados salvos com sucesso!'; }
   msg.classList.remove('hidden');
@@ -1080,8 +1103,33 @@ async function deleteFile(id, path) {
 }
 
 // ── CLIENT VIEW ───────────────────────────────────────
+let activeFilialEmail = null;
+
 async function loadClientView() {
-  const { data: files } = await sb.from('notificacoes').select('*').eq('cliente_email', currentUser.email).order('criado_em', { ascending: false });
+  // Verificar se é matriz com filiais
+  const { data: filiais } = await sb.from('clientes').select('*').eq('matriz_email', currentUser.email);
+
+  const selectorEl = document.getElementById('filial-selector');
+  if (filiais && filiais.length > 0) {
+    selectorEl.classList.remove('hidden');
+    const emailsParaBuscar = [currentUser.email, ...filiais.map(f => f.email)];
+    activeFilialEmail = activeFilialEmail || currentUser.email;
+
+    selectorEl.innerHTML = `
+      <div class="section-title" style="margin-bottom:8px;">Selecionar empresa</div>
+      <div class="tabs">
+        ${emailsParaBuscar.map(e => {
+          const label = e === currentUser.email ? 'Matriz' : (filiais.find(f => f.email === e)?.empresa || e);
+          return `<button class="tab-btn ${e === activeFilialEmail ? 'active' : ''}" onclick="trocarFilial('${e}')">${label}</button>`;
+        }).join('')}
+      </div>`;
+  } else {
+    selectorEl.classList.add('hidden');
+    activeFilialEmail = currentUser.email;
+  }
+
+  const emailBusca = activeFilialEmail || currentUser.email;
+  const { data: files } = await sb.from('notificacoes').select('*').eq('cliente_email', emailBusca).order('criado_em', { ascending: false });
   if (!files) return;
   allClientFiles = files;
   activeSetor = 'Todos';
@@ -1093,6 +1141,11 @@ async function loadClientView() {
       <span>${f.mensagem}</span>
     </div>`).join('');
   renderTabs(); renderClientFiles();
+}
+
+function trocarFilial(email) {
+  activeFilialEmail = email;
+  loadClientView();
 }
 
 function renderTabs() {
