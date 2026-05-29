@@ -311,6 +311,11 @@
       Calendário de Guias
     </button>
     <div class="menu-divider"></div>
+    <button class="menu-item" id="menu-relatorios" onclick="openPanel('relatorios')">
+      <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+      Relatorios
+    </button>
+    <div class="menu-divider"></div>
     <button class="menu-item menu-item-logout" onclick="logout()">
       <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
       Sair
@@ -575,6 +580,8 @@ async function showApp() {
   document.getElementById('main-screen').classList.remove('hidden');
   isAdmin = currentUser.email === ADMIN_EMAIL;
   document.getElementById('role-badge').textContent = isAdmin ? 'Admin' : 'Cliente';
+  const menuRel = document.getElementById('menu-relatorios');
+  if (menuRel) menuRel.style.display = isAdmin ? 'flex' : 'none';
 
   // Buscar dados do cliente para nome
   const { data: dadosCliente } = await sb.from('clientes').select('*').eq('email', currentUser.email).maybeSingle();
@@ -631,7 +638,7 @@ function filterSetor(setor) {
 function openPanel(type) {
   closeMenu();
   document.getElementById('panel-overlay').classList.remove('hidden');
-  const title = { dados:'Dados do Cliente', chat:'Chat', certificados:'Certificados', calendario:'Calendário de Guias' }[type];
+  const title = { dados:'Dados do Cliente', chat:'Chat', certificados:'Certificados', calendario:'Calendario de Guias', relatorios:'Relatorios' }[type];
   document.getElementById('panel-title').textContent = title;
   const body = document.getElementById('panel-body');
   body.innerHTML = '<div class="loading">Carregando...</div>';
@@ -639,6 +646,7 @@ function openPanel(type) {
   if (type === 'chat') renderPanelChat(body);
   if (type === 'certificados') renderPanelCertificados(body);
   if (type === 'calendario') renderPanelCalendario(body);
+  if (type === 'relatorios') renderPanelRelatorios(body);
 }
 
 function closePanel(e) {
@@ -1330,6 +1338,140 @@ async function downloadFile(id, path, name) {
   const f = allClientFiles.find(x => x.id === id);
   if (f) f.lido = true;
   renderTabs(); renderClientFiles();
+}
+
+// ── PAINEL RELATÓRIOS ────────────────────────────────
+async function renderPanelRelatorios(body) {
+  body.innerHTML = `
+    <div class="tabs" style="margin-bottom:1.25rem;">
+      <button class="tab-btn active" onclick="mostrarRelatorio('guias-pendentes', this)">Guias nao pagas</button>
+      <button class="tab-btn" onclick="mostrarRelatorio('clientes-ativos', this)">Clientes ativos</button>
+      <button class="tab-btn" onclick="mostrarRelatorio('por-setor', this)">Por setor</button>
+      <button class="tab-btn" onclick="mostrarRelatorio('por-periodo', this)">Por periodo</button>
+    </div>
+    <div id="relatorio-content"><div class="loading">Carregando...</div></div>`;
+  await mostrarRelatorio('guias-pendentes');
+}
+
+async function mostrarRelatorio(tipo, btnEl) {
+  // Atualizar aba ativa
+  if (btnEl) {
+    document.querySelectorAll('.tabs .tab-btn').forEach(b => b.classList.remove('active'));
+    btnEl.classList.add('active');
+  }
+
+  const el = document.getElementById('relatorio-content');
+  if (!el) return;
+  el.innerHTML = '<div class="loading">Carregando...</div>';
+
+  if (tipo === 'guias-pendentes') {
+    const { data: guias } = await sb.from('guias').select('*, clientes(nome, empresa, codigo)').eq('status', 'pendente').order('vencimento');
+    if (!guias || guias.length === 0) { el.innerHTML = '<div class="empty-state">Nenhuma guia pendente.</div>'; return; }
+
+    const hoje = new Date(); hoje.setHours(0,0,0,0);
+    let html = `<p style="font-size:13px;color:var(--text-secondary);margin-bottom:12px;">${guias.length} guia(s) pendente(s)</p>`;
+    html += guias.map(g => {
+      const venc = new Date(g.vencimento + 'T00:00:00');
+      const diff = Math.ceil((venc - hoje) / (1000*60*60*24));
+      const vencido = diff < 0;
+      const urgente = diff >= 0 && diff <= 3;
+      const badge = vencido ? `<span class="cert-badge-exp">Vencido ${Math.abs(diff)}d</span>` : urgente ? `<span class="cert-badge-warn">Vence em ${diff}d</span>` : `<span class="cert-badge-ok">Vence em ${diff}d</span>`;
+      const nomeCliente = g.clientes?.empresa || g.clientes?.nome || g.cliente_email;
+      const cod = g.clientes?.codigo ? `${g.clientes.codigo} - ` : '';
+      return `<div class="file-row" style="margin-bottom:6px;">
+        <div class="file-info">
+          <div class="file-name">${g.tipo}</div>
+          <div class="file-meta">${cod}${nomeCliente} · Vence ${formatDateBR(g.vencimento)}${g.valor ? ' · R$ '+parseFloat(g.valor).toFixed(2).replace('.',',') : ''}</div>
+        </div>
+        ${badge}
+      </div>`;
+    }).join('');
+    el.innerHTML = html;
+
+  } else if (tipo === 'clientes-ativos') {
+    const { data: clientes } = await sb.from('clientes').select('*').order('codigo');
+    if (!clientes || clientes.length === 0) { el.innerHTML = '<div class="empty-state">Nenhum cliente cadastrado.</div>'; return; }
+
+    let html = `<p style="font-size:13px;color:var(--text-secondary);margin-bottom:12px;">${clientes.length} cliente(s) cadastrado(s)</p>`;
+    html += clientes.map(c => {
+      const label = c.codigo ? `${c.codigo} - ${c.empresa || c.nome || c.email}` : (c.empresa || c.nome || c.email);
+      const tipo = c.tipo === 'filial' ? `<span class="badge badge-read">Filial</span>` : '';
+      return `<div class="file-row" style="margin-bottom:6px;">
+        <div class="file-info">
+          <div class="file-name">${label} ${tipo}</div>
+          <div class="file-meta">${c.email}${c.whatsapp ? ' · ' + c.whatsapp : ''}</div>
+        </div>
+      </div>`;
+    }).join('');
+    el.innerHTML = html;
+
+  } else if (tipo === 'por-setor') {
+    const { data: files } = await sb.from('notificacoes').select('*').order('setor');
+    if (!files || files.length === 0) { el.innerHTML = '<div class="empty-state">Nenhum arquivo encontrado.</div>'; return; }
+
+    const setores = ['Fiscal','Pessoal','Contabil','Financeiro','Avisos'];
+    let html = `<p style="font-size:13px;color:var(--text-secondary);margin-bottom:12px;">${files.length} arquivo(s) no total</p>`;
+    setores.forEach(s => {
+      const sf = files.filter(f => f.setor === s || f.setor === s.replace('Contabil','Contábil'));
+      if (sf.length === 0) return;
+      html += `<div style="margin-bottom:1rem;">
+        <p style="font-size:13px;font-weight:600;margin-bottom:8px;">${s} <span style="color:var(--text-tertiary);font-weight:400;">(${sf.length})</span></p>
+        ${sf.map(f => `<div class="file-row" style="margin-bottom:4px;">
+          <div class="file-info">
+            <div class="file-name">${f.arquivo_nome}</div>
+            <div class="file-meta">${f.cliente_email} · ${f.mes||''} ${f.ano||''}</div>
+          </div>
+          <span class="badge ${f.lido ? 'badge-read' : 'badge-new'}">${f.lido ? 'Visto' : 'Novo'}</span>
+        </div>`).join('')}
+      </div>`;
+    });
+    el.innerHTML = html;
+
+  } else if (tipo === 'por-periodo') {
+    el.innerHTML = `
+      <div class="form-row" style="margin-bottom:1rem;">
+        <div class="field" style="margin:0;"><label>Mes</label>
+          <select id="rel-mes">
+            <option value="">Todos</option>
+            <option>Janeiro</option><option>Fevereiro</option><option>Marco</option>
+            <option>Abril</option><option>Maio</option><option>Junho</option>
+            <option>Julho</option><option>Agosto</option><option>Setembro</option>
+            <option>Outubro</option><option>Novembro</option><option>Dezembro</option>
+          </select>
+        </div>
+        <div class="field" style="margin:0;"><label>Ano</label>
+          <select id="rel-ano">
+            <option value="">Todos</option>
+            <option>2023</option><option>2024</option><option>2025</option><option>2026</option>
+          </select>
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="filtrarRelatorioPeriodo()" style="margin-bottom:1rem;">Filtrar</button>
+      <div id="rel-periodo-result"></div>`;
+  }
+}
+
+async function filtrarRelatorioPeriodo() {
+  const mes = document.getElementById('rel-mes').value;
+  const ano = document.getElementById('rel-ano').value;
+  const el = document.getElementById('rel-periodo-result');
+  el.innerHTML = '<div class="loading">Carregando...</div>';
+
+  let query = sb.from('notificacoes').select('*').order('criado_em', { ascending: false });
+  if (mes) query = query.eq('mes', mes);
+  if (ano) query = query.eq('ano', ano);
+
+  const { data: files } = await query;
+  if (!files || files.length === 0) { el.innerHTML = '<div class="empty-state">Nenhum arquivo encontrado.</div>'; return; }
+
+  el.innerHTML = `<p style="font-size:13px;color:var(--text-secondary);margin-bottom:12px;">${files.length} arquivo(s) encontrado(s)</p>` +
+    files.map(f => `<div class="file-row" style="margin-bottom:6px;">
+      <div class="file-info">
+        <div class="file-name">${f.arquivo_nome}</div>
+        <div class="file-meta">${f.cliente_email} · ${f.setor||''} · ${f.mes||''} ${f.ano||''}</div>
+      </div>
+      <span class="badge ${f.lido ? 'badge-read' : 'badge-new'}">${f.lido ? 'Visto' : 'Novo'}</span>
+    </div>`).join('');
 }
 
 // ── PAINEL CALENDÁRIO ────────────────────────────────
