@@ -1365,7 +1365,7 @@ async function mostrarRelatorio(tipo, btnEl) {
   el.innerHTML = '<div class="loading">Carregando...</div>';
 
   if (tipo === 'guias-pendentes') {
-    const { data: guias } = await sb.from('guias').select('*, clientes(nome, empresa, codigo)').eq('status', 'pendente').order('vencimento');
+    const { data: guias } = await sb.from('guias').select('*, clientes(nome, empresa, codigo)').neq('status', 'pago').order('vencimento');
     if (!guias || guias.length === 0) { el.innerHTML = '<div class="empty-state">Nenhuma guia pendente.</div>'; return; }
 
     const hoje = new Date(); hoje.setHours(0,0,0,0);
