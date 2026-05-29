@@ -689,6 +689,14 @@ async function renderPanelDados(body) {
   }
 }
 
+async function excluirCliente(email) {
+  if (!confirm(`Excluir o cliente ${email}?\n\nIsso vai remover os dados cadastrais. Os arquivos postados serão mantidos.`)) return;
+  const { error } = await sb.from('clientes').delete().eq('email', email);
+  if (error) { alert('Erro ao excluir: ' + error.message); return; }
+  // Recarregar painel
+  renderPanelDados(document.getElementById('panel-body'));
+}
+
 function preencherDados(email, nome, empresa, whatsapp, codigo) {
   document.getElementById('d-email').value = email;
   document.getElementById('d-nome').value = nome;
