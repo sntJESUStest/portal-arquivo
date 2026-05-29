@@ -1226,15 +1226,43 @@ async function renderPanelCalendario(body) {
   calSelectedDay = null;
 
   if (isAdmin) {
-    const { data: clientes } = await sb.from('clientes').select('email, nome').order('nome');
+    // Buscar todos os clientes com código + empresa + filiais
+    const { data: clientes } = await sb.from('clientes').select('email, nome, empresa, codigo, tipo, matriz_email').order('codigo');
+
+    // Montar lista agrupando matriz e filiais
+    const buildOptions = (lista) => {
+      const grupos = [];
+      const matrizes = lista.filter(c => c.tipo !== 'filial');
+      const filiais = lista.filter(c => c.tipo === 'filial');
+
+      matrizes.forEach(m => {
+        const label = m.codigo ? `${m.codigo} - ${m.empresa || m.nome || m.email}` : (m.empresa || m.nome || m.email);
+        grupos.push(`<option value="${m.email}">${label}</option>`);
+        // Filiais desta matriz
+        const filiaisMatriz = filiais.filter(f => f.matriz_email === m.email);
+        filiaisMatriz.forEach(f => {
+          const flabel = f.codigo ? `${f.codigo} - ${f.empresa || f.nome || f.email}` : (f.empresa || f.nome || f.email);
+          grupos.push(`<option value="${f.email}">&nbsp;&nbsp;↳ ${flabel}</option>`);
+        });
+      });
+      // Filiais sem matriz conhecida
+      filiais.filter(f => !matrizes.find(m => m.email === f.matriz_email)).forEach(f => {
+        const flabel = f.codigo ? `${f.codigo} - ${f.empresa || f.nome || f.email}` : (f.empresa || f.nome || f.email);
+        grupos.push(`<option value="${f.email}">${flabel}</option>`);
+      });
+      return grupos.join('');
+    };
+
+    const opts = buildOptions(clientes || []);
+
     body.innerHTML = `
       <div class="section-title" style="margin-bottom:10px;">Adicionar Guia</div>
       <div class="card" style="margin-bottom:1rem;">
         <div class="form-row" style="margin-bottom:10px;">
-          <div class="field" style="margin:0;"><label>Cliente</label>
+          <div class="field" style="margin:0;"><label>Cliente / Filial</label>
             <select id="g-email">
               <option value="">Selecione...</option>
-              ${(clientes||[]).map(c => `<option value="${c.email}">${c.nome||c.email}</option>`).join('')}
+              ${opts}
             </select>
           </div>
           <div class="field" style="margin:0;"><label>Tipo de Guia</label>
@@ -1252,10 +1280,10 @@ async function renderPanelCalendario(body) {
         <button class="btn btn-primary" onclick="salvarGuia()">Adicionar guia</button>
       </div>
       <div class="section-title" style="margin-bottom:10px;">Calendário por cliente</div>
-      <div class="field"><label>Visualizar cliente</label>
+      <div class="field"><label>Visualizar cliente / filial</label>
         <select id="g-view-email" onchange="loadCalendario()">
-          <option value="">Selecione um cliente...</option>
-          ${(clientes||[]).map(c => `<option value="${c.email}">${c.nome||c.email}</option>`).join('')}
+          <option value="">Selecione...</option>
+          ${opts}
         </select>
       </div>
       <div id="cal-container"></div>`;
