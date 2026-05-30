@@ -1735,33 +1735,55 @@ let fcmToken = null;
 async function solicitarPermissaoNotificacao() {
   try {
     if (!('Notification' in window)) return;
-    const permission = await Notification.requestPermission();
-    if (permission !== 'granted') return;
 
-    // Registrar service worker do Firebase para push em background
-    if ('serviceWorker' in navigator) {
-      const swReg = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
-      if (!firebase.apps.length) {
-        firebase.initializeApp({
-          apiKey: "AIzaSyBpcfRgaensCCNcQJcjc30S3Amsa8koArI",
-          authDomain: "hp-contabilidade.firebaseapp.com",
-          projectId: "hp-contabilidade",
-          storageBucket: "hp-contabilidade.firebasestorage.app",
-          messagingSenderId: "928003631327",
-          appId: "1:928003631327:web:3eb9bf210d9cd69cc3a16a"
-        });
-      }
-      const messaging = firebase.messaging();
-      fcmToken = await messaging.getToken({
-        vapidKey: 'BDVoFxDwo_g5b5u8ns9dpfOcr0TIjxk_wI2dIRwjgAONWtQN0h6TB8K5xXf9_fv2gDp2SYJX1aEYs8k6_TqkMOM',
-        serviceWorkerRegistration: swReg
-      });
-      if (fcmToken) {
-        await sb.from('clientes').update({ fcm_token: fcmToken }).eq('email', currentUser.email);
-      }
+    // Solicitar permissão se ainda não concedida
+    if (Notification.permission === 'default') {
+      await Notification.requestPermission();
     }
+    if (Notification.permission !== 'granted') return;
+
+    if (!('serviceWorker' in navigator)) return;
+
+    // Sempre registrar/renovar o SW e token
+    const swReg = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+    await navigator.serviceWorker.ready;
+
+    if (!firebase.apps.length) {
+      firebase.initializeApp({
+        apiKey: "AIzaSyBpcfRgaensCCNcQJcjc30S3Amsa8koArI",
+        authDomain: "hp-contabilidade.firebaseapp.com",
+        projectId: "hp-contabilidade",
+        storageBucket: "hp-contabilidade.firebasestorage.app",
+        messagingSenderId: "928003631327",
+        appId: "1:928003631327:web:3eb9bf210d9cd69cc3a16a"
+      });
+    }
+
+    const messaging = firebase.messaging();
+
+    // Deletar token antigo e gerar novo para garantir funcionamento
+    try { await messaging.deleteToken(); } catch(e) {}
+
+    fcmToken = await messaging.getToken({
+      vapidKey: 'BDVoFxDwo_g5b5u8ns9dpfOcr0TIjxk_wI2dIRwjgAONWtQN0h6TB8K5xXf9_fv2gDp2SYJX1aEYs8k6_TqkMOM',
+      serviceWorkerRegistration: swReg
+    });
+
+    if (fcmToken) {
+      await sb.from('clientes').update({ fcm_token: fcmToken }).eq('email', currentUser.email);
+      console.log('Token FCM renovado!');
+    }
+
+    // Notificações com app aberto
+    messaging.onMessage((payload) => {
+      const { title, body } = payload.notification;
+      if (Notification.permission === 'granted') {
+        new Notification(title, { body, icon: '/icon-192.png', badge: '/icon-192.png', tag: 'hp-notif' });
+      }
+    });
+
   } catch(e) {
-    console.log('Notificações:', e.message);
+    console.log('Notificacoes:', e.message);
   }
 }
 
