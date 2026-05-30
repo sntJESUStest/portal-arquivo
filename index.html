@@ -224,6 +224,8 @@
     .chat-wp-container { display: flex; height: 480px; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
     .chat-wp-sidebar { width: 200px; border-right: 1px solid var(--border); display: flex; flex-direction: column; flex-shrink: 0; background: var(--bg); }
     .chat-wp-sidebar-header { padding: 10px 12px; border-bottom: 1px solid var(--border); font-size: 13px; font-weight: 600; color: var(--text-secondary); background: var(--surface); }
+    .chat-wp-search { padding: 8px 10px; border-bottom: 1px solid var(--border); background: var(--surface); }
+    .chat-wp-search input { width: 100%; padding: 6px 10px; border: 1px solid var(--border); border-radius: 99px; font-family: 'DM Sans', sans-serif; font-size: 12px; background: var(--bg); color: var(--text); outline: none; }
     .chat-wp-list { flex: 1; overflow-y: auto; }
     .chat-wp-item { display: flex; align-items: center; gap: 8px; padding: 10px 12px; cursor: pointer; border-bottom: 1px solid var(--border); transition: background 0.12s; }
     .chat-wp-item:hover { background: var(--surface); }
@@ -924,6 +926,9 @@ async function renderPanelChat(body) {
     body.innerHTML = `<div class="chat-wp-container">
       <div class="chat-wp-sidebar">
         <div class="chat-wp-sidebar-header">Conversas</div>
+        <div class="chat-wp-search">
+          <input type="text" placeholder="Pesquisar cliente..." oninput="filtrarChat(this.value)" id="chat-search" />
+        </div>
         <div class="chat-wp-list" id="chat-wp-list">
           ${ordenados.map(([email, conv]) => {
             const info = getInfo(email);
@@ -951,6 +956,14 @@ async function renderPanelChat(body) {
     clearInterval(chatInterval);
     chatInterval = setInterval(() => loadChat(currentUser.email, false), 4000);
   }
+}
+
+function filtrarChat(termo) {
+  const items = document.querySelectorAll('.chat-wp-item');
+  items.forEach(item => {
+    const texto = item.textContent.toLowerCase();
+    item.style.display = texto.includes(termo.toLowerCase()) ? 'flex' : 'none';
+  });
 }
 
 async function selecionarChatCliente(email) {
