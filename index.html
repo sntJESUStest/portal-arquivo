@@ -1347,7 +1347,6 @@ async function renderPanelRelatorios(body) {
       <button class="tab-btn active" onclick="mostrarRelatorio('guias-pendentes', this)">Guias nao pagas</button>
       <button class="tab-btn" onclick="mostrarRelatorio('clientes-ativos', this)">Clientes ativos</button>
       <button class="tab-btn" onclick="mostrarRelatorio('por-setor', this)">Por setor</button>
-      <button class="tab-btn" onclick="mostrarRelatorio('por-periodo', this)">Por periodo</button>
     </div>
     <div id="relatorio-content"><div class="loading">Carregando...</div></div>`;
   await mostrarRelatorio('guias-pendentes');
@@ -1365,7 +1364,12 @@ async function mostrarRelatorio(tipo, btnEl) {
   el.innerHTML = '<div class="loading">Carregando...</div>';
 
   if (tipo === 'guias-pendentes') {
-    const { data: guias } = await sb.from('guias').select('*, clientes(nome, empresa, codigo)').neq('status', 'pago').order('vencimento');
+    const { data: todasGuias } = await sb.from('guias').select('*').order('vencimento');
+    const { data: clientesGuias } = await sb.from('clientes').select('nome, empresa, codigo, email');
+    const guias = (todasGuias || []).filter(g => g.status !== 'pago').map(g => ({
+      ...g,
+      clientes: clientesGuias?.find(c => c.email === g.cliente_email) || null
+    }));
     if (!guias || guias.length === 0) { el.innerHTML = '<div class="empty-state">Nenhuma guia pendente.</div>'; return; }
 
     const hoje = new Date(); hoje.setHours(0,0,0,0);
@@ -1427,51 +1431,64 @@ async function mostrarRelatorio(tipo, btnEl) {
     });
     el.innerHTML = html;
 
-  } else if (tipo === 'por-periodo') {
-    el.innerHTML = `
-      <div class="form-row" style="margin-bottom:1rem;">
-        <div class="field" style="margin:0;"><label>Mes</label>
-          <select id="rel-mes">
-            <option value="">Todos</option>
-            <option>Janeiro</option><option>Fevereiro</option><option>Marco</option>
-            <option>Abril</option><option>Maio</option><option>Junho</option>
-            <option>Julho</option><option>Agosto</option><option>Setembro</option>
-            <option>Outubro</option><option>Novembro</option><option>Dezembro</option>
-          </select>
-        </div>
-        <div class="field" style="margin:0;"><label>Ano</label>
-          <select id="rel-ano">
-            <option value="">Todos</option>
-            <option>2023</option><option>2024</option><option>2025</option><option>2026</option>
-          </select>
-        </div>
-      </div>
-      <button class="btn btn-primary" onclick="filtrarRelatorioPeriodo()" style="margin-bottom:1rem;">Filtrar</button>
-      <div id="rel-periodo-result"></div>`;
   }
+
+  // Adicionar botão exportar PDF
+  const exportBtn = document.createElement('button');
+  exportBtn.className = 'btn btn-primary';
+  exportBtn.style = 'margin-top:1rem;width:100%;';
+  exportBtn.textContent = 'Exportar PDF';
+  exportBtn.onclick = exportarPDF;
+  el.appendChild(exportBtn);
 }
 
-async function filtrarRelatorioPeriodo() {
-  const mes = document.getElementById('rel-mes').value;
-  const ano = document.getElementById('rel-ano').value;
-  const el = document.getElementById('rel-periodo-result');
-  el.innerHTML = '<div class="loading">Carregando...</div>';
+async function exportarPDF() {
+  const conteudo = document.getElementById('relatorio-content');
+  const titulo = document.querySelector('.panel-title')?.textContent || 'Relatorio';
 
-  let query = sb.from('notificacoes').select('*').order('criado_em', { ascending: false });
-  if (mes) query = query.eq('mes', mes);
-  if (ano) query = query.eq('ano', ano);
-
-  const { data: files } = await query;
-  if (!files || files.length === 0) { el.innerHTML = '<div class="empty-state">Nenhum arquivo encontrado.</div>'; return; }
-
-  el.innerHTML = `<p style="font-size:13px;color:var(--text-secondary);margin-bottom:12px;">${files.length} arquivo(s) encontrado(s)</p>` +
-    files.map(f => `<div class="file-row" style="margin-bottom:6px;">
-      <div class="file-info">
-        <div class="file-name">${f.arquivo_nome}</div>
-        <div class="file-meta">${f.cliente_email} · ${f.setor||''} · ${f.mes||''} ${f.ano||''}</div>
-      </div>
-      <span class="badge ${f.lido ? 'badge-read' : 'badge-new'}">${f.lido ? 'Visto' : 'Novo'}</span>
-    </div>`).join('');
+  const janela = window.open('', '_blank');
+  janela.document.write(`
+    <!DOCTYPE html>
+    <html lang="pt-BR">
+    <head>
+      <meta charset="UTF-8">
+      <title>${titulo} - HP Contabilidade</title>
+      <style>
+        body { font-family: Arial, sans-serif; padding: 2rem; color: #1a1916; }
+        h1 { font-size: 18px; margin-bottom: 4px; }
+        .sub { font-size: 13px; color: #666; margin-bottom: 1.5rem; }
+        .row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #eee; font-size: 13px; }
+        .name { font-weight: 600; }
+        .meta { color: #666; font-size: 12px; }
+        .badge { font-size: 11px; padding: 2px 8px; border-radius: 99px; font-weight: 600; }
+        .vencido { background: #fff0f0; color: #c0392b; }
+        .urgente { background: #fff7ed; color: #c2410c; }
+        .ok { background: #edfaf3; color: #1a7a4a; }
+        .section { font-size: 13px; font-weight: 700; margin: 1rem 0 6px; color: #4338ca; }
+        @media print { body { padding: 1rem; } }
+      </style>
+    </head>
+    <body>
+      <h1>HP Contabilidade</h1>
+      <div class="sub">${titulo} · Gerado em ${new Date().toLocaleDateString('pt-BR')}</div>
+      ${conteudo.innerHTML
+        .replace(/class="file-row[^"]*"/g, 'style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #eee;"')
+        .replace(/class="file-name"/g, 'class="name"')
+        .replace(/class="file-meta"/g, 'class="meta"')
+        .replace(/class="cert-badge-exp"/g, 'class="badge vencido"')
+        .replace(/class="cert-badge-warn"/g, 'class="badge urgente"')
+        .replace(/class="cert-badge-ok"/g, 'class="badge ok"')
+        .replace(/class="badge badge-new"/g, 'class="badge urgente"')
+        .replace(/class="badge badge-read"/g, 'class="badge ok"')
+        .replace(/<button[^>]*>.*?<\/button>/gs, '')
+        .replace(/<input[^>]*>/g, '')
+        .replace(/<select[^>]*>.*?<\/select>/gs, '')
+      }
+    </body>
+    </html>
+  `);
+  janela.document.close();
+  setTimeout(() => { janela.print(); }, 500);
 }
 
 // ── PAINEL CALENDÁRIO ────────────────────────────────
