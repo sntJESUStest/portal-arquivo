@@ -241,6 +241,17 @@
     .chat-wp-main-email { font-size: 11px; color: var(--text-tertiary); }
     .chat-wp-empty { flex: 1; display: flex; align-items: center; justify-content: center; color: var(--text-tertiary); font-size: 13px; }
 
+    /* SOLICITAR DOCUMENTO */
+    .chat-solicitar-btn { padding: 6px 12px; border-radius: 99px; border: 1px solid var(--accent); background: var(--blue-bg); color: var(--accent); font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 500; cursor: pointer; margin: 4px 10px 8px; display: inline-flex; align-items: center; gap: 5px; transition: all 0.15s; }
+    .chat-solicitar-btn:hover { background: var(--accent); color: #fff; }
+    .chat-solicitar-btn svg { width: 13px; height: 13px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .chat-doc-list { background: var(--bg); border-top: 1px solid var(--border); padding: 10px; max-height: 200px; overflow-y: auto; }
+    .chat-doc-item { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: var(--radius); cursor: pointer; transition: background 0.12s; font-size: 13px; }
+    .chat-doc-item:hover { background: var(--surface); }
+    .chat-doc-item svg { width: 14px; height: 14px; stroke: var(--text-secondary); fill: none; stroke-width: 1.8; flex-shrink: 0; }
+    .chat-bubble-solicitacao { background: var(--blue-bg); border: 1px solid var(--blue-text); border-radius: 14px; padding: 8px 12px; font-size: 12px; color: var(--blue-text); align-self: flex-start; border-bottom-left-radius: 4px; max-width: 78%; }
+    .chat-bubble-solicitacao-resp { background: var(--green-bg); border: 1px solid var(--green-text); border-radius: 14px; padding: 8px 12px; font-size: 12px; color: var(--green-text); align-self: flex-end; border-bottom-right-radius: 4px; max-width: 78%; }
+
     @media (max-width: 600px) {
       .content { padding: 1rem; }
       .stats-grid { grid-template-columns: 1fr 1fr; }
@@ -1009,12 +1020,19 @@ async function selecionarChatCliente(email) {
 function buildChatUI() {
   return `<div class="chat-box">
     <div class="chat-messages" id="chat-messages"><div class="loading">Carregando mensagens...</div></div>
+    <div id="chat-doc-list" class="chat-doc-list" style="display:none;"></div>
     <div id="chat-file-preview" style="display:none;" class="chat-file-preview">
       <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:var(--blue-text);fill:none;stroke-width:2;flex-shrink:0;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
       <span id="chat-file-name">arquivo.pdf</span>
       <button class="chat-file-cancel" onclick="cancelarAnexo()">×</button>
     </div>
-    <div class="chat-input-row">
+    <div style="display:flex;align-items:center;gap:6px;padding:4px 10px 0;border-top:1px solid var(--border);background:var(--surface);">
+      ${!isAdmin ? `<button class="chat-solicitar-btn" onclick="toggleListaDocumentos()">
+        <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        Solicitar documento
+      </button>` : ''}
+    </div>
+    <div class="chat-input-row" style="border-top:none;padding-top:6px;">
       <button class="chat-attach-btn" onclick="document.getElementById('chat-file-input').click()" title="Anexar arquivo">
         <svg viewBox="0 0 24 24"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
       </button>
@@ -1041,6 +1059,14 @@ async function loadChat(clientEmail, adminSide) {
   if (!msgs || msgs.length === 0) { el.innerHTML = '<div style="text-align:center;color:var(--text-tertiary);font-size:13px;padding:1rem;">Nenhuma mensagem ainda.</div>'; return; }
   el.innerHTML = msgs.map(m => {
     const mine = adminSide ? m.autor === 'admin' : m.autor === 'cliente';
+    if (m.mensagem.startsWith('__SOLICITACAO__')) {
+      const nomeDoc = m.mensagem.replace('__SOLICITACAO__', '');
+      const mine = adminSide ? m.autor === 'admin' : m.autor === 'cliente';
+      return `<div class="chat-bubble-${mine ? 'solicitacao-resp' : 'solicitacao'}">
+        📄 Solicitou: <strong>${nomeDoc}</strong>
+        <div class="bubble-meta" style="font-size:10px;opacity:0.7;margin-top:3px;">${formatDate(m.criado_em)}</div>
+      </div>`;
+    }
     if (m.mensagem.startsWith('__ARQUIVO__')) {
       const parts = m.mensagem.split('__URL__');
       const fileName = parts[0].replace('__ARQUIVO__', '');
@@ -1062,6 +1088,67 @@ async function loadChat(clientEmail, adminSide) {
 
   // Marcar mensagens recebidas como lidas
   await marcarChatLido(clientEmail);
+}
+
+async function toggleListaDocumentos() {
+  const el = document.getElementById('chat-doc-list');
+  if (!el) return;
+  if (el.style.display !== 'none') { el.style.display = 'none'; return; }
+
+  el.innerHTML = '<div style="font-size:12px;color:var(--text-tertiary);padding:4px;">Carregando...</div>';
+  el.style.display = 'block';
+
+  // Verificar horário comercial (8h às 18h)
+  const hora = new Date().getHours();
+  const dentroHorario = hora >= 8 && hora < 18;
+
+  // Buscar documentos do cliente
+  const { data: docs } = await sb.from('notificacoes')
+    .select('*')
+    .eq('cliente_email', currentUser.email)
+    .order('criado_em', { ascending: false });
+
+  if (!docs || docs.length === 0) {
+    el.innerHTML = '<div style="font-size:12px;color:var(--text-tertiary);padding:8px;">Nenhum documento disponivel.</div>';
+    return;
+  }
+
+  const aviso = dentroHorario
+    ? '<div style="font-size:11px;color:var(--orange-text);background:var(--orange-bg);padding:6px 10px;border-radius:var(--radius);margin-bottom:6px;">Horario comercial: nossa equipe respondera em breve.</div>'
+    : '<div style="font-size:11px;color:var(--green-text);background:var(--green-bg);padding:6px 10px;border-radius:var(--radius);margin-bottom:6px;">Fora do horario: solicitacao sera processada automaticamente.</div>';
+
+  el.innerHTML = aviso + docs.map(d => `
+    <div class="chat-doc-item" onclick="solicitarDocumento('${d.arquivo_nome}', '${d.arquivo_path}', ${dentroHorario})">
+      <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      <span>${d.arquivo_nome}</span>
+      <span style="font-size:11px;color:var(--text-tertiary);margin-left:auto;">${d.setor||''} ${d.mes||''} ${d.ano||''}</span>
+    </div>`).join('');
+}
+
+async function solicitarDocumento(nome, path, dentroHorario) {
+  document.getElementById('chat-doc-list').style.display = 'none';
+
+  const autor = 'cliente';
+  const clientEmail = currentUser.email;
+
+  if (dentroHorario) {
+    // Dentro do horário: só manda mensagem para o admin responder
+    const mensagem = `__SOLICITACAO__${nome}`;
+    await sb.from('chat').insert({ cliente_email: clientEmail, autor, mensagem, criado_em: new Date().toISOString() });
+  } else {
+    // Fora do horário: envia o documento automaticamente como mensagem
+    const mensagem = `__SOLICITACAO__${nome}`;
+    await sb.from('chat').insert({ cliente_email: clientEmail, autor, mensagem, criado_em: new Date().toISOString() });
+
+    // Resposta automática com o arquivo
+    setTimeout(async () => {
+      const resposta = `__ARQUIVO__${nome}__URL__${path}`;
+      await sb.from('chat').insert({ cliente_email: clientEmail, autor: 'admin', mensagem: resposta, criado_em: new Date().toISOString() });
+      loadChat(clientEmail, false);
+    }, 1500);
+  }
+
+  loadChat(clientEmail, false);
 }
 
 function selecionarAnexo() {
