@@ -696,12 +696,12 @@ async function renderPanelDados(body) {
     <div class="card" style="margin-bottom:1rem;">
       <div class="form-row" style="margin-bottom:10px;">
         <div class="field" style="margin:0;"><label>E-mail do cliente</label><input id="d-email" type="email" placeholder="cliente@email.com" /></div>
-        <div class="field" style="margin:0;"><label>Nome completo</label><input id="d-nome" type="text" placeholder="João da Silva" /></div>
-          </div>
-          <div class="form-row" style="margin-bottom:10px;">
-            <div class="field" style="margin:0;"><label>Código do cliente</label><input id="d-codigo" type="text" placeholder="ex: 2" /></div>
+        <div class="field" style="margin:0;"><label>Nome completo</label><input id="d-nome" type="text" placeholder="Joao da Silva" /></div>
       </div>
-      <div class="field"><label>Empresa</label><input id="d-empresa" type="text" placeholder="Nome da empresa" /></div>
+      <div class="form-row" style="margin-bottom:10px;">
+        <div class="field" style="margin:0;"><label>Codigo do cliente</label><input id="d-codigo" type="text" placeholder="ex: 2" /></div>
+        <div class="field" style="margin:0;"><label>Empresa</label><input id="d-empresa" type="text" placeholder="Nome da empresa" /></div>
+      </div>
       <div class="field"><label>WhatsApp (com DDD, ex: 5541999999999)</label><input id="d-whatsapp" type="text" placeholder="5541999999999" /></div>
       <div class="form-row" style="margin-bottom:10px;">
         <div class="field" style="margin:0;"><label>Tipo</label>
@@ -710,9 +710,21 @@ async function renderPanelDados(body) {
             <option value="filial">Filial</option>
           </select>
         </div>
-        <div class="field" style="margin:0;" id="d-matriz-field" style="display:none;">
+        <div class="field" style="margin:0;" id="d-matriz-field">
           <label>E-mail da Matriz</label>
           <input id="d-matriz" type="email" placeholder="matriz@email.com" />
+        </div>
+      </div>
+      <div class="field">
+        <label>Guias mensais (vencimento todo dia 20)</label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px;">
+          <label style="display:flex;align-items:center;gap:6px;font-weight:400;color:var(--text);font-size:13px;cursor:pointer;"><input type="checkbox" id="g-das" value="DAS Simples Nacional" style="width:auto;accent-color:var(--accent);"> DAS Simples Nacional</label>
+          <label style="display:flex;align-items:center;gap:6px;font-weight:400;color:var(--text);font-size:13px;cursor:pointer;"><input type="checkbox" id="g-irpj" value="DARF IRPJ" style="width:auto;accent-color:var(--accent);"> DARF IRPJ</label>
+          <label style="display:flex;align-items:center;gap:6px;font-weight:400;color:var(--text);font-size:13px;cursor:pointer;"><input type="checkbox" id="g-csll" value="DARF CSLL" style="width:auto;accent-color:var(--accent);"> DARF CSLL</label>
+          <label style="display:flex;align-items:center;gap:6px;font-weight:400;color:var(--text);font-size:13px;cursor:pointer;"><input type="checkbox" id="g-pis" value="DARF PIS/COFINS" style="width:auto;accent-color:var(--accent);"> DARF PIS/COFINS</label>
+          <label style="display:flex;align-items:center;gap:6px;font-weight:400;color:var(--text);font-size:13px;cursor:pointer;"><input type="checkbox" id="g-inss" value="GPS INSS" style="width:auto;accent-color:var(--accent);"> GPS INSS</label>
+          <label style="display:flex;align-items:center;gap:6px;font-weight:400;color:var(--text);font-size:13px;cursor:pointer;"><input type="checkbox" id="g-fgts" value="FGTS" style="width:auto;accent-color:var(--accent);"> FGTS</label>
+          <label style="display:flex;align-items:center;gap:6px;font-weight:400;color:var(--text);font-size:13px;cursor:pointer;"><input type="checkbox" id="g-iss" value="ISS" style="width:auto;accent-color:var(--accent);"> ISS</label>
         </div>
       </div>
       <div id="d-msg" class="hidden"></div>
@@ -770,6 +782,42 @@ async function renderPanelDados(body) {
       <div class="dados-row"><div class="dados-label">Empresa</div><div class="dados-value">${d.empresa || '—'}</div></div>
       ${docsHtml}`;
   }
+}
+
+function calcularDiaUtil(ano, mes) {
+  // Tenta dia 20, se fim de semana volta para dia útil anterior
+  let data = new Date(ano, mes, 20);
+  while (data.getDay() === 0 || data.getDay() === 6) {
+    data.setDate(data.getDate() - 1);
+  }
+  return data.toISOString().split('T')[0];
+}
+
+async function lancarGuiasModelo(clienteEmail, tipos) {
+  if (!tipos || tipos.length === 0) return;
+  const hoje = new Date();
+  const guiasParaInserir = [];
+
+  // Lançar para os próximos 12 meses
+  for (let i = 0; i < 12; i++) {
+    const mes = (hoje.getMonth() + i) % 12;
+    const ano = hoje.getFullYear() + Math.floor((hoje.getMonth() + i) / 12);
+    const vencimento = calcularDiaUtil(ano, mes);
+
+    tipos.forEach(tipo => {
+      guiasParaInserir.push({
+        cliente_email: clienteEmail,
+        tipo,
+        vencimento,
+        status: 'pendente',
+        observacao: 'Lancado automaticamente',
+        criado_em: new Date().toISOString()
+      });
+    });
+  }
+
+  await sb.from('guias').insert(guiasParaInserir);
+  console.log(`${guiasParaInserir.length} guias lancadas para ${clienteEmail}`);
 }
 
 function toggleMatrizField() {
@@ -876,7 +924,7 @@ async function excluirCliente(email) {
   renderPanelDados(document.getElementById('panel-body'));
 }
 
-function preencherDados(email, nome, empresa, whatsapp, codigo, tipo, matriz) {
+async function preencherDados(email, nome, empresa, whatsapp, codigo, tipo, matriz) {
   document.getElementById('d-email').value = email;
   document.getElementById('d-nome').value = nome;
   document.getElementById('d-empresa').value = empresa;
@@ -884,6 +932,15 @@ function preencherDados(email, nome, empresa, whatsapp, codigo, tipo, matriz) {
   if (document.getElementById('d-codigo')) document.getElementById('d-codigo').value = codigo||'';
   if (document.getElementById('d-tipo')) { document.getElementById('d-tipo').value = tipo||'matriz'; toggleMatrizField(); }
   if (document.getElementById('d-matriz')) document.getElementById('d-matriz').value = matriz||'';
+
+  // Carregar modelo de guias do cliente
+  const { data: modelo } = await sb.from('modelo_guias').select('tipo').eq('cliente_email', email);
+  const tiposAtivos = (modelo||[]).map(m => m.tipo);
+  const guiaIds = ['g-das','g-irpj','g-csll','g-pis','g-inss','g-fgts','g-iss'];
+  guiaIds.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.checked = tiposAtivos.includes(el.value);
+  });
 }
 
 async function salvarDados() {
@@ -897,8 +954,25 @@ async function salvarDados() {
   const tipoDados = document.getElementById('d-tipo') ? document.getElementById('d-tipo').value : 'matriz';
   const matrizDados = document.getElementById('d-matriz') ? document.getElementById('d-matriz').value.trim() : null;
   const { error } = await sb.from('clientes').upsert({ email, nome, empresa, whatsapp: whatsappDados||null, codigo: codigoDados||null, tipo: tipoDados, matriz_email: tipoDados === 'filial' ? matrizDados : null }, { onConflict: 'email' });
-  if (error) { msg.className = 'error-msg'; msg.textContent = 'Erro: ' + error.message; }
-  else { msg.className = 'success-msg'; msg.textContent = '✓ Dados salvos com sucesso!'; }
+  if (error) { msg.className = 'error-msg'; msg.textContent = 'Erro: ' + error.message; msg.classList.remove('hidden'); return; }
+
+  // Salvar modelo de guias e lançar no calendário
+  const guiaIds = ['g-das','g-irpj','g-csll','g-pis','g-inss','g-fgts','g-iss'];
+  const tiposSelecionados = guiaIds
+    .map(id => document.getElementById(id))
+    .filter(el => el && el.checked)
+    .map(el => el.value);
+
+  if (tiposSelecionados.length > 0) {
+    // Salvar modelo
+    await sb.from('modelo_guias').delete().eq('cliente_email', email);
+    await sb.from('modelo_guias').insert(tiposSelecionados.map(tipo => ({ cliente_email: email, tipo, criado_em: new Date().toISOString() })));
+    // Lançar guias nos próximos 12 meses
+    await lancarGuiasModelo(email, tiposSelecionados);
+    msg.className = 'success-msg'; msg.textContent = `✓ Dados salvos e ${tiposSelecionados.length} tipo(s) de guia lançados nos próximos 12 meses!`;
+  } else {
+    msg.className = 'success-msg'; msg.textContent = '✓ Dados salvos com sucesso!';
+  }
   msg.classList.remove('hidden');
 }
 
