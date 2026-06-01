@@ -253,6 +253,69 @@
     .chat-bubble-solicitacao { background: var(--blue-bg); border: 1px solid var(--blue-text); border-radius: 14px; padding: 8px 12px; font-size: 12px; color: var(--blue-text); align-self: flex-start; border-bottom-left-radius: 4px; max-width: 78%; }
     .chat-bubble-solicitacao-resp { background: var(--green-bg); border: 1px solid var(--green-text); border-radius: 14px; padding: 8px 12px; font-size: 12px; color: var(--green-text); align-self: flex-end; border-bottom-right-radius: 4px; max-width: 78%; }
 
+    /* CHAT ATENDIMENTO */
+    .chat-atend-container { display: flex; height: 560px; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+    .chat-atend-sidebar { width: 280px; border-right: 1px solid var(--border); display: flex; flex-direction: column; flex-shrink: 0; }
+    .chat-atend-tabs { display: flex; border-bottom: 1px solid var(--border); }
+    .chat-atend-tab { flex: 1; padding: 10px 6px; font-size: 12px; font-weight: 500; text-align: center; cursor: pointer; border: none; background: none; color: var(--text-secondary); border-bottom: 2px solid transparent; transition: all 0.15s; }
+    .chat-atend-tab.active { color: var(--accent); border-bottom-color: var(--accent); background: var(--blue-bg); }
+    .chat-atend-tab .tab-num { display: inline-block; background: #ef4444; color: #fff; border-radius: 99px; font-size: 10px; font-weight: 700; padding: 1px 6px; margin-left: 4px; }
+    .chat-atend-search { padding: 8px 10px; border-bottom: 1px solid var(--border); }
+    .chat-atend-search input { width: 100%; padding: 7px 12px; border: 1px solid var(--border); border-radius: 99px; font-size: 12px; background: var(--bg); outline: none; }
+    .chat-atend-list { flex: 1; overflow-y: auto; }
+    .chat-atend-item { display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; cursor: pointer; border-bottom: 1px solid var(--border); transition: background 0.12s; }
+    .chat-atend-item:hover { background: var(--bg); }
+    .chat-atend-item.active { background: var(--blue-bg); }
+    .chat-atend-avatar { width: 38px; height: 38px; border-radius: 50%; background: var(--accent); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; flex-shrink: 0; }
+    .chat-atend-info { flex: 1; min-width: 0; }
+    .chat-atend-nome { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .chat-atend-empresa { font-size: 11px; color: var(--text-tertiary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .chat-atend-preview { font-size: 12px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+    .chat-atend-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0; }
+    .chat-atend-time { font-size: 10px; color: var(--text-tertiary); }
+    .chat-atend-badge { background: #ef4444; color: #fff; border-radius: 99px; font-size: 10px; font-weight: 700; padding: 2px 6px; }
+    .chat-atend-main { flex: 1; display: flex; flex-direction: column; background: var(--bg); }
+    .chat-atend-header { padding: 12px 16px; border-bottom: 1px solid var(--border); background: var(--surface); display: flex; align-items: center; justify-content: space-between; }
+    .chat-atend-header-info { display: flex; align-items: center; gap: 10px; }
+    .chat-atend-header-nome { font-size: 14px; font-weight: 600; }
+    .chat-atend-header-empresa { font-size: 12px; color: var(--text-tertiary); }
+    .chat-atend-empty { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text-tertiary); gap: 12px; }
+    .chat-atend-empty svg { width: 48px; height: 48px; stroke: var(--border); fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+    .btn-iniciar { padding: 6px 14px; background: var(--accent); color: #fff; border: none; border-radius: var(--radius); font-size: 12px; font-weight: 500; cursor: pointer; font-family: 'DM Sans', sans-serif; }
+    .chat-atend-atendente { font-size: 11px; color: var(--text-tertiary); padding: 4px 10px; }
+
+    /* CHAT ATENDIMENTO */
+    .chat-atend-container { display: flex; height: 520px; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+    .chat-atend-sidebar { width: 280px; border-right: 1px solid var(--border); display: flex; flex-direction: column; flex-shrink: 0; background: var(--surface); }
+    .chat-atend-tabs { display: flex; border-bottom: 1px solid var(--border); }
+    .chat-atend-tab { flex: 1; padding: 10px 6px; font-size: 12px; font-weight: 600; cursor: pointer; border: none; background: none; color: var(--text-secondary); border-bottom: 2px solid transparent; transition: all 0.15s; display: flex; align-items: center; justify-content: center; gap: 4px; }
+    .chat-atend-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+    .chat-atend-tab-badge { background: #ef4444; color: #fff; font-size: 10px; font-weight: 700; min-width: 16px; height: 16px; border-radius: 99px; display: inline-flex; align-items: center; justify-content: center; padding: 0 4px; }
+    .chat-atend-search { padding: 8px 10px; border-bottom: 1px solid var(--border); }
+    .chat-atend-search input { width: 100%; padding: 7px 12px; border: 1px solid var(--border); border-radius: 99px; font-family: 'DM Sans', sans-serif; font-size: 12px; background: var(--bg); outline: none; }
+    .chat-atend-list { flex: 1; overflow-y: auto; }
+    .chat-atend-item { display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; cursor: pointer; border-bottom: 1px solid var(--border); transition: background 0.12s; position: relative; }
+    .chat-atend-item:hover { background: var(--bg); }
+    .chat-atend-item.active { background: var(--blue-bg); }
+    .chat-atend-avatar { width: 38px; height: 38px; border-radius: 50%; background: var(--accent); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; flex-shrink: 0; }
+    .chat-atend-info { flex: 1; min-width: 0; }
+    .chat-atend-nome { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .chat-atend-empresa { font-size: 11px; color: var(--text-tertiary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .chat-atend-preview { font-size: 12px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+    .chat-atend-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0; }
+    .chat-atend-time { font-size: 10px; color: var(--text-tertiary); }
+    .chat-atend-unread { background: #ef4444; color: #fff; font-size: 10px; font-weight: 700; min-width: 18px; height: 18px; border-radius: 99px; display: flex; align-items: center; justify-content: center; padding: 0 4px; }
+    .chat-atend-main { flex: 1; display: flex; flex-direction: column; background: var(--bg); }
+    .chat-atend-header { padding: 12px 16px; border-bottom: 1px solid var(--border); background: var(--surface); display: flex; align-items: center; justify-content: space-between; }
+    .chat-atend-header-info { display: flex; align-items: center; gap: 10px; }
+    .chat-atend-header-nome { font-size: 14px; font-weight: 600; }
+    .chat-atend-header-sub { font-size: 11px; color: var(--text-tertiary); }
+    .chat-atend-empty { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text-tertiary); font-size: 13px; gap: 12px; }
+    .chat-atend-empty svg { width: 48px; height: 48px; stroke: var(--border); fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+    .btn-iniciar { padding: 6px 14px; border-radius: 99px; border: 1px solid var(--accent); background: var(--accent); color: #fff; font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 500; cursor: pointer; }
+    .btn-iniciar:hover { opacity: 0.85; }
+    .chat-atend-atendente { font-size: 11px; color: var(--text-tertiary); padding: 4px 12px; text-align: center; }
+
     @media (max-width: 600px) {
       .content { padding: 1rem; }
       .stats-grid { grid-template-columns: 1fr 1fr; }
@@ -522,25 +585,16 @@ const SUPABASE_URL = 'https://nacdezqdsouhxgftqaku.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5hY2RlenFkc291aHhnZnRxYWt1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyODU4MjYsImV4cCI6MjA5NDg2MTgyNn0.C1eqGfu7h-oOC0ibw6hzecPsG49e6IrOXrxu0C-mOSY';
 const ADMIN_EMAILS = [
   'rh2@hporg.cnt.br',
-  'joao@hporg.cnt.br',
-  'paloma@hporg.cnt.br',
-  'leidy@hporg.cnt.br',
-  'josi@hporg.cnt.br',
-  'valdir@hporg.cnt.br',
-  'michele@hporg.cnt.br',
-  'suzana@hporg.cnt.br',
-  'angela@hporg.cnt.br',
-  'suzane@hporg.cnt.br',
-  'abel@hporg.cnt.br',
-  'waldomiro@hporg.cnt.br',
-  'leize@hporg.cnt.br',
-  'rosangela@hporg.cnt.br',
-  'rogerio@hporg.cnt.br',
-  'gino@hporg.cnt.br',
-  'gabriella@hporg.cnt.br',
-  'abel@hporg.cnt.br',
+  // Adicione mais e-mails de admin aqui:
+  // 'outro@hporg.cnt.br',
 ];
 const ADMIN_EMAIL = ADMIN_EMAILS[0]; // compatibilidade
+
+function getNomeAdmin(email) {
+  if (!email) return 'Admin';
+  const nome = email.split('@')[0];
+  return nome.charAt(0).toUpperCase() + nome.slice(1).toLowerCase();
+}
 const WA_TOKEN = 'EAANf8ZClPMkQBRmk9fNYuQzZBl2h0ABnw3cJDx8TYEjHNE82FC3SnXFL6lJLzr0omNnY26RwhZA0qJPEyADu1cDiy1xesdU6HI843gLf32puVxZAYkZCgYJOdg59kmbMSBPs6A4PewGfZCMgw3wMeUbKXUtm3eoNRZA6IfcZAdRa1gUQkvsnXIhVPLpybfZCTHcmGg3Rl2dtusPDGz5x9wuCCvswX0MkKrIeSvT23USrvWUZAZCnubOBVmhEF32j025kY7jZAkPgi1BovzxVnjDxS1hV';
 const WA_PHONE_ID = '1144342742092824';
 const SUBCATEGORIAS_PESSOAL = ['Encargos', 'Admissões', 'Rescisões', 'Férias', 'Geral'];
@@ -1070,63 +1124,12 @@ async function salvarDados() {
 }
 
 // ── PAINEL CHAT ───────────────────────────────────────
+let chatAbaAtiva = 'pendentes';
+
 async function renderPanelChat(body) {
   if (isAdmin) {
-    body.innerHTML = '<div class="loading">Carregando conversas...</div>';
-
-    // Buscar últimas mensagens de cada cliente
-    const { data: msgs } = await sb.from('chat').select('*').order('criado_em', { ascending: false });
-    const { data: clientes } = await sb.from('clientes').select('email, nome, empresa, codigo').order('codigo');
-
-    // Agrupar por cliente e pegar última mensagem
-    const conversas = {};
-    (msgs || []).forEach(m => {
-      if (!conversas[m.cliente_email]) conversas[m.cliente_email] = { ultima: m, naoLidas: 0 };
-      if (!m.lido && m.autor === 'cliente') conversas[m.cliente_email].naoLidas++;
-    });
-
-    // Clientes sem mensagem também aparecem
-    (clientes || []).forEach(c => {
-      if (!conversas[c.email]) conversas[c.email] = { ultima: null, naoLidas: 0 };
-    });
-
-    // Ordenar por última mensagem
-    const ordenados = Object.entries(conversas).sort((a, b) => {
-      const ta = a[1].ultima?.criado_em || '';
-      const tb = b[1].ultima?.criado_em || '';
-      return tb.localeCompare(ta);
-    });
-
-    const getInfo = (email) => clientes?.find(c => c.email === email) || { email, nome: email };
-    const getInitials = (c) => (c.empresa || c.nome || c.email).slice(0,2).toUpperCase();
-    const getLabel = (c) => c.codigo ? `${c.codigo} - ${c.empresa || c.nome || c.email}` : (c.empresa || c.nome || c.email);
-
-    body.innerHTML = `<div class="chat-wp-container">
-      <div class="chat-wp-sidebar">
-        <div class="chat-wp-sidebar-header">Conversas</div>
-        <div class="chat-wp-search">
-          <input type="text" placeholder="Pesquisar cliente..." oninput="filtrarChat(this.value)" id="chat-search" />
-        </div>
-        <div class="chat-wp-list" id="chat-wp-list">
-          ${ordenados.map(([email, conv]) => {
-            const info = getInfo(email);
-            const preview = conv.ultima ? (conv.ultima.mensagem.startsWith('__ARQUIVO__') ? '📎 Arquivo' : conv.ultima.mensagem) : 'Sem mensagens';
-            return `<div class="chat-wp-item" id="chat-item-${email.replace(/[@.]/g,'-')}" onclick="selecionarChatCliente('${email}')">
-              <div class="chat-wp-avatar">${getInitials(info)}</div>
-              <div class="chat-wp-info">
-                <div class="chat-wp-name">${getLabel(info)}</div>
-                <div class="chat-wp-preview">${preview.substring(0,30)}</div>
-              </div>
-              ${conv.naoLidas > 0 ? `<div class="chat-wp-badge">${conv.naoLidas}</div>` : ''}
-            </div>`;
-          }).join('')}
-        </div>
-      </div>
-      <div class="chat-wp-main" id="chat-wp-main">
-        <div class="chat-wp-empty">Selecione uma conversa</div>
-      </div>
-    </div>`;
-
+    body.innerHTML = '<div class="loading">Carregando...</div>';
+    await renderChatAtendimento(body);
   } else {
     chatClientEmail = currentUser.email;
     body.innerHTML = buildChatUI();
@@ -1136,12 +1139,249 @@ async function renderPanelChat(body) {
   }
 }
 
+async function iniciarAtendimento(email) {
+  await sb.from('chat').insert({
+    cliente_email: email, autor: 'admin',
+    mensagem: '__SISTEMA__Atendimento iniciado por ' + getNomeAdmin(currentUser.email),
+    admin_email: currentUser.email,
+    atendente_email: currentUser.email,
+    status_atendimento: 'atendimento',
+    criado_em: new Date().toISOString()
+  });
+  chatAbaAtiva = 'atendimento';
+  await selecionarChatCliente(email);
+  const body = document.getElementById('panel-body');
+  if (body) renderChatAtendimento(body);
+}
+
+async function encerrarAtendimento(email) {
+  await sb.from('chat').insert({
+    cliente_email: email, autor: 'admin',
+    mensagem: '__SISTEMA__Atendimento encerrado por ' + getNomeAdmin(currentUser.email),
+    admin_email: currentUser.email,
+    status_atendimento: 'pendente',
+    criado_em: new Date().toISOString()
+  });
+  chatAbaAtiva = 'pendentes';
+  await selecionarChatCliente(email);
+  const body = document.getElementById('panel-body');
+  if (body) renderChatAtendimento(body);
+}
+
 function filtrarChat(termo) {
   const items = document.querySelectorAll('.chat-wp-item');
   items.forEach(item => {
     const texto = item.textContent.toLowerCase();
     item.style.display = texto.includes(termo.toLowerCase()) ? 'flex' : 'none';
   });
+}
+
+async function renderChatAtendimento(body) {
+  const { data: msgs } = await sb.from('chat').select('*').order('criado_em', { ascending: false });
+  const { data: clientes } = await sb.from('clientes').select('*').order('codigo');
+
+  // Agrupar conversas por cliente
+  const conversas = {};
+  (msgs || []).forEach(m => {
+    if (!conversas[m.cliente_email]) {
+      conversas[m.cliente_email] = { ultima: m, naoLidas: 0, atendente: m.atendente_email, status: m.status_atendimento || 'pendente' };
+    }
+    if (!m.lido && m.autor === 'cliente') conversas[m.cliente_email].naoLidas++;
+    if (m.atendente_email) conversas[m.cliente_email].atendente = m.atendente_email;
+    if (m.status_atendimento) conversas[m.cliente_email].status = m.status_atendimento;
+  });
+
+  // Incluir clientes sem mensagem
+  (clientes || []).forEach(c => {
+    if (!conversas[c.email]) conversas[c.email] = { ultima: null, naoLidas: 0, atendente: null, status: 'pendente' };
+  });
+
+  const getInfo = (email) => clientes?.find(c => c.email === email) || { email, nome: email };
+  const getInitials = (info) => (info.empresa || info.nome || info.email || '??').slice(0,2).toUpperCase();
+
+  const pendentes = Object.entries(conversas).filter(([,c]) => c.status !== 'atendimento');
+  const emAtendimento = Object.entries(conversas).filter(([,c]) => c.status === 'atendimento');
+
+  const totalPendNaoLidas = pendentes.reduce((acc, [,c]) => acc + c.naoLidas, 0);
+  const totalAtendNaoLidas = emAtendimento.reduce((acc, [,c]) => acc + c.naoLidas, 0);
+
+  const renderLista = (lista) => lista.sort((a,b) => (b[1].ultima?.criado_em||'').localeCompare(a[1].ultima?.criado_em||'')).map(([email, conv]) => {
+    const info = getInfo(email);
+    const nome = info.nome || info.email;
+    const empresa = info.empresa || '';
+    const preview = conv.ultima ? (conv.ultima.mensagem.startsWith('__ARQUIVO__') ? 'Arquivo' : conv.ultima.mensagem.startsWith('__SOLICITACAO__') ? 'Solicitou documento' : conv.ultima.mensagem) : 'Sem mensagens';
+    const tempoStr = conv.ultima ? tempoRelativo(conv.ultima.criado_em) : '';
+    const atendNome = conv.atendente ? getNomeAdmin(conv.atendente) : '';
+    return `<div class="chat-atend-item" id="chat-item-${email.replace(/[@.]/g,'-')}" onclick="selecionarChatCliente('${email}')">
+      <div class="chat-atend-avatar">${getInitials(info)}</div>
+      <div class="chat-atend-info">
+        <div class="chat-atend-nome">${nome}</div>
+        ${empresa ? `<div class="chat-atend-empresa">${empresa}</div>` : ''}
+        <div class="chat-atend-preview">${preview.substring(0,35)}</div>
+        ${atendNome ? `<div class="chat-atend-atendente">${atendNome}</div>` : ''}
+      </div>
+      <div class="chat-atend-meta">
+        <span class="chat-atend-time">${tempoStr}</span>
+        ${conv.naoLidas > 0 ? `<span class="chat-atend-badge">${conv.naoLidas}</span>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+
+  body.innerHTML = `<div class="chat-atend-container">
+    <div class="chat-atend-sidebar">
+      <div class="chat-atend-tabs">
+        <button class="chat-atend-tab ${chatAbaAtiva==='pendentes'?'active':''}" onclick="trocarAbaChat('pendentes', this)">
+          Pendentes ${totalPendNaoLidas > 0 ? `<span class="tab-num">${pendentes.length}</span>` : `(${pendentes.length})`}
+        </button>
+        <button class="chat-atend-tab ${chatAbaAtiva==='atendimento'?'active':''}" onclick="trocarAbaChat('atendimento', this)">
+          Em atendimento ${totalAtendNaoLidas > 0 ? `<span class="tab-num">${emAtendimento.length}</span>` : `(${emAtendimento.length})`}
+        </button>
+      </div>
+      <div class="chat-atend-search">
+        <input type="text" placeholder="Buscar conversas..." oninput="filtrarChat(this.value)" />
+      </div>
+      <div class="chat-atend-list" id="chat-atend-list">
+        ${chatAbaAtiva === 'pendentes' ? renderLista(pendentes) : renderLista(emAtendimento)}
+      </div>
+    </div>
+    <div class="chat-atend-main" id="chat-wp-main">
+      <div class="chat-atend-empty">
+        <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        <p>Nenhuma conversa selecionada</p>
+      </div>
+    </div>
+  </div>`;
+}
+
+function trocarAbaChat(aba, btn) {
+  chatAbaAtiva = aba;
+  document.querySelectorAll('.chat-atend-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const body = document.getElementById('panel-body');
+  if (body) renderChatAtendimento(body);
+}
+
+function tempoRelativo(iso) {
+  if (!iso) return '';
+  const diff = Math.floor((new Date() - new Date(iso)) / 1000);
+  if (diff < 60) return 'agora';
+  if (diff < 3600) return `${Math.floor(diff/60)} min`;
+  if (diff < 86400) return `${Math.floor(diff/3600)} h`;
+  return `${Math.floor(diff/86400)} dias`;
+}
+
+async function renderChatAtendimento(body) {
+  body.innerHTML = '<div class="loading">Carregando...</div>';
+
+  const { data: msgs } = await sb.from('chat').select('*').order('criado_em', { ascending: false });
+  const { data: clientes } = await sb.from('clientes').select('*').order('codigo');
+
+  // Agrupar por cliente
+  const conversas = {};
+  (clientes || []).forEach(c => {
+    conversas[c.email] = { info: c, ultima: null, naoLidas: 0, atendente: null, status: 'pendente' };
+  });
+  (msgs || []).forEach(m => {
+    if (!conversas[m.cliente_email]) conversas[m.cliente_email] = { info: { email: m.cliente_email }, ultima: null, naoLidas: 0, atendente: null, status: 'pendente' };
+    if (!conversas[m.cliente_email].ultima) conversas[m.cliente_email].ultima = m;
+    if (!m.lido && m.autor === 'cliente') conversas[m.cliente_email].naoLidas++;
+    if (m.atendente_email) conversas[m.cliente_email].atendente = m.atendente_email;
+    if (m.status_atendimento) conversas[m.cliente_email].status = m.status_atendimento;
+  });
+
+  window.chatConversas = conversas;
+  window.chatClientes = clientes;
+
+  renderListaChat();
+}
+
+function renderListaChat() {
+  const conversas = window.chatConversas || {};
+  const lista = Object.entries(conversas).filter(([email, conv]) => {
+    if (chatAbaAtiva === 'pendentes') return !conv.atendente && conv.ultima?.autor === 'cliente';
+    if (chatAbaAtiva === 'atendimento') return conv.atendente;
+    return true; // contatos = todos
+  }).sort((a, b) => {
+    const ta = a[1].ultima?.criado_em || '';
+    const tb = b[1].ultima?.criado_em || '';
+    return tb.localeCompare(ta);
+  });
+
+  const pendentes = Object.values(conversas).filter(c => !c.atendente && c.ultima?.autor === 'cliente').length;
+  const emAtend = Object.values(conversas).filter(c => c.atendente).length;
+  const totalNaoLidas = Object.values(conversas).reduce((acc, c) => acc + c.naoLidas, 0);
+
+  const panelBody = document.getElementById('panel-body');
+  panelBody.innerHTML = `<div class="chat-atend-container">
+    <div class="chat-atend-sidebar">
+      <div class="chat-atend-tabs">
+        <button class="chat-atend-tab ${chatAbaAtiva==='contatos'?'active':''}" onclick="mudarAbaChat('contatos')">Contatos</button>
+        <button class="chat-atend-tab ${chatAbaAtiva==='pendentes'?'active':''}" onclick="mudarAbaChat('pendentes')">
+          Pendentes ${pendentes>0?`<span class="chat-atend-tab-badge">${pendentes}</span>`:''}
+        </button>
+        <button class="chat-atend-tab ${chatAbaAtiva==='atendimento'?'active':''}" onclick="mudarAbaChat('atendimento')">
+          Em atend. <span class="chat-atend-tab-badge" style="background:var(--accent);">${emAtend}</span>
+        </button>
+      </div>
+      <div class="chat-atend-search">
+        <input type="text" placeholder="Buscar conversas..." oninput="filtrarChatAtend(this.value)" />
+      </div>
+      <div class="chat-atend-list" id="chat-atend-list">
+        ${lista.length === 0 ? '<div style="padding:1rem;text-align:center;font-size:13px;color:var(--text-tertiary);">Nenhuma conversa.</div>' :
+          lista.map(([email, conv]) => {
+            const info = conv.info;
+            const initials = (info.empresa || info.nome || email).slice(0,2).toUpperCase();
+            const nome = info.nome || email;
+            const empresa = info.empresa || '';
+            const preview = conv.ultima ? (conv.ultima.mensagem.startsWith('__') ? '📎 Arquivo' : conv.ultima.mensagem.substring(0,35)) : 'Sem mensagens';
+            const tempo = conv.ultima ? tempoRelativo(conv.ultima.criado_em) : '';
+            const atendente = conv.atendente ? `<span style="font-size:10px;color:var(--accent);">● ${getNomeAdmin(conv.atendente)}</span>` : '';
+            return `<div class="chat-atend-item" id="chat-item-${email.replace(/[@.]/g,'-')}" onclick="selecionarChatCliente('${email}')">
+              <div class="chat-atend-avatar">${initials}</div>
+              <div class="chat-atend-info">
+                <div class="chat-atend-nome">${nome}</div>
+                ${empresa ? `<div class="chat-atend-empresa">${empresa}</div>` : ''}
+                <div class="chat-atend-preview">${preview}</div>
+                ${atendente}
+              </div>
+              <div class="chat-atend-meta">
+                <div class="chat-atend-time">${tempo}</div>
+                ${conv.naoLidas > 0 ? `<div class="chat-atend-unread">${conv.naoLidas}</div>` : ''}
+              </div>
+            </div>`;
+          }).join('')}
+      </div>
+    </div>
+    <div class="chat-atend-main" id="chat-atend-main">
+      <div class="chat-atend-empty">
+        <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        Nao ha conversas selecionadas.
+      </div>
+    </div>
+  </div>`;
+}
+
+function mudarAbaChat(aba) {
+  chatAbaAtiva = aba;
+  renderListaChat();
+}
+
+function filtrarChatAtend(termo) {
+  document.querySelectorAll('.chat-atend-item').forEach(el => {
+    el.style.display = el.textContent.toLowerCase().includes(termo.toLowerCase()) ? 'flex' : 'none';
+  });
+}
+
+function tempoRelativo(iso) {
+  if (!iso) return '';
+  const diff = Date.now() - new Date(iso).getTime();
+  const min = Math.floor(diff / 60000);
+  const hrs = Math.floor(diff / 3600000);
+  const dias = Math.floor(diff / 86400000);
+  if (min < 1) return 'agora';
+  if (min < 60) return `${min} min`;
+  if (hrs < 24) return `${hrs} hora${hrs>1?'s':''}`;
+  return `${dias} dia${dias>1?'s':''}`;
 }
 
 async function selecionarChatCliente(email) {
@@ -1158,11 +1398,27 @@ async function selecionarChatCliente(email) {
   const label = info ? (info.codigo ? `${info.codigo} - ${info.empresa || info.nome || email}` : (info.empresa || info.nome || email)) : email;
 
   const mainEl = document.getElementById('chat-wp-main');
+  // Buscar status do atendimento
+  const { data: ultimaMsg } = await sb.from('chat').select('*').eq('cliente_email', email).order('criado_em', { ascending: false }).limit(1);
+  const statusAtend = ultimaMsg?.[0]?.status_atendimento || 'pendente';
+  const atendenteAtual = ultimaMsg?.[0]?.atendente_email;
+  const atendenteNome = atendenteAtual ? getNomeAdmin(atendenteAtual) : null;
+
   mainEl.innerHTML = `
-    <div class="chat-wp-main-header">
-      <div>
-        <div class="chat-wp-main-name">${label}</div>
-        <div class="chat-wp-main-email">${email}</div>
+    <div class="chat-atend-header">
+      <div class="chat-atend-header-info">
+        <div class="chat-atend-avatar" style="width:32px;height:32px;font-size:12px;">${(info?.empresa || info?.nome || email).slice(0,2).toUpperCase()}</div>
+        <div>
+          <div class="chat-atend-header-nome">${label}</div>
+          <div class="chat-atend-header-empresa">${email}</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        ${atendenteNome ? `<span style="font-size:12px;color:var(--text-tertiary);">${atendenteNome}</span>` : ''}
+        ${statusAtend !== 'atendimento' 
+          ? `<button class="btn-iniciar" onclick="iniciarAtendimento('${email}')">Iniciar atendimento</button>`
+          : `<button class="btn btn-ghost" style="font-size:12px;" onclick="encerrarAtendimento('${email}')">Encerrar</button>`
+        }
       </div>
     </div>
     <div class="chat-messages" id="chat-messages" style="flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px;background:var(--bg);"></div>
@@ -1210,6 +1466,26 @@ function buildChatUI() {
   </div>`;
 }
 
+async function iniciarAtendimento(email) {
+  // Marcar conversa como em atendimento
+  await sb.from('chat').insert({
+    cliente_email: email,
+    autor: 'admin',
+    admin_email: currentUser.email,
+    atendente_email: currentUser.email,
+    status_atendimento: 'em_atendimento',
+    mensagem: `__SISTEMA__Atendimento iniciado por ${getNomeAdmin(currentUser.email)}`,
+    criado_em: new Date().toISOString()
+  });
+
+  // Atualizar cache
+  if (window.chatConversas && window.chatConversas[email]) {
+    window.chatConversas[email].atendente = currentUser.email;
+  }
+
+  await selecionarChatCliente(email);
+}
+
 async function loadAdminChat() {
   // Mantido para compatibilidade
   const email = chatClientEmail;
@@ -1226,9 +1502,19 @@ async function loadChat(clientEmail, adminSide) {
   if (!msgs || msgs.length === 0) { el.innerHTML = '<div style="text-align:center;color:var(--text-tertiary);font-size:13px;padding:1rem;">Nenhuma mensagem ainda.</div>'; return; }
   el.innerHTML = msgs.map(m => {
     const mine = adminSide ? m.autor === 'admin' : m.autor === 'cliente';
+    const autorNome = m.autor === 'admin' ? (m.admin_email ? getNomeAdmin(m.admin_email) : 'Admin') : 'Cliente';
+    if (m.mensagem.startsWith('__SISTEMA__')) {
+      const texto = m.mensagem.replace('__SISTEMA__', '');
+      return `<div style="text-align:center;font-size:11px;color:var(--text-tertiary);padding:4px 0;">${texto}</div>`;
+    }
+    if (m.mensagem.startsWith('__SISTEMA__')) {
+      const texto = m.mensagem.replace('__SISTEMA__', '');
+      return `<div class="chat-atend-atendente">— ${texto} —</div>`;
+    }
     if (m.mensagem.startsWith('__SOLICITACAO__')) {
       const nomeDoc = m.mensagem.replace('__SOLICITACAO__', '');
       const mine = adminSide ? m.autor === 'admin' : m.autor === 'cliente';
+    const autorNome = m.autor === 'admin' ? (m.admin_email ? getNomeAdmin(m.admin_email) : 'Admin') : 'Cliente';
       return `<div class="chat-bubble-${mine ? 'solicitacao-resp' : 'solicitacao'}">
         📄 Solicitou: <strong>${nomeDoc}</strong>
         <div class="bubble-meta" style="font-size:10px;opacity:0.7;margin-top:3px;">${formatDate(m.criado_em)}</div>
@@ -1247,6 +1533,7 @@ async function loadChat(clientEmail, adminSide) {
       </a>`;
     }
     return `<div class="chat-bubble ${mine ? 'mine' : 'theirs'}">
+      ${!mine ? `<div style="font-size:10px;font-weight:600;opacity:0.7;margin-bottom:2px;">${autorNome}</div>` : ''}
       ${m.mensagem}
       <div class="bubble-meta">${formatDate(m.criado_em)}</div>
     </div>`;
@@ -1359,7 +1646,8 @@ async function sendChat() {
 
   if (text) {
     input.value = '';
-    await sb.from('chat').insert({ cliente_email: clientEmail, autor, mensagem: text, criado_em: new Date().toISOString() });
+    const adminEmailInsert = isAdmin ? currentUser.email : null;
+    await sb.from('chat').insert({ cliente_email: clientEmail, autor, mensagem: text, admin_email: adminEmailInsert, criado_em: new Date().toISOString() });
     // Enviar push para o outro lado
     if (isAdmin) {
       await enviarPushParaCliente(clientEmail, 'HP Contabilidade', text, false);
@@ -1470,7 +1758,7 @@ async function loadAdminView() {
           <div class="file-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
           <div class="file-info">
             <div class="file-name">${f.arquivo_nome}</div>
-            <div class="file-meta">${formatDate(f.criado_em)} · ${f.lido ? 'Visualizado' : 'Não lido'}</div>
+            <div class="file-meta">${formatDate(f.criado_em)} · ${f.postado_por ? getNomeAdmin(f.postado_por)+' · ' : ''}${f.lido ? 'Visualizado' : 'Nao lido'}</div>
           </div>
           ${f.setor ? `<span class="setor-badge ${sc}">${f.setor}</span>` : ''}
           <span class="badge ${f.lido ? 'badge-read' : 'badge-new'}">${f.lido ? 'Visto' : 'Novo'}</span>
