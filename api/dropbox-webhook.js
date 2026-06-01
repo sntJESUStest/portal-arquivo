@@ -65,6 +65,50 @@ module.exports = async (req, res) => {
   res.status(200).send('OK');
 };
 
+function detectarGuiaPorNome(nomeArquivo) {
+  const nome = nomeArquivo.toLowerCase();
+  let tipo = null;
+  if (nome.includes('das') || nome.includes('simples')) tipo = 'DAS Simples Nacional';
+  else if (nome.includes('irpj')) tipo = 'DARF IRPJ';
+  else if (nome.includes('csll')) tipo = 'DARF CSLL';
+  else if (nome.includes('pis') || nome.includes('cofins')) tipo = 'DARF PIS/COFINS';
+  else if (nome.includes('inss') || nome.includes('gps')) tipo = 'GPS INSS';
+  else if (nome.includes('fgts')) tipo = 'FGTS';
+  else if (nome.includes('iss')) tipo = 'ISS';
+  if (!tipo) return null;
+
+  const matchMMYYYY = nomeArquivo.match(/(\d{2})[_\-\s](\d{4})/);
+  if (matchMMYYYY) return { tipo, mes: matchMMYYYY[1], ano: matchMMYYYY[2] };
+
+  const matchAno = nomeArquivo.match(/20\d{2}/);
+  if (matchAno && tipo) return { tipo, mes: null, ano: matchAno[0] };
+
+  return null;
+}
+
+async function marcarGuiaComoPagaWebhook(clienteEmail, tipo, mes, ano) {
+  try {
+    const { data: guias } = await sb.from('guias')
+      .select('id, vencimento')
+      .eq('cliente_email', clienteEmail)
+      .eq('tipo', tipo)
+      .eq('status', 'pendente');
+
+    if (!guias || guias.length === 0) return;
+
+    const guia = guias.find(g => {
+      const venc = new Date(g.vencimento + 'T00:00:00');
+      return (!mes || venc.getMonth() + 1 === parseInt(mes)) &&
+             (!ano || venc.getFullYear() === parseInt(ano));
+    });
+
+    if (guia) {
+      await sb.from('guias').update({ status: 'disponivel' }).eq('id', guia.id);
+      console.log('Guia paga automaticamente:', tipo, mes, ano);
+    }
+  } catch(e) { console.error('Erro marcar guia:', e.message); }
+}
+
 async function processarAlteracoes() {
   try {
     const cursor = await getCursor();
@@ -171,6 +215,12 @@ async function processarAlteracoes() {
         lido: false,
         criado_em: new Date().toISOString()
       });
+
+      // Detectar guia pelo nome e marcar como paga
+      const guiaDetectada = detectarGuiaPorNome(nomeArquivo);
+      if (guiaDetectada) {
+        await marcarGuiaComoPagaWebhook(cliente.email, guiaDetectada.tipo, guiaDetectada.mes, guiaDetectada.ano);
+      }
 
       console.log(`Importado: ${nomeArquivo} -> ${cliente.email}`);
       await enviarEmail(cliente.email, cliente.nome, nomeArquivo, setor, mesNome, ano);
