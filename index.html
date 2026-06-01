@@ -78,7 +78,8 @@
 
     /* PAINEL / MODAL */
     .panel-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.35); z-index: 400; display: flex; align-items: flex-end; justify-content: center; }
-    .panel { background: var(--surface); border-radius: var(--radius-lg) var(--radius-lg) 0 0; width: 100%; max-width: 860px; max-height: 95vh; overflow-y: auto; padding: 1.5rem; }
+    #panel-body { flex: 1; overflow: hidden; }
+    .panel { background: var(--surface); border-radius: var(--radius-lg) var(--radius-lg) 0 0; width: 100%; max-width: 860px; max-height: 95vh; overflow: hidden; padding: 1.5rem; display: flex; flex-direction: column; }
     .panel-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; }
     .panel-title { font-size: 16px; font-weight: 600; }
     .panel-close { width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--border); background: var(--bg); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px; color: var(--text-secondary); }
@@ -583,17 +584,24 @@
 <script>
 const SUPABASE_URL = 'https://nacdezqdsouhxgftqaku.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5hY2RlenFkc291aHhnZnRxYWt1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyODU4MjYsImV4cCI6MjA5NDg2MTgyNn0.C1eqGfu7h-oOC0ibw6hzecPsG49e6IrOXrxu0C-mOSY';
-const ADMIN_EMAILS = [
-  'rh2@hporg.cnt.br',
-  // Adicione mais e-mails de admin aqui:
-  // 'outro@hporg.cnt.br',
+const ADMINS = [
+  { email: 'rh2@hporg.cnt.br', setor: 'Pessoal' },
+  // Adicione mais admins aqui:
+  // { email: 'fiscal@hporg.cnt.br', setor: 'Fiscal' },
+  // { email: 'contabil@hporg.cnt.br', setor: 'Contabil' },
 ];
+const ADMIN_EMAILS = ADMINS.map(a => a.email);
 const ADMIN_EMAIL = ADMIN_EMAILS[0]; // compatibilidade
 
-function getNomeAdmin(email) {
+function getNomeAdmin(email, comSetor) {
   if (!email) return 'Admin';
   const nome = email.split('@')[0];
-  return nome.charAt(0).toUpperCase() + nome.slice(1).toLowerCase();
+  const nomeFormatado = nome.charAt(0).toUpperCase() + nome.slice(1).toLowerCase();
+  if (comSetor) {
+    const admin = ADMINS.find(a => a.email === email);
+    if (admin?.setor) return `${nomeFormatado} (${admin.setor})`;
+  }
+  return nomeFormatado;
 }
 const WA_TOKEN = 'EAANf8ZClPMkQBRmk9fNYuQzZBl2h0ABnw3cJDx8TYEjHNE82FC3SnXFL6lJLzr0omNnY26RwhZA0qJPEyADu1cDiy1xesdU6HI843gLf32puVxZAYkZCgYJOdg59kmbMSBPs6A4PewGfZCMgw3wMeUbKXUtm3eoNRZA6IfcZAdRa1gUQkvsnXIhVPLpybfZCTHcmGg3Rl2dtusPDGz5x9wuCCvswX0MkKrIeSvT23USrvWUZAZCnubOBVmhEF32j025kY7jZAkPgi1BovzxVnjDxS1hV';
 const WA_PHONE_ID = '1144342742092824';
@@ -1502,7 +1510,7 @@ async function loadChat(clientEmail, adminSide) {
   if (!msgs || msgs.length === 0) { el.innerHTML = '<div style="text-align:center;color:var(--text-tertiary);font-size:13px;padding:1rem;">Nenhuma mensagem ainda.</div>'; return; }
   el.innerHTML = msgs.map(m => {
     const mine = adminSide ? m.autor === 'admin' : m.autor === 'cliente';
-    const autorNome = m.autor === 'admin' ? (m.admin_email ? getNomeAdmin(m.admin_email) : 'Admin') : 'Cliente';
+    const autorNome = m.autor === 'admin' ? (m.admin_email ? getNomeAdmin(m.admin_email, true) : 'Admin') : 'Cliente';
     if (m.mensagem.startsWith('__SISTEMA__')) {
       const texto = m.mensagem.replace('__SISTEMA__', '');
       return `<div style="text-align:center;font-size:11px;color:var(--text-tertiary);padding:4px 0;">${texto}</div>`;
@@ -1514,7 +1522,7 @@ async function loadChat(clientEmail, adminSide) {
     if (m.mensagem.startsWith('__SOLICITACAO__')) {
       const nomeDoc = m.mensagem.replace('__SOLICITACAO__', '');
       const mine = adminSide ? m.autor === 'admin' : m.autor === 'cliente';
-    const autorNome = m.autor === 'admin' ? (m.admin_email ? getNomeAdmin(m.admin_email) : 'Admin') : 'Cliente';
+    const autorNome = m.autor === 'admin' ? (m.admin_email ? getNomeAdmin(m.admin_email, true) : 'Admin') : 'Cliente';
       return `<div class="chat-bubble-${mine ? 'solicitacao-resp' : 'solicitacao'}">
         📄 Solicitou: <strong>${nomeDoc}</strong>
         <div class="bubble-meta" style="font-size:10px;opacity:0.7;margin-top:3px;">${formatDate(m.criado_em)}</div>
