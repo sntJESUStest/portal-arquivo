@@ -1628,6 +1628,81 @@ async function renderPanelRelatorios(body) {
   await mostrarRelatorio('guias-pendentes');
 }
 
+async function buscarGuiasPendentes() {
+  const mes = document.getElementById('rel-g-mes')?.value;
+  const ano = document.getElementById('rel-g-ano')?.value;
+  const clienteEmail = document.getElementById('rel-g-cliente')?.value;
+  const el = document.getElementById('rel-guias-result');
+  if (!el) return;
+  el.innerHTML = '<div class="loading">Carregando...</div>';
+
+  const { data: todasGuias } = await sb.from('guias').select('*').order('vencimento');
+  const { data: clientesGuias } = await sb.from('clientes').select('nome, empresa, codigo, email');
+
+  let guias = (todasGuias || [])
+    .filter(g => g.status !== 'pago')
+    .map(g => ({ ...g, clientes: clientesGuias?.find(c => c.email === g.cliente_email) || null }));
+
+  // Filtrar por período
+  if (mes || ano) {
+    guias = guias.filter(g => {
+      const venc = new Date(g.vencimento + 'T00:00:00');
+      const meses = ['Janeiro','Fevereiro','Marco','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+      const mesVenc = meses[venc.getMonth()];
+      const anoVenc = venc.getFullYear().toString();
+      if (mes && mesVenc !== mes) return false;
+      if (ano && anoVenc !== ano) return false;
+      return true;
+    });
+  }
+
+  // Filtrar por cliente
+  if (clienteEmail) guias = guias.filter(g => g.cliente_email === clienteEmail);
+
+  if (guias.length === 0) { el.innerHTML = '<div class="empty-state">Nenhuma guia pendente no periodo.</div>'; return; }
+
+  // Agrupar por cliente
+  const porCliente = {};
+  guias.forEach(g => {
+    const key = g.cliente_email;
+    if (!porCliente[key]) porCliente[key] = { info: g.clientes, guias: [] };
+    porCliente[key].guias.push(g);
+  });
+
+  const hoje = new Date(); hoje.setHours(0,0,0,0);
+  let html = `<p style="font-size:13px;color:var(--text-secondary);margin-bottom:12px;">${guias.length} guia(s) em aberto</p>`;
+
+  Object.entries(porCliente).forEach(([email, data]) => {
+    const nomeCliente = data.info?.empresa || data.info?.nome || email;
+    const cod = data.info?.codigo ? `${data.info.codigo} - ` : '';
+    html += `<div style="margin-bottom:1rem;">
+      <p style="font-size:13px;font-weight:600;color:var(--accent);margin-bottom:6px;">${cod}${nomeCliente}</p>
+      ${data.guias.map(g => {
+        const venc = new Date(g.vencimento + 'T00:00:00');
+        const diff = Math.ceil((venc - hoje) / (1000*60*60*24));
+        const badge = diff < 0 ? `<span class="cert-badge-exp">Vencido</span>` : diff <= 3 ? `<span class="cert-badge-warn">Urgente</span>` : `<span class="cert-badge-ok">Pendente</span>`;
+        return `<div class="file-row" style="margin-bottom:4px;">
+          <div class="file-info">
+            <div class="file-name">${g.tipo}</div>
+            <div class="file-meta">Vence ${formatDateBR(g.vencimento)}${g.valor ? ' · R$ '+parseFloat(g.valor).toFixed(2).replace('.',',') : ''}</div>
+          </div>
+          ${badge}
+        </div>`;
+      }).join('')}
+    </div>`;
+  });
+
+  el.innerHTML = html;
+
+  // Botão exportar PDF
+  const btn = document.createElement('button');
+  btn.className = 'btn btn-primary';
+  btn.style = 'margin-top:1rem;width:100%;';
+  btn.textContent = 'Exportar PDF';
+  btn.onclick = exportarPDF;
+  el.appendChild(btn);
+}
+
 async function mostrarRelatorio(tipo, btnEl) {
   // Atualizar aba ativa
   if (btnEl) {
@@ -1640,33 +1715,45 @@ async function mostrarRelatorio(tipo, btnEl) {
   el.innerHTML = '<div class="loading">Carregando...</div>';
 
   if (tipo === 'guias-pendentes') {
-    const { data: todasGuias } = await sb.from('guias').select('*').order('vencimento');
-    const { data: clientesGuias } = await sb.from('clientes').select('nome, empresa, codigo, email');
-    const guias = (todasGuias || []).filter(g => g.status !== 'pago').map(g => ({
-      ...g,
-      clientes: clientesGuias?.find(c => c.email === g.cliente_email) || null
-    }));
-    if (!guias || guias.length === 0) { el.innerHTML = '<div class="empty-state">Nenhuma guia pendente.</div>'; return; }
-
-    const hoje = new Date(); hoje.setHours(0,0,0,0);
-    let html = `<p style="font-size:13px;color:var(--text-secondary);margin-bottom:12px;">${guias.length} guia(s) pendente(s)</p>`;
-    html += guias.map(g => {
-      const venc = new Date(g.vencimento + 'T00:00:00');
-      const diff = Math.ceil((venc - hoje) / (1000*60*60*24));
-      const vencido = diff < 0;
-      const urgente = diff >= 0 && diff <= 3;
-      const badge = vencido ? `<span class="cert-badge-exp">Vencido ${Math.abs(diff)}d</span>` : urgente ? `<span class="cert-badge-warn">Vence em ${diff}d</span>` : `<span class="cert-badge-ok">Vence em ${diff}d</span>`;
-      const nomeCliente = g.clientes?.empresa || g.clientes?.nome || g.cliente_email;
-      const cod = g.clientes?.codigo ? `${g.clientes.codigo} - ` : '';
-      return `<div class="file-row" style="margin-bottom:6px;">
-        <div class="file-info">
-          <div class="file-name">${g.tipo}</div>
-          <div class="file-meta">${cod}${nomeCliente} · Vence ${formatDateBR(g.vencimento)}${g.valor ? ' · R$ '+parseFloat(g.valor).toFixed(2).replace('.',',') : ''}</div>
+    // Mostrar filtros primeiro
+    el.innerHTML = `
+      <div class="form-row" style="margin-bottom:1rem;">
+        <div class="field" style="margin:0;"><label>Mes</label>
+          <select id="rel-g-mes">
+            <option value="">Todos</option>
+            <option>Janeiro</option><option>Fevereiro</option><option>Marco</option>
+            <option>Abril</option><option>Maio</option><option>Junho</option>
+            <option>Julho</option><option>Agosto</option><option>Setembro</option>
+            <option>Outubro</option><option>Novembro</option><option>Dezembro</option>
+          </select>
         </div>
-        ${badge}
-      </div>`;
-    }).join('');
-    el.innerHTML = html;
+        <div class="field" style="margin:0;"><label>Ano</label>
+          <select id="rel-g-ano">
+            <option value="">Todos</option>
+            <option>2025</option><option>2026</option><option>2027</option>
+          </select>
+        </div>
+        <div class="field" style="margin:0;"><label>Cliente</label>
+          <select id="rel-g-cliente">
+            <option value="">Todos</option>
+          </select>
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="buscarGuiasPendentes()" style="margin-bottom:1rem;">Buscar</button>
+      <div id="rel-guias-result"></div>`;
+
+    // Carregar lista de clientes no select
+    const { data: clientesLista } = await sb.from('clientes').select('email, nome, empresa, codigo').order('codigo');
+    const selCliente = document.getElementById('rel-g-cliente');
+    if (selCliente && clientesLista) {
+      clientesLista.forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c.email;
+        opt.textContent = c.codigo ? `${c.codigo} - ${c.empresa || c.nome || c.email}` : (c.empresa || c.nome || c.email);
+        selCliente.appendChild(opt);
+      });
+    }
+    return;
 
   } else if (tipo === 'clientes-ativos') {
     const { data: clientes } = await sb.from('clientes').select('*').order('codigo');
