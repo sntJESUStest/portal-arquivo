@@ -210,6 +210,7 @@
     .guia-meta { font-size: 11px; color: var(--text-tertiary); margin-top: 2px; }
     .guia-badge-pendente { background: var(--red-bg); color: var(--red-text); font-size: 11px; font-weight: 600; padding: 2px 10px; border-radius: 99px; flex-shrink: 0; }
     .guia-badge-pago { background: var(--green-bg); color: var(--green-text); font-size: 11px; font-weight: 600; padding: 2px 10px; border-radius: 99px; flex-shrink: 0; }
+    .guia-badge-disponivel { background: #eef4ff; color: #2d5be3; font-size: 11px; font-weight: 600; padding: 2px 10px; border-radius: 99px; flex-shrink: 0; }
     .guia-badge-vencido { background: #fef3c7; color: #92400e; font-size: 11px; font-weight: 600; padding: 2px 10px; border-radius: 99px; flex-shrink: 0; }
     .selected-day-guias { background: var(--bg); border-radius: var(--radius); padding: 1rem; margin-bottom: 1rem; border: 1px solid var(--border); }
 
@@ -568,6 +569,69 @@ function toggleSubcategoria() {
   else field.classList.add('hidden');
 }
 
+function detectarGuiaPorNome(nomeArquivo) {
+  const nome = nomeArquivo.toLowerCase();
+  const meses = {
+    'jan': '01', 'fev': '02', 'mar': '03', 'abr': '04',
+    'mai': '05', 'jun': '06', 'jul': '07', 'ago': '08',
+    'set': '09', 'out': '10', 'nov': '11', 'dez': '12',
+    '01': '01', '02': '02', '03': '03', '04': '04',
+    '05': '05', '06': '06', '07': '07', '08': '08',
+    '09': '09', '10': '10', '11': '11', '12': '12'
+  };
+
+  // Detectar tipo de guia
+  let tipo = null;
+  if (nome.includes('das') || nome.includes('simples')) tipo = 'DAS Simples Nacional';
+  else if (nome.includes('irpj')) tipo = 'DARF IRPJ';
+  else if (nome.includes('csll')) tipo = 'DARF CSLL';
+  else if (nome.includes('pis') || nome.includes('cofins')) tipo = 'DARF PIS/COFINS';
+  else if (nome.includes('inss') || nome.includes('gps')) tipo = 'GPS INSS';
+  else if (nome.includes('fgts')) tipo = 'FGTS';
+  else if (nome.includes('iss')) tipo = 'ISS';
+
+  if (!tipo) return null;
+
+  // Detectar mês e ano — formato MM-YYYY ou YYYY-MM ou nome do mês
+  let mes = null, ano = null;
+
+  // Tentar MM-YYYY
+  const matchMMYYYY = nomeArquivo.match(/(\d{2})[_\-\s](\d{4})/);
+  if (matchMMYYYY) { mes = matchMMYYYY[1]; ano = matchMMYYYY[2]; }
+
+  // Tentar ano sozinho
+  if (!ano) {
+    const matchAno = nomeArquivo.match(/20\d{2}/);
+    if (matchAno) ano = matchAno[0];
+  }
+
+  if (!tipo || !mes || !ano) return null;
+
+  return { tipo, mes, ano };
+}
+
+async function marcarGuiaComoPaga(clienteEmail, tipo, mes, ano) {
+  // Buscar guia correspondente e marcar como paga
+  const { data: guias } = await sb.from('guias')
+    .select('id, vencimento')
+    .eq('cliente_email', clienteEmail)
+    .eq('tipo', tipo)
+    .eq('status', 'pendente');
+
+  if (!guias || guias.length === 0) return;
+
+  // Encontrar guia do mês/ano correto
+  const guia = guias.find(g => {
+    const venc = new Date(g.vencimento + 'T00:00:00');
+    return venc.getMonth() + 1 === parseInt(mes) && venc.getFullYear() === parseInt(ano);
+  });
+
+  if (guia) {
+    await sb.from('guias').update({ status: 'disponivel' }).eq('id', guia.id);
+    console.log('Guia marcada como disponivel:', tipo, mes, ano);
+  }
+}
+
 function detectarSubcategoria(nomeArquivo) {
   const nome = nomeArquivo.toLowerCase();
   if (nome.includes('rescis') ) return 'Rescisões';
@@ -625,6 +689,15 @@ async function showApp() {
   clearInterval(chatNotifInterval);
   chatNotifInterval = setInterval(pollChatNotifs, 8000);
   pollChatNotifs();
+
+  // Renovar token FCM a cada 12 horas
+  if (!isAdmin) {
+    clearInterval(window.fcmRenewInterval);
+    window.fcmRenewInterval = setInterval(async () => {
+      console.log('Renovando token FCM...');
+      await solicitarPermissaoNotificacao();
+    }, 12 * 60 * 60 * 1000);
+  }
 
   // Solicitar permissão de notificações push
   solicitarPermissaoNotificacao();
@@ -1327,7 +1400,7 @@ function certBadge(vencimento) {
   const diff = Math.ceil((venc - hoje) / (1000*60*60*24));
   if (diff < 0) return `<span class="cert-badge-exp">Vencido</span>`;
   if (diff <= 30) return `<span class="cert-badge-warn">Vence em ${diff}d</span>`;
-  return `<span class="cert-badge-ok">Válido</span>`;
+  return `<span class="cert-badge-ok">Valido</span>`;
 }
 
 async function salvarCert() {
@@ -1640,7 +1713,7 @@ async function buscarGuiasPendentes() {
   const { data: clientesGuias } = await sb.from('clientes').select('nome, empresa, codigo, email');
 
   let guias = (todasGuias || [])
-    .filter(g => g.status !== 'pago')
+    .filter(g => g.status !== 'pago' && g.status !== 'disponivel')
     .map(g => ({ ...g, clientes: clientesGuias?.find(c => c.email === g.cliente_email) || null }));
 
   // Filtrar por período
@@ -1995,11 +2068,13 @@ function renderCalendario() {
     const isSelected = calSelectedDay === d;
     const guiasDia = guiasMap[d] || [];
     const temPendente = guiasDia.some(g => g.status === 'pendente');
+    const temDisponivel = guiasDia.some(g => g.status === 'disponivel');
     const temPago = guiasDia.some(g => g.status === 'pago');
     html += `<div class="cal-day ${isToday ? 'today' : ''}" style="${isSelected ? 'border-color:var(--accent);background:var(--blue-bg);' : ''}" onclick="calSelecionarDia(${d})">
       <span class="cal-day-num">${d}</span>
       ${temPendente ? '<div class="cal-dot cal-dot-pendente"></div>' : ''}
-      ${temPago && !temPendente ? '<div class="cal-dot cal-dot-pago"></div>' : ''}
+      ${temDisponivel && !temPendente ? '<div class="cal-dot" style="background:#2d5be3;"></div>' : ''}
+      ${temPago && !temPendente && !temDisponivel ? '<div class="cal-dot cal-dot-pago"></div>' : ''}
     </div>`;
   }
   html += `</div>`;
@@ -2011,9 +2086,9 @@ function renderCalendario() {
       <div class="section-title" style="margin-bottom:8px;">Guias do dia ${calSelectedDay}</div>
       ${gs.map(g => {
         const venc = new Date(g.vencimento + 'T00:00:00');
-        const vencido = venc < hoje && g.status === 'pendente';
-        const badgeClass = g.status === 'pago' ? 'guia-badge-pago' : vencido ? 'guia-badge-vencido' : 'guia-badge-pendente';
-        const badgeLabel = g.status === 'pago' ? 'Pago' : vencido ? 'Vencido' : 'Pendente';
+        const vencido = venc < hoje && (g.status === 'pendente' || g.status === 'disponivel');
+        const badgeClass = g.status === 'pago' ? 'guia-badge-pago' : g.status === 'disponivel' ? 'guia-badge-disponivel' : vencido ? 'guia-badge-vencido' : 'guia-badge-pendente';
+        const badgeLabel = g.status === 'pago' ? 'Pago' : g.status === 'disponivel' ? 'Disponivel' : vencido ? 'Vencido' : 'Ag. Postagem';
         return `<div class="guia-row">
           <div class="guia-info">
             <div class="guia-tipo">${g.tipo}</div>
@@ -2081,7 +2156,7 @@ async function salvarGuia() {
 }
 
 async function toggleGuiaStatus(id, status) {
-  const novoStatus = status === 'pago' ? 'pendente' : 'pago';
+  const novoStatus = status === 'pago' ? 'disponivel' : 'pago';
   await sb.from('guias').update({ status: novoStatus }).eq('id', id);
   await loadCalendario();
 }
