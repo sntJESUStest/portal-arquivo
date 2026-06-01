@@ -1425,10 +1425,20 @@ async function selecionarChatCliente(email) {
 
   const mainEl = document.getElementById('chat-atend-main') || document.getElementById('chat-wp-main');
   // Buscar status do atendimento
-  const { data: ultimaMsg } = await sb.from('chat').select('*').eq('cliente_email', email).order('criado_em', { ascending: false }).limit(1);
-  const statusAtend = ultimaMsg?.[0]?.status_atendimento || 'pendente';
-  const atendenteAtual = ultimaMsg?.[0]?.atendente_email;
-  const atendenteNome = atendenteAtual ? getNomeAdmin(atendenteAtual) : null;
+  // Buscar último status de atendimento
+  const { data: msgsAtend } = await sb.from('chat')
+    .select('*')
+    .eq('cliente_email', email)
+    .not('status_atendimento', 'is', null)
+    .order('criado_em', { ascending: false })
+    .limit(5);
+
+  // Pegar o status mais recente
+  const ultimoStatusMsg = msgsAtend?.[0];
+  const statusAtend = ultimoStatusMsg?.status_atendimento || 'pendente';
+  const atendenteAtual = statusAtend !== 'concluido' ? ultimoStatusMsg?.atendente_email : null;
+  const temAtendente = !!atendenteAtual;
+  const atendenteNome = atendenteAtual ? getNomeAdmin(atendenteAtual, true) : null;
 
   mainEl.innerHTML = `
     <div class="chat-atend-header">
