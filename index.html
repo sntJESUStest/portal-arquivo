@@ -520,7 +520,12 @@
 <script>
 const SUPABASE_URL = 'https://nacdezqdsouhxgftqaku.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5hY2RlenFkc291aHhnZnRxYWt1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyODU4MjYsImV4cCI6MjA5NDg2MTgyNn0.C1eqGfu7h-oOC0ibw6hzecPsG49e6IrOXrxu0C-mOSY';
-const ADMIN_EMAIL = 'rh2@hporg.cnt.br';
+const ADMIN_EMAILS = [
+  'rh2@hporg.cnt.br',
+  // Adicione mais e-mails de admin aqui:
+  // 'outro@hporg.cnt.br',
+];
+const ADMIN_EMAIL = ADMIN_EMAILS[0]; // compatibilidade
 const WA_TOKEN = 'EAANf8ZClPMkQBRmk9fNYuQzZBl2h0ABnw3cJDx8TYEjHNE82FC3SnXFL6lJLzr0omNnY26RwhZA0qJPEyADu1cDiy1xesdU6HI843gLf32puVxZAYkZCgYJOdg59kmbMSBPs6A4PewGfZCMgw3wMeUbKXUtm3eoNRZA6IfcZAdRa1gUQkvsnXIhVPLpybfZCTHcmGg3Rl2dtusPDGz5x9wuCCvswX0MkKrIeSvT23USrvWUZAZCnubOBVmhEF32j025kY7jZAkPgi1BovzxVnjDxS1hV';
 const WA_PHONE_ID = '1144342742092824';
 const SUBCATEGORIAS_PESSOAL = ['Encargos', 'Admissões', 'Rescisões', 'Férias', 'Geral'];
@@ -674,7 +679,7 @@ async function logout() {
 async function showApp() {
   document.getElementById('login-screen').classList.add('hidden');
   document.getElementById('main-screen').classList.remove('hidden');
-  isAdmin = currentUser.email === ADMIN_EMAIL;
+  isAdmin = ADMIN_EMAILS.includes(currentUser.email);
   document.getElementById('role-badge').textContent = isAdmin ? 'Admin' : 'Cliente';
   const menuRel = document.getElementById('menu-relatorios');
   if (menuRel) menuRel.style.display = isAdmin ? 'flex' : 'none';
