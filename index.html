@@ -1147,6 +1147,24 @@ async function renderPanelChat(body) {
   }
 }
 
+async function concluirAtendimento(email) {
+  if (!confirm('Concluir este atendimento?')) return;
+  await sb.from('chat').insert({
+    cliente_email: email,
+    autor: 'admin',
+    admin_email: currentUser.email,
+    atendente_email: null,
+    status_atendimento: 'concluido',
+    mensagem: `__SISTEMA__Atendimento concluido por ${getNomeAdmin(currentUser.email, true)}`,
+    criado_em: new Date().toISOString()
+  });
+  if (window.chatConversas && window.chatConversas[email]) {
+    window.chatConversas[email].atendente = null;
+    window.chatConversas[email].status = 'concluido';
+  }
+  await renderChatAtendimento(document.getElementById('panel-body'));
+}
+
 async function iniciarAtendimento(email) {
   await sb.from('chat').insert({
     cliente_email: email, autor: 'admin',
@@ -1472,6 +1490,24 @@ function buildChatUI() {
       <button class="chat-send-btn" onclick="sendChat()">Enviar</button>
     </div>
   </div>`;
+}
+
+async function concluirAtendimento(email) {
+  if (!confirm('Concluir este atendimento?')) return;
+  await sb.from('chat').insert({
+    cliente_email: email,
+    autor: 'admin',
+    admin_email: currentUser.email,
+    atendente_email: null,
+    status_atendimento: 'concluido',
+    mensagem: `__SISTEMA__Atendimento concluido por ${getNomeAdmin(currentUser.email, true)}`,
+    criado_em: new Date().toISOString()
+  });
+  if (window.chatConversas && window.chatConversas[email]) {
+    window.chatConversas[email].atendente = null;
+    window.chatConversas[email].status = 'concluido';
+  }
+  await renderChatAtendimento(document.getElementById('panel-body'));
 }
 
 async function iniciarAtendimento(email) {
