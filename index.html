@@ -1389,15 +1389,15 @@ async function selecionarChatCliente(email) {
   clearInterval(chatInterval);
 
   // Marcar item como ativo
-  document.querySelectorAll('.chat-wp-item').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.chat-wp-item, .chat-atend-item').forEach(el => el.classList.remove('active'));
   const itemEl = document.getElementById('chat-item-' + email.replace(/[@.]/g,'-'));
-  if (itemEl) { itemEl.classList.add('active'); itemEl.querySelector('.chat-wp-badge')?.remove(); }
+  if (itemEl) { itemEl.classList.add('active'); itemEl.querySelector('.chat-wp-badge, .chat-atend-unread')?.remove(); }
 
   // Buscar info do cliente
   const { data: info } = await sb.from('clientes').select('nome, empresa, codigo').eq('email', email).maybeSingle();
   const label = info ? (info.codigo ? `${info.codigo} - ${info.empresa || info.nome || email}` : (info.empresa || info.nome || email)) : email;
 
-  const mainEl = document.getElementById('chat-wp-main');
+  const mainEl = document.getElementById('chat-atend-main') || document.getElementById('chat-wp-main');
   // Buscar status do atendimento
   const { data: ultimaMsg } = await sb.from('chat').select('*').eq('cliente_email', email).order('criado_em', { ascending: false }).limit(1);
   const statusAtend = ultimaMsg?.[0]?.status_atendimento || 'pendente';
