@@ -47,7 +47,8 @@ const SETORES_MAP = {
   'Financeiro': 'Financeiro', 'Avisos': 'Avisos'
 };
 
-const RESEND_KEY = 're_RYZ69Shp_81aSh4AwWTMqRLjZxTLZcV8w';
+const GMAIL_USER = 'joaochavesar@gmail.com';
+const GMAIL_PASS = 'fzzjifcwdctyyitp';
 const FIREBASE_PROJECT = 'hp-contabilidade';
 const SERVICE_ACCOUNT_EMAIL = 'firebase-adminsdk-fbsvc@hp-contabilidade.iam.gserviceaccount.com';
 const SERVICE_ACCOUNT_KEY = `-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQC7KPpqLiuMqVgY\nCoKfq9B3USrVeE9OYMMN6bmpobKjyJuV7Enj7D9J0RoX+0ZdKmNpdNMpJrKyazfz\nlUQiEB9ypkSbLfZA45dVkrFnKSgcNbtT4hwnY5kKmcGrQ/fJxPoALshZ3lgv2RGk\nK8/UYaG8JxLbcctebv9/ohm04cwpgKSSyr73LLvm7rHxvkeoY8735T69Jz/IRKPo\nkBWraG509wzHN+yNnED8ITkELklvo9QWjK0fagYvC+vbl3iqna+P3AuobQvGlL91\nJRYmP30E7wlmp1grM+JtY2ZHS5ijBZJ49j016bJe+cM1CV6d6SGJ84aWXqbh6r8J\nHxo7D/e1AgMBAAECggEACNrDV+yqJ+XOO3sqCVXT71oRYGITFnIUYTgEVTMrGW92\nWHnJdLHR2LMwZy3UCWM7OQXny5PUyD4lOoN+jV5ykf104iMGbApfjRL7RWucDPby\nsuElVBAtqirWD8tzSmzIRABkYtXWp8v3zHkffTyqkWqVmpVRwQOmO3/vrPcyPEzJ\nmE8cK/clOnx1twUEwvL6n4gKHxK3iJRYQ0UsZXYhfafOUvKxy3/qYhlpNBRpWYxi\nRMlO+MEgf5/BGTVXcBIJEUT6dTubpCHx6OXCfbsG4kES8DZxmvqg41RRDHvH4yh4\nvHHBi64O/EQGWeD1/hhvgL14k6hxnWHfDrlUn+a47QKBgQDiuEdIYRtkQWJ/Ocka\n6TI0nEzcgbU8kUC+rVmJs85stYijcis0R14/K3Fx/j9fZS4tE/zUf5HHzp+9I45Y\n0kNU/n4nLzoJEKWkKFPDoAtR6QSaIKRMWIAtlLXNBaLCvTaYPhqrgq+vnco3HkF8\n2bD1x401Q8aGP+ddw8913MPUBwKBgQDTVMpWotuMaL2ev58kEig8JQwM6f5l1pj3\no3nf5xAwpPxYBdu7zwXOycutlHSSOxXYYScujUlpUCeTKKMxp43dDT+aqRT+mpMd\nmO8YtxX7K409FiNV1NRSXf7zKOBVxQvM74tmBgI0nbDUw5ofnzs0OLyu0ohtNpnM\nBm2YB07/YwKBgQCnSXvnbyeL+SbZY2T9Q1Y1NaMNDXQSJcdVKomnrpHA6s3QdDxm\nzcY/7ClACG7wT7MbteTXUu3ZNZ/uKl8tMLBX9ZRWC2XSLINcNhlgfiX8IWiw5Sb1\n4lNpzpG6ns7yzDSNbz20kbBab542v09o9SO6pqyNwd2pT1vDdukMOYIRXwKBgQCb\nH4Auu/iARln57xp3tcRG8cK4sAIG6tD55cuOKOPfcRux2QsD/uB6e/HABlrTA//z\nBs1mBFvArA+Am7G+vwkJG7J2amp4wSn/7cSD1dCSv9M65ccmN8VqeIiuIHEbRDp3\nQdaHGx3/VUj5xGKbl5wzpvoJMYzm7c9Szd0gXS0FlQKBgANjvu5rQmi3UIENBWud\nwfTjk9ivUUH/yd/QtDTz7jytsK94suJgGwvf0Yd/4VZG4fUYRi20RPbJJyMRli9k\nIF4vC9VINT4yAAjwViBRxsjqkdtdVrQrYj3VLG0lTEJZAvzGAlVnGEfN+y4y3MIg\n5AJXObR3vWzKNkdY7uQNMW4Y\n-----END PRIVATE KEY-----\n`;
@@ -97,26 +98,28 @@ const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 async function enviarEmail(destinatario, nomeCliente, nomeArquivo, setor, mes, ano) {
   try {
-    await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${RESEND_KEY}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        from: 'HP Contabilidade <onboarding@resend.dev>',
-        to: destinatario,
-        subject: `Novo documento disponivel - ${setor}`,
-        html: `<div style="font-family:sans-serif;max-width:500px;margin:0 auto;padding:2rem;">
-          <h2 style="color:#4338ca;">HP Contabilidade</h2>
-          <p>Ola, <strong>${nomeCliente || 'Cliente'}</strong>!</p>
-          <p>Um novo documento foi disponibilizado no seu portal:</p>
-          <div style="background:#f7f6f3;border-radius:8px;padding:1rem;margin:1rem 0;">
-            <p><strong>Arquivo:</strong> ${nomeArquivo}</p>
-            <p><strong>Setor:</strong> ${setor}</p>
-            <p><strong>Periodo:</strong> ${mes}/${ano}</p>
-          </div>
-          <a href="https://portal-arquivo.vercel.app" style="display:inline-block;background:#4338ca;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;">Acessar Portal</a>
-        </div>`
-      })
+    const nodemailer = require('nodemailer');
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: { user: GMAIL_USER, pass: GMAIL_PASS }
     });
+    await transporter.sendMail({
+      from: `HP Contabilidade <${GMAIL_USER}>`,
+      to: destinatario,
+      subject: `Novo documento disponivel - ${setor}`,
+      html: `<div style="font-family:sans-serif;max-width:500px;margin:0 auto;padding:2rem;">
+        <h2 style="color:#4338ca;">HP Contabilidade</h2>
+        <p>Ola, <strong>${nomeCliente || 'Cliente'}</strong>!</p>
+        <p>Um novo documento foi disponibilizado no seu portal:</p>
+        <div style="background:#f7f6f3;border-radius:8px;padding:1rem;margin:1rem 0;">
+          <p><strong>Arquivo:</strong> ${nomeArquivo}</p>
+          <p><strong>Setor:</strong> ${setor}</p>
+          <p><strong>Periodo:</strong> ${mes}/${ano}</p>
+        </div>
+        <a href="https://portal-arquivo.vercel.app" style="display:inline-block;background:#4338ca;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;">Acessar Portal</a>
+      </div>`
+    });
+    console.log('E-mail enviado para:', destinatario);
   } catch(e) { console.error('Erro e-mail:', e.message); }
 }
 
