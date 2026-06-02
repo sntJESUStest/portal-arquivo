@@ -1162,6 +1162,8 @@ async function concluirAtendimento(email) {
     window.chatConversas[email].atendente = null;
     window.chatConversas[email].status = 'concluido';
   }
+  // Voltar para aba Contatos
+  chatAbaAtiva = 'contatos';
   await renderChatAtendimento(document.getElementById('panel-body'));
 }
 
@@ -1515,6 +1517,8 @@ async function concluirAtendimento(email) {
     window.chatConversas[email].atendente = null;
     window.chatConversas[email].status = 'concluido';
   }
+  // Voltar para aba Contatos
+  chatAbaAtiva = 'contatos';
   await renderChatAtendimento(document.getElementById('panel-body'));
 }
 
