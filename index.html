@@ -1298,6 +1298,25 @@ function mudarAbaChat(aba) {
   renderListaChat();
 }
 
+async function concluirConversa(email) {
+  if (!confirm('Concluir esta conversa?')) return;
+  // Remover atendente para tirar da aba Em conversa
+  if (window.chatConversas && window.chatConversas[email]) {
+    window.chatConversas[email].atendente = null;
+  }
+  await sb.from('chat').insert({
+    cliente_email: email,
+    autor: 'admin',
+    admin_email: currentUser.email,
+    atendente_email: null,
+    status_atendimento: 'concluido',
+    mensagem: `__SISTEMA__Conversa concluida por ${getNomeAdmin(currentUser.email, true)}`,
+    criado_em: new Date().toISOString()
+  });
+  chatAbaAtiva = 'contatos';
+  renderListaChat();
+}
+
 function filtrarChatAtend(termo) {
   document.querySelectorAll('.chat-atend-item').forEach(el => {
     el.style.display = el.textContent.toLowerCase().includes(termo.toLowerCase()) ? 'flex' : 'none';
