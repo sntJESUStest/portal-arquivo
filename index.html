@@ -331,7 +331,7 @@
   <div class="login-box">
     <div class="logo">
       <div class="logo-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
-      <span class="logo-name">HP Contabilidade</span><span style="font-family:Georgia,serif;font-style:italic;color:#ef4444;font-size:13px;margin-left:4px;">beta</span>
+      <span class="logo-name">HP Contabilidade <span style="font-family:Georgia,serif;font-style:italic;color:#ef4444;font-size:12px;">beta</span></span>
     </div>
     <div class="card">
       <div class="field"><label>E-mail</label><input id="email" type="email" placeholder="seu@email.com" /></div>
@@ -352,7 +352,7 @@
           <span></span><span></span><span></span>
         </button>
       </div>
-      <span class="topbar-logo">HP Contabilidade</span><span style="font-family:Georgia,serif;font-style:italic;color:#ef4444;font-size:11px;margin-left:4px;">beta</span>
+      <span class="topbar-logo">HP Contabilidade <span style="font-family:Georgia,serif;font-style:italic;color:#ef4444;font-size:10px;">beta</span></span>
       <span class="topbar-badge" id="role-badge">Admin</span>
     </div>
     <div style="display:flex;align-items:center;gap:8px;">
@@ -524,6 +524,10 @@
         <button class="btn-delete-selected" id="btn-delete-selected" onclick="excluirSelecionados()">
           Excluir selecionados (<span id="count-selected">0</span>)
         </button>
+      </div>
+      <div style="margin-bottom:10px;">
+        <input type="text" id="admin-files-search" placeholder="Buscar cliente..." oninput="filtrarArquivosAdmin(this.value)"
+          style="width:100%;padding:8px 14px;border:1px solid var(--border);border-radius:99px;font-family:'DM Sans',sans-serif;font-size:13px;background:var(--bg);outline:none;" />
       </div>
       <div id="admin-files-list"><div class="loading">Carregando...</div></div>
     </div>
@@ -1722,13 +1726,38 @@ async function loadAdminView() {
   document.getElementById('count-clients').textContent = clientEmails.length;
   const container = document.getElementById('admin-files-list');
   if (files.length === 0) { container.innerHTML = '<div class="empty-state">Nenhum arquivo enviado ainda.</div>'; return; }
+  // Buscar nomes dos clientes para exibir
+  const { data: clientesInfo } = await sb.from('clientes').select('email, nome, empresa, codigo');
+  window.adminFilesData = { byClient, clientEmails, clientesInfo };
+
+  renderAdminFilesList(clientEmails, byClient, clientesInfo);
+  renderSubcatTabs();
+}
+
+function filtrarArquivosAdmin(termo) {
+  const { byClient, clientEmails, clientesInfo } = window.adminFilesData || {};
+  if (!byClient) return;
+  const filtrados = clientEmails.filter(email => {
+    const info = clientesInfo?.find(c => c.email === email);
+    const label = `${info?.codigo || ''} ${info?.empresa || ''} ${info?.nome || ''} ${email}`.toLowerCase();
+    return label.includes(termo.toLowerCase());
+  });
+  renderAdminFilesList(filtrados, byClient, clientesInfo);
+}
+
+function renderAdminFilesList(clientEmails, byClient, clientesInfo) {
+  const container = document.getElementById('admin-files-list');
+  if (!container) return;
+  if (clientEmails.length === 0) { container.innerHTML = '<div class="empty-state">Nenhum cliente encontrado.</div>'; return; }
   container.innerHTML = clientEmails.map(email => {
-    const initials = email.slice(0,2).toUpperCase();
+    const info = clientesInfo?.find(c => c.email === email);
+    const label = info?.codigo ? `${info.codigo} - ${info.empresa || info.nome || email}` : (info?.empresa || info?.nome || email);
+    const initials = (info?.empresa || info?.nome || email).slice(0,2).toUpperCase();
     const clientFiles = byClient[email];
-    return `<div style="margin-bottom:1rem;">
+    return `<div style="margin-bottom:1rem;" class="admin-client-block">
       <div class="client-header">
         <div class="avatar">${initials}</div>
-        <div><div class="client-name">${email}</div><div class="client-email-label">${clientFiles.length} arquivo(s)</div></div>
+        <div><div class="client-name">${label}</div><div class="client-email-label">${clientFiles.length} arquivo(s)</div></div>
       </div>
       ${clientFiles.map(f => {
         const sc = SETOR_CLASS[f.setor] || '';
@@ -1746,7 +1775,6 @@ async function loadAdminView() {
       }).join('')}
     </div>`;
   }).join('');
-  renderSubcatTabs();
 }
 
 async function enviarWhatsApp(telefone, clientEmail, fileName, setor, note) {
