@@ -1502,26 +1502,6 @@ function buildChatUI() {
   </div>`;
 }
 
-async function concluirAtendimento(email) {
-  if (!confirm('Concluir este atendimento?')) return;
-  await sb.from('chat').insert({
-    cliente_email: email,
-    autor: 'admin',
-    admin_email: currentUser.email,
-    atendente_email: null,
-    status_atendimento: 'concluido',
-    mensagem: `__SISTEMA__Atendimento concluido por ${getNomeAdmin(currentUser.email, true)}`,
-    criado_em: new Date().toISOString()
-  });
-  if (window.chatConversas && window.chatConversas[email]) {
-    window.chatConversas[email].atendente = null;
-    window.chatConversas[email].status = 'concluido';
-  }
-  // Voltar para aba Contatos
-  chatAbaAtiva = 'contatos';
-  await renderChatAtendimento(document.getElementById('panel-body'));
-}
-
 async function iniciarAtendimento(email) {
   // Marcar conversa como em atendimento
   await sb.from('chat').insert({
