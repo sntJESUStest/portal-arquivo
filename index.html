@@ -1164,7 +1164,7 @@ async function concluirAtendimento(email) {
   }
   // Voltar para aba Contatos
   chatAbaAtiva = 'contatos';
-  await renderChatAtendimento(document.getElementById('panel-body'));
+  renderListaChat();
 }
 
 async function iniciarAtendimento(email) {
@@ -1177,9 +1177,8 @@ async function iniciarAtendimento(email) {
     criado_em: new Date().toISOString()
   });
   chatAbaAtiva = 'atendimento';
+  renderListaChat();
   await selecionarChatCliente(email);
-  const body = document.getElementById('panel-body');
-  if (body) renderChatAtendimento(body);
 }
 
 async function encerrarAtendimento(email) {
@@ -1191,9 +1190,7 @@ async function encerrarAtendimento(email) {
     criado_em: new Date().toISOString()
   });
   chatAbaAtiva = 'pendentes';
-  await selecionarChatCliente(email);
-  const body = document.getElementById('panel-body');
-  if (body) renderChatAtendimento(body);
+  renderListaChat();
 }
 
 function filtrarChat(termo) {
