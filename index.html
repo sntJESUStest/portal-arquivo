@@ -1231,7 +1231,7 @@ function renderListaChat() {
   const conversas = window.chatConversas || {};
   const lista = Object.entries(conversas).filter(([email, conv]) => {
     if (chatAbaAtiva === 'pendentes') return !conv.atendente && conv.ultima?.autor === 'cliente';
-    if (chatAbaAtiva === 'atendimento') return conv.atendente;
+    if (chatAbaAtiva === 'conversa') return conv.atendente;
     return true; // contatos = todos
   }).sort((a, b) => {
     const ta = a[1].ultima?.criado_em || '';
@@ -1250,6 +1250,9 @@ function renderListaChat() {
         <button class="chat-atend-tab ${chatAbaAtiva==='contatos'?'active':''}" onclick="mudarAbaChat('contatos')">Contatos</button>
         <button class="chat-atend-tab ${chatAbaAtiva==='pendentes'?'active':''}" onclick="mudarAbaChat('pendentes')">
           Pendentes ${pendentes>0?`<span class="chat-atend-tab-badge">${pendentes}</span>`:''}
+        </button>
+        <button class="chat-atend-tab ${chatAbaAtiva==='conversa'?'active':''}" onclick="mudarAbaChat('conversa')">
+          Em conversa ${emAtend>0?`<span class="chat-atend-tab-badge" style="background:var(--green-text);">${emAtend}</span>`:''}
         </button>
       </div>
       <div class="chat-atend-search">
@@ -1583,7 +1586,11 @@ async function sendChat() {
   if (text) {
     input.value = '';
     const adminEmailInsert = isAdmin ? currentUser.email : null;
-    await sb.from('chat').insert({ cliente_email: clientEmail, autor, mensagem: text, admin_email: adminEmailInsert, criado_em: new Date().toISOString() });
+    await sb.from('chat').insert({ cliente_email: clientEmail, autor, mensagem: text, admin_email: adminEmailInsert, atendente_email: isAdmin ? currentUser.email : null, status_atendimento: isAdmin ? 'atendimento' : null, criado_em: new Date().toISOString() });
+    // Atualizar cache de conversas
+    if (window.chatConversas && window.chatConversas[clientEmail] && isAdmin) {
+      window.chatConversas[clientEmail].atendente = currentUser.email;
+    }
     // Enviar push para o outro lado
     if (isAdmin) {
       await enviarPushParaCliente(clientEmail, 'HP Contabilidade', text, false);
