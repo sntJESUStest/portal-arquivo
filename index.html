@@ -1213,12 +1213,20 @@ async function renderChatAtendimento(body) {
   (clientes || []).forEach(c => {
     conversas[c.email] = { info: c, ultima: null, naoLidas: 0, atendente: null, status: 'pendente' };
   });
+  // Msgs já vêm em ordem decrescente (mais recente primeiro)
+  // Processar status apenas da mensagem mais recente com status
   (msgs || []).forEach(m => {
     if (!conversas[m.cliente_email]) conversas[m.cliente_email] = { info: { email: m.cliente_email }, ultima: null, naoLidas: 0, atendente: null, status: 'pendente' };
     if (!conversas[m.cliente_email].ultima) conversas[m.cliente_email].ultima = m;
     if (!m.lido && m.autor === 'cliente') conversas[m.cliente_email].naoLidas++;
-    if (m.atendente_email) conversas[m.cliente_email].atendente = m.atendente_email;
-    if (m.status_atendimento) conversas[m.cliente_email].status = m.status_atendimento;
+    // Usar apenas o status mais recente (primeira ocorrência pois msgs estão desc)
+    if (m.status_atendimento && conversas[m.cliente_email].status === 'pendente') {
+      conversas[m.cliente_email].status = m.status_atendimento;
+      // Só marcar atendente se status não for concluido
+      if (m.status_atendimento !== 'concluido' && m.atendente_email) {
+        conversas[m.cliente_email].atendente = m.atendente_email;
+      }
+    }
   });
 
   window.chatConversas = conversas;
@@ -1230,8 +1238,8 @@ async function renderChatAtendimento(body) {
 function renderListaChat() {
   const conversas = window.chatConversas || {};
   const lista = Object.entries(conversas).filter(([email, conv]) => {
-    if (chatAbaAtiva === 'pendentes') return !conv.atendente && conv.ultima?.autor === 'cliente';
-    if (chatAbaAtiva === 'conversa') return conv.atendente;
+    if (chatAbaAtiva === 'pendentes') return conv.status !== 'atendimento' && conv.status !== 'concluido' && conv.ultima?.autor === 'cliente';
+    if (chatAbaAtiva === 'conversa') return conv.status === 'atendimento';
     return true; // contatos = todos
   }).sort((a, b) => {
     const ta = a[1].ultima?.criado_em || '';
