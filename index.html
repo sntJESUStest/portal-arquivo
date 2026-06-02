@@ -78,8 +78,8 @@
 
     /* PAINEL / MODAL */
     .panel-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.35); z-index: 400; display: flex; align-items: flex-end; justify-content: center; }
-    #panel-body { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
-    .panel { background: var(--surface); border-radius: var(--radius-lg) var(--radius-lg) 0 0; width: 100%; max-width: 860px; max-height: 95vh; overflow: hidden; padding: 1.5rem 1.5rem 0; display: flex; flex-direction: column; }
+
+    .panel { background: var(--surface); border-radius: var(--radius-lg) var(--radius-lg) 0 0; width: 100%; max-width: 860px; max-height: 95vh; overflow-y: auto; padding: 1.5rem; }
     .panel-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; }
     .panel-title { font-size: 16px; font-weight: 600; }
     .panel-close { width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--border); background: var(--bg); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px; color: var(--text-secondary); }
