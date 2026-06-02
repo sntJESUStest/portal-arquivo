@@ -132,30 +132,8 @@ async function saveCursor(cursor) {
 
 module.exports = async (req, res) => {
   if (req.method === 'GET') return res.status(200).send(req.query.challenge);
-
-  // Aguardar 5 segundos para garantir que chamadas simultâneas não colidam
-  await new Promise(r => setTimeout(r, 2000));
-
-  // Verificar se já foi processado nos últimos 2 minutos
-  const agora = Date.now();
-  const { data: trava } = await sb.from('configuracoes').select('valor').eq('chave', 'dropbox_processando').maybeSingle();
-  
-  if (trava?.valor && trava.valor !== '0') {
-    const ultimoProcess = parseInt(trava.valor);
-    if (agora - ultimoProcess < 10000) {
-      console.log('Chamada duplicada ignorada.');
-      return res.status(200).send('OK');
-    }
-  }
-
-  // Marcar como processando
-  await sb.from('configuracoes').upsert({ chave: 'dropbox_processando', valor: String(agora) }, { onConflict: 'chave' });
-  
-  await processarAlteracoes();
-  
-  await sb.from('configuracoes').upsert({ chave: 'dropbox_processando', valor: '0' }, { onConflict: 'chave' });
-
   res.status(200).send('OK');
+  await processarAlteracoes();
 };
 
 function detectarGuiaPorNome(nomeArquivo) {
@@ -299,7 +277,7 @@ async function processarAlteracoes() {
         .from('arquivos').upload(storagePath, fileBuffer, { contentType: 'application/octet-stream', upsert: false });
       if (uploadErr) { console.error('Erro upload:', uploadErr.message); continue; }
 
-      await sb.from('notificacoes').insert({
+      const { error: insertError } = await sb.from('notificacoes').insert({
         cliente_email: cliente.email,
         arquivo_nome: nomeArquivo,
         arquivo_path: storagePath,
@@ -310,7 +288,10 @@ async function processarAlteracoes() {
         criado_em: new Date().toISOString()
       });
 
-      // Detectar guia pelo nome e marcar como paga
+      // Se inserção falhou (duplicata), não enviar push nem email
+      if (insertError) { console.log(`Duplicata ignorada: ${nomeArquivo}`); continue; }
+
+      // Detectar guia pelo nome e marcar como disponivel
       const guiaDetectada = detectarGuiaPorNome(nomeArquivo);
       if (guiaDetectada) {
         await marcarGuiaComoPagaWebhook(cliente.email, guiaDetectada.tipo, guiaDetectada.mes, guiaDetectada.ano);
@@ -319,7 +300,7 @@ async function processarAlteracoes() {
       console.log(`Importado: ${nomeArquivo} -> ${cliente.email}`);
       await enviarEmail(cliente.email, cliente.nome, nomeArquivo, setor, mesNome, ano);
 
-      // Enviar push notification
+      // Enviar push notification apenas se inserção foi bem sucedida
       const { data: clienteData } = await sb.from('clientes').select('fcm_token').eq('email', cliente.email).maybeSingle();
       if (clienteData?.fcm_token) {
         await enviarPushCliente(clienteData.fcm_token, 'Novo documento disponivel', `${nomeArquivo} — ${setor} ${mesNome}/${ano}`);
