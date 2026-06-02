@@ -88,27 +88,28 @@ async function saveCursor(cursor) {
 module.exports = async (req, res) => {
   if (req.method === 'GET') return res.status(200).send(req.query.challenge);
 
-  // Verificar se já está processando (trava no banco)
+  // Verificar se já foi processado recentemente (últimos 60 segundos)
   const agora = Date.now();
   const { data: trava } = await sb.from('configuracoes').select('valor').eq('chave', 'dropbox_processando').maybeSingle();
   
-  if (trava?.valor) {
+  if (trava?.valor && trava.valor !== '0') {
     const ultimoProcess = parseInt(trava.valor);
-    // Ignorar se foi processado há menos de 30 segundos
-    if (agora - ultimoProcess < 30000) {
-      console.log('Ja processando, ignorando chamada duplicada.');
+    if (agora - ultimoProcess < 60000) {
+      console.log('Chamada duplicada ignorada - processado ha', Math.floor((agora - ultimoProcess)/1000), 'seg');
       return res.status(200).send('OK');
     }
   }
 
-  // Marcar como processando
+  // Marcar como processando ANTES de responder
   await sb.from('configuracoes').upsert({ chave: 'dropbox_processando', valor: String(agora) }, { onConflict: 'chave' });
-
-  res.status(200).send('OK');
+  
+  // Processar e só depois responder
   await processarAlteracoes();
-
+  
   // Limpar trava
   await sb.from('configuracoes').upsert({ chave: 'dropbox_processando', valor: '0' }, { onConflict: 'chave' });
+
+  res.status(200).send('OK');
 };
 
 function detectarGuiaPorNome(nomeArquivo) {
