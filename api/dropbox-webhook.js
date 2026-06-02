@@ -85,10 +85,26 @@ async function saveCursor(cursor) {
   await sb.from('configuracoes').upsert({ chave: 'dropbox_cursor', valor: cursor }, { onConflict: 'chave' });
 }
 
+let processando = false;
+
 module.exports = async (req, res) => {
   if (req.method === 'GET') return res.status(200).send(req.query.challenge);
-  await processarAlteracoes();
+  
+  // Responder imediatamente ao Dropbox
   res.status(200).send('OK');
+  
+  // Evitar processamento duplo simultâneo
+  if (processando) {
+    console.log('Ja processando, ignorando chamada duplicada.');
+    return;
+  }
+  
+  processando = true;
+  try {
+    await processarAlteracoes();
+  } finally {
+    processando = false;
+  }
 };
 
 function detectarGuiaPorNome(nomeArquivo) {
