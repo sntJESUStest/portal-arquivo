@@ -1797,10 +1797,12 @@ async function uploadFile() {
         observacao: `Ref: ${file.name}`,
         criado_em: new Date().toISOString()
       });
+      // Notificar cliente sobre guia lançada
+      const dataFormatada = guiaData.split('-').reverse().join('/');
+      await enviarPushParaCliente(clientEmail, 'Nova guia no calendário', `${guiaTipo} — vence em ${dataFormatada}`, false);
       okEl.textContent = `✓ Arquivo enviado para ${clientEmail} (${setor}) e lançado no calendário!`;
     } else {
       okEl.textContent = `✓ Arquivo enviado para ${clientEmail} (${setor})!`;
-    await enviarPushParaCliente(clientEmail, 'Novo documento disponivel', `${file.name} — ${setor}`, false);
     }
     okEl.classList.remove('hidden');
     fileInput.value='';
