@@ -85,26 +85,30 @@ async function saveCursor(cursor) {
   await sb.from('configuracoes').upsert({ chave: 'dropbox_cursor', valor: cursor }, { onConflict: 'chave' });
 }
 
-let processando = false;
-
 module.exports = async (req, res) => {
   if (req.method === 'GET') return res.status(200).send(req.query.challenge);
+
+  // Verificar se já está processando (trava no banco)
+  const agora = Date.now();
+  const { data: trava } = await sb.from('configuracoes').select('valor').eq('chave', 'dropbox_processando').maybeSingle();
   
-  // Responder imediatamente ao Dropbox
+  if (trava?.valor) {
+    const ultimoProcess = parseInt(trava.valor);
+    // Ignorar se foi processado há menos de 30 segundos
+    if (agora - ultimoProcess < 30000) {
+      console.log('Ja processando, ignorando chamada duplicada.');
+      return res.status(200).send('OK');
+    }
+  }
+
+  // Marcar como processando
+  await sb.from('configuracoes').upsert({ chave: 'dropbox_processando', valor: String(agora) }, { onConflict: 'chave' });
+
   res.status(200).send('OK');
-  
-  // Evitar processamento duplo simultâneo
-  if (processando) {
-    console.log('Ja processando, ignorando chamada duplicada.');
-    return;
-  }
-  
-  processando = true;
-  try {
-    await processarAlteracoes();
-  } finally {
-    processando = false;
-  }
+  await processarAlteracoes();
+
+  // Limpar trava
+  await sb.from('configuracoes').upsert({ chave: 'dropbox_processando', valor: '0' }, { onConflict: 'chave' });
 };
 
 function detectarGuiaPorNome(nomeArquivo) {
