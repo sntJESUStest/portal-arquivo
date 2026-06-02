@@ -88,25 +88,26 @@ async function saveCursor(cursor) {
 module.exports = async (req, res) => {
   if (req.method === 'GET') return res.status(200).send(req.query.challenge);
 
-  // Verificar se já foi processado recentemente (últimos 60 segundos)
+  // Aguardar 5 segundos para garantir que chamadas simultâneas não colidam
+  await new Promise(r => setTimeout(r, 5000));
+
+  // Verificar se já foi processado nos últimos 2 minutos
   const agora = Date.now();
   const { data: trava } = await sb.from('configuracoes').select('valor').eq('chave', 'dropbox_processando').maybeSingle();
   
   if (trava?.valor && trava.valor !== '0') {
     const ultimoProcess = parseInt(trava.valor);
-    if (agora - ultimoProcess < 60000) {
-      console.log('Chamada duplicada ignorada - processado ha', Math.floor((agora - ultimoProcess)/1000), 'seg');
+    if (agora - ultimoProcess < 120000) {
+      console.log('Chamada duplicada ignorada.');
       return res.status(200).send('OK');
     }
   }
 
-  // Marcar como processando ANTES de responder
+  // Marcar como processando
   await sb.from('configuracoes').upsert({ chave: 'dropbox_processando', valor: String(agora) }, { onConflict: 'chave' });
   
-  // Processar e só depois responder
   await processarAlteracoes();
   
-  // Limpar trava
   await sb.from('configuracoes').upsert({ chave: 'dropbox_processando', valor: '0' }, { onConflict: 'chave' });
 
   res.status(200).send('OK');
