@@ -585,35 +585,32 @@
 const SUPABASE_URL = 'https://nacdezqdsouhxgftqaku.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5hY2RlenFkc291aHhnZnRxYWt1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyODU4MjYsImV4cCI6MjA5NDg2MTgyNn0.C1eqGfu7h-oOC0ibw6hzecPsG49e6IrOXrxu0C-mOSY';
 const ADMINS = [
-  { email: 'rh2@hporg.cnt.br', setor: 'Pessoal' },
-  { email: 'joao@hporg.cnt.br', setor: '' },
-  { email: 'leidy@hporg.cnt.br', setor: '' },
-  { email: 'paloma@hporg.cnt.br', setor: '' },
-  { email: 'josi@hporg.cnt.br', setor: '' },
-  { email: 'gino@hporg.cnt.br', setor: '' },
-  { email: 'valdir@hpotg.cnt.br', setor: '' },
-  { email: 'michele@hporg.cnt', setor: '' },
-  { email: 'suzana@hporg.cnt.br', setor: '' },
-  { email: 'rogerio@hporg.cnt.br', setor: '' },
-  { email: 'rosangela@hporg.cnt.br', setor: '' },
-  { email: 'leize@hporg.cnt.br', setor: '' },
-  { email: 'angela@hporg.cnt.br', setor: '' },
-  { email: 'suzane@hporg.cnt.br', setor: '' },
-  { email: 'waldomiro@hporg.cnt.br', setor: '' },
-  { email: 'abel@hporg.cnt.br', setor: '' },
+  { email: 'rh2@hporg.cnt.br', setor: 'Pessoal', nome: 'RH2' },
+  { email: 'joao@hporg.cnt.br', setor: 'Pessoal', nome: 'Joao' },
+  { email: 'leidy@hporg.cnt.br', setor: 'Pessoal', nome: 'Leidy' },
+  { email: 'paloma@hporg.cnt.br', setor: 'Pessoal', nome: 'Paloma' },
+  { email: 'josi@hporg.cnt.br', setor: 'Pessoal', nome: 'Josi' },
+  { email: 'gino@hporg.cnt.br', setor: '', nome: 'Gino' },
+  { email: 'valdir@hpotg.cnt.br', setor: 'Fiscal', nome: 'Valdir' },
+  { email: 'michele@hporg.cnt', setor: 'Fiscal', nome: 'Michele' },
+  { email: 'suzana@hporg.cnt.br', setor: 'Fiscal', nome: 'Suzana' },
+  { email: 'rogerio@hporg.cnt.br', setor: 'Societario', nome: 'Rogerio' },
+  { email: 'rosangela@hporg.cnt.br', setor: 'Financeiro', nome: 'Rosangela' },
+  { email: 'leize@hporg.cnt.br', setor: 'Societario', nome: 'Leize' },
+  { email: 'angela@hporg.cnt.br', setor: 'Contabil', nome: 'Angela' },
+  { email: 'suzane@hporg.cnt.br', setor: 'Contabil', nome: 'Suzane' },
+  { email: 'waldomiro@hporg.cnt.br', setor: 'Contabil', nome: 'Waldomiro' },
+  { email: 'abel@hporg.cnt.br', setor: 'Contabil', nome: 'Abel' },
 ];
 const ADMIN_EMAILS = ADMINS.map(a => a.email);
 const ADMIN_EMAIL = ADMIN_EMAILS[0]; // compatibilidade
 
 function getNomeAdmin(email, comSetor) {
   if (!email) return 'Admin';
-  const nome = email.split('@')[0];
-  const nomeFormatado = nome.charAt(0).toUpperCase() + nome.slice(1).toLowerCase();
-  if (comSetor) {
-    const admin = ADMINS.find(a => a.email === email);
-    if (admin?.setor) return `${nomeFormatado} (${admin.setor})`;
-  }
-  return nomeFormatado;
+  const admin = ADMINS.find(a => a.email === email);
+  const nome = admin?.nome || (email.split('@')[0].charAt(0).toUpperCase() + email.split('@')[0].slice(1).toLowerCase());
+  if (comSetor && admin?.setor) return `${nome} (${admin.setor})`;
+  return nome;
 }
 const WA_TOKEN = 'EAANf8ZClPMkQBRmk9fNYuQzZBl2h0ABnw3cJDx8TYEjHNE82FC3SnXFL6lJLzr0omNnY26RwhZA0qJPEyADu1cDiy1xesdU6HI843gLf32puVxZAYkZCgYJOdg59kmbMSBPs6A4PewGfZCMgw3wMeUbKXUtm3eoNRZA6IfcZAdRa1gUQkvsnXIhVPLpybfZCTHcmGg3Rl2dtusPDGz5x9wuCCvswX0MkKrIeSvT23USrvWUZAZCnubOBVmhEF32j025kY7jZAkPgi1BovzxVnjDxS1hV';
 const WA_PHONE_ID = '1144342742092824';
