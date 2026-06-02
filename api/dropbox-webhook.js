@@ -229,10 +229,12 @@ async function processarAlteracoes() {
 
     arquivos = (dataLong.entries || []).filter(e => e['.tag'] === 'file');
     novoCursor = dataLong.cursor;
-    await saveCursor(novoCursor);
 
     console.log(`Novos arquivos encontrados: ${arquivos.length}`);
-    if (arquivos.length === 0) return;
+    if (arquivos.length === 0) {
+      await saveCursor(novoCursor);
+      return;
+    }
 
     const { data: clientes } = await sb.from('clientes').select('*');
 
@@ -308,6 +310,10 @@ async function processarAlteracoes() {
       }
       } // fim if (!insertError)
     }
+
+    // Salvar cursor só após processar tudo
+    await saveCursor(novoCursor);
+
   } catch (err) {
     console.error('Erro geral:', err.message);
   }
