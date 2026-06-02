@@ -289,7 +289,8 @@ async function processarAlteracoes() {
       });
 
       // Se inserção falhou (duplicata), não enviar push nem email
-      if (insertError) { console.log(`Duplicata ignorada: ${nomeArquivo}`); continue; }
+      if (insertError) { console.log(`Duplicata ignorada: ${nomeArquivo}`); }
+      if (!insertError) {
 
       // Detectar guia pelo nome e marcar como disponivel
       const guiaDetectada = detectarGuiaPorNome(nomeArquivo);
@@ -305,6 +306,7 @@ async function processarAlteracoes() {
       if (clienteData?.fcm_token) {
         await enviarPushCliente(clienteData.fcm_token, 'Novo documento disponivel', `${nomeArquivo} — ${setor} ${mesNome}/${ano}`);
       }
+      } // fim if (!insertError)
     }
   } catch (err) {
     console.error('Erro geral:', err.message);
