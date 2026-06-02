@@ -132,8 +132,8 @@ async function saveCursor(cursor) {
 
 module.exports = async (req, res) => {
   if (req.method === 'GET') return res.status(200).send(req.query.challenge);
-  res.status(200).send('OK');
   await processarAlteracoes();
+  res.status(200).send('OK');
 };
 
 function detectarGuiaPorNome(nomeArquivo) {
