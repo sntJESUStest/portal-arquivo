@@ -257,8 +257,10 @@ async function processarAlteracoes() {
       const mesNome = MESES[mes];
       if (!mesNome || !ano) continue;
 
+      // Remover código após _ para comparar só o nome da empresa
+      const nomeEmpresaLimpo = nomeEmpresa.split('_')[0].trim().toLowerCase();
       const cliente = clientes?.find(c =>
-        c.empresa?.toLowerCase().trim() === nomeEmpresa.toLowerCase().trim()
+        c.empresa?.toLowerCase().trim() === nomeEmpresaLimpo
       );
       if (!cliente) { console.log(`Cliente não encontrado: "${nomeEmpresa}"`); continue; }
 
