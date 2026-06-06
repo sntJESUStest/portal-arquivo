@@ -210,35 +210,36 @@ async function processarHolerites(fileBuffer, nomeArquivo, empresaEmail, mes, an
     console.log(`Paginas por funcionario: ${pagsPorFunc}`);
 
     let distribuidos = 0;
+    const paginas = blocos; // alias para compatibilidade
     for (let idx = 0; idx < blocos.length; idx++) {
       const pagina = blocos[idx];
       // Extrair nome do funcionário (linha após "Nome do Funcionário" ou padrão Domínio)
       const linhas = pagina.split('\n').map(l => l.trim()).filter(Boolean);
       
       let nomeFuncionario = null;
-      // Padrão Domínio: nome aparece ANTES de "Nome do Funcionário"
-      for (let i = 0; i < linhas.length; i++) {
-        if (linhas[i] === 'Nome do Funcionário' || linhas[i].includes('Nome do Funcionário')) {
-          // Nome está na linha ANTERIOR
-          if (i > 0 && /^[A-ZÁÉÍÓÚÃÕÂÊÎÔÛÇ\s]{5,}$/.test(linhas[i-1]) && linhas[i-1].split(' ').length >= 2) {
-            nomeFuncionario = linhas[i-1].trim();
-            break;
-          }
-          // Ou 2 linhas antes
-          if (i > 1 && /^[A-ZÁÉÍÓÚÃÕÂÊÎÔÛÇ\s]{5,}$/.test(linhas[i-2]) && linhas[i-2].split(' ').length >= 2) {
-            nomeFuncionario = linhas[i-2].trim();
-            break;
-          }
+      // Padrão Domínio: bloco começa APÓS "Nome do Funcionário"
+      // O nome do funcionário é o PRIMEIRO texto em maiúsculas que NÃO é nome de empresa/rubrica
+      // No bloco após split por "Nome do Funcionário", o nome vem no início seguido de CBO
+      
+      // Buscar padrão: nome seguido de CBO (número de 6 dígitos)
+      const matchNomeCBO = pagina.match(/^([A-ZÁÉÍÓÚÃÕÂÊÎÔÛÇ][A-ZÁÉÍÓÚÃÕÂÊÎÔÛÇ\s]+?)\s*(?:CBO|\d{6})/m);
+      if (matchNomeCBO) {
+        const candidato = matchNomeCBO[1].trim();
+        // Garantir que não é nome de empresa (tem LTDA, ME, SA, etc)
+        if (!/LTDA|\bME\b|\bSA\b|\bEIRELI\b|EMPREITEIRA|INDUSTRIA|COMERCIO/.test(candidato)) {
+          nomeFuncionario = candidato;
         }
       }
 
-      // Fallback: pegar qualquer linha com nome em maiúsculas (2+ palavras)
+      // Fallback: pegar linhas em maiúsculas que não sejam empresa ou rubrica
       if (!nomeFuncionario) {
+        const ignorar = ['LTDA','EIRELI','EMPREITEIRA','INDUSTRIA','COMERCIO','HORAS REPOUSO',
+          'SALDO DE SALARIO','SALARIO INTEGRAL','FERIAS PROPORCIONAIS','INSS','IRRF','FGTS',
+          'AVISO PREVIO','LIQUIDO RESCISAO','CONTRIBUICAO','DESCONTO','MEDIA HORAS',
+          'SERVENTE','MENSALISTA','HORISTA','FOLHA MENSAL','CUSTO','ADMISSAO'];
         for (const linha of linhas) {
           if (/^[A-ZÁÉÍÓÚÃÕÂÊÎÔÛÇ]{2,}(\s[A-ZÁÉÍÓÚÃÕÂÊÎÔÛÇ]{2,}){1,}$/.test(linha)) {
-            // Ignorar linhas que são descrições de rubricas
-            const ignorar = ['HORAS REPOUSO','SALDO DE SALARIO','SALARIO INTEGRAL','FERIAS PROPORCIONAIS','INSS','IRRF','FGTS','AVISO PREVIO','LIQUIDO RESCISAO','CONTRIBUICAO','DESCONTO','MEDIA HORAS','SERVENTE','MENSALISTA','HORISTA'];
-            if (!ignorar.some(ig => linha.includes(ig))) {
+            if (!ignorar.some(ig => linha.includes(ig)) && linha.length < 50) {
               nomeFuncionario = linha.trim();
               break;
             }
