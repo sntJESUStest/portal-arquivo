@@ -326,6 +326,23 @@
       .form-row, .form-row-3 { grid-template-columns: 1fr; }
     }
 
+    /* CONTROLE FINANCEIRO */
+    .fin-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1.25rem; }
+    .fin-saldo { font-size: 32px; font-weight: 700; letter-spacing: -1px; }
+    .fin-saldo.positivo { color: #1a7a4a; }
+    .fin-saldo.negativo { color: #c0392b; }
+    .fin-row { display: flex; align-items: center; gap: 12px; padding: 10px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 6px; }
+    .fin-tipo-entrada { width: 8px; height: 8px; border-radius: 50%; background: #22c55e; flex-shrink: 0; }
+    .fin-tipo-saida { width: 8px; height: 8px; border-radius: 50%; background: #ef4444; flex-shrink: 0; }
+    .fin-valor-entrada { font-weight: 600; color: #1a7a4a; white-space: nowrap; }
+    .fin-valor-saida { font-weight: 600; color: #c0392b; white-space: nowrap; }
+    .fin-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-bottom: 1.25rem; }
+    .fin-mini-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 0.85rem 1rem; }
+    .fin-mini-label { font-size: 11px; color: var(--text-secondary); font-weight: 500; margin-bottom: 4px; }
+    .fin-mini-value { font-size: 20px; font-weight: 700; letter-spacing: -0.5px; }
+    .fin-bar { height: 6px; border-radius: 99px; background: var(--border); margin-top: 8px; overflow: hidden; }
+    .fin-bar-fill { height: 100%; border-radius: 99px; background: linear-gradient(90deg, #22c55e, #16a34a); transition: width 0.5s; }
+
     /* PORTAL FUNCIONÁRIO */
     body.func-mode { --accent: #5a7a3a; --accent-fg: #ffffff; --bg: #f4f9ee; --blue-bg: #e8f4d4; --blue-text: #3d6b1e; }
     body.func-mode #login-screen { background-image: url('https://nacdezqdsouhxgftqaku.supabase.co/storage/v1/object/sign/arquivos/snowy-mountain-peak-cloudy-day.jpg?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV9kNmM4ZTIxOC05YTg1LTQxNjEtYTFiNC00YzQ3OWRiNjNiZDAiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJhcnF1aXZvcy9zbm93eS1tb3VudGFpbi1wZWFrLWNsb3VkeS1kYXkuanBnIiwiaWF0IjoxNzgwNzUzNTM3LCJleHAiOjE4MTIyODk1Mzd9.4uRWd80hEo8dX5gXGZS4eVaTbXL7mMhgcPtWGxjs-gM'); background-size: cover; background-position: center; }
@@ -612,7 +629,12 @@
         <div class="section-title">Olá, <span id="func-nome"></span></div>
         <p style="font-size:13px;color:var(--text-secondary);margin-top:4px;">Seus holerites e documentos</p>
       </div>
+      <div class="tabs" style="margin-bottom:1.25rem;">
+        <button class="tab-btn active" id="tab-holerites" onclick="funcAba('holerites',this)">📄 Holerites</button>
+        <button class="tab-btn" id="tab-financeiro" onclick="funcAba('financeiro',this)">💰 Finanças</button>
+      </div>
       <div id="func-holerites-list"><div class="loading">Carregando...</div></div>
+      <div id="func-financeiro" class="hidden"></div>
     </div>
 
     <!-- FUNCIONARIO VIEW -->
@@ -624,7 +646,12 @@
           <div class="func-header-sub">Seus holerites estão disponíveis abaixo</div>
         </div>
       </div>
+      <div class="tabs" style="margin-bottom:1.25rem;">
+        <button class="tab-btn active" id="tab-holerites" onclick="funcAba('holerites',this)">📄 Holerites</button>
+        <button class="tab-btn" id="tab-financeiro" onclick="funcAba('financeiro',this)">💰 Finanças</button>
+      </div>
       <div id="func-holerites-list"><div class="loading">Carregando...</div></div>
+      <div id="func-financeiro" class="hidden"></div>
     </div>
   </div>
 </div>
@@ -3132,6 +3159,174 @@ async function downloadChatFile(path, name) {
   const url = URL.createObjectURL(data);
   const a = document.createElement('a'); a.href = url; a.download = name; a.click();
   URL.revokeObjectURL(url);
+}
+
+function funcAba(aba, btn) {
+  document.querySelectorAll('#funcionario-view .tab-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  const holerites = document.getElementById('func-holerites-list');
+  const financeiro = document.getElementById('func-financeiro');
+  if (holerites) holerites.classList.toggle('hidden', aba !== 'holerites');
+  if (financeiro) {
+    financeiro.classList.toggle('hidden', aba !== 'financeiro');
+    if (aba === 'financeiro') renderFinanceiro();
+  }
+}
+
+async function renderFinanceiro() {
+  const el = document.getElementById('func-financeiro');
+  if (!el) return;
+  el.innerHTML = '<div class="loading">Carregando...</div>';
+
+  const cpf = funcionarioLogado.cpf;
+  const { data: lancamentos } = await sb.from('financeiro_pessoal')
+    .select('*').eq('funcionario_cpf', cpf).order('data', { ascending: false });
+
+  const lista = lancamentos || [];
+  const totalEntradas = lista.filter(l => l.tipo === 'entrada').reduce((s, l) => s + parseFloat(l.valor), 0);
+  const totalSaidas = lista.filter(l => l.tipo === 'saida').reduce((s, l) => s + parseFloat(l.valor), 0);
+  const saldo = totalEntradas - totalSaidas;
+  const pct = totalEntradas > 0 ? Math.min((totalSaidas / totalEntradas) * 100, 100) : 0;
+
+  const fmtBR = v => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+  // Agrupar por mês
+  const porMes = {};
+  lista.forEach(l => {
+    const d = new Date(l.data + 'T00:00:00');
+    const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    if (!porMes[key]) porMes[key] = [];
+    porMes[key].push(l);
+  });
+
+  const mesesNome = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+
+  el.innerHTML = `
+    <!-- Resumo -->
+    <div class="fin-grid">
+      <div class="fin-mini-card" style="border-color:#22c55e;">
+        <div class="fin-mini-label">Entradas</div>
+        <div class="fin-mini-value" style="color:#1a7a4a;">${fmtBR(totalEntradas)}</div>
+      </div>
+      <div class="fin-mini-card" style="border-color:#ef4444;">
+        <div class="fin-mini-label">Saídas</div>
+        <div class="fin-mini-value" style="color:#c0392b;">${fmtBR(totalSaidas)}</div>
+      </div>
+      <div class="fin-mini-card" style="border-color:${saldo >= 0 ? '#22c55e' : '#ef4444'};">
+        <div class="fin-mini-label">Saldo</div>
+        <div class="fin-mini-value ${saldo >= 0 ? 'positivo' : 'negativo'}" style="font-size:18px;">${fmtBR(saldo)}</div>
+      </div>
+    </div>
+
+    <!-- Barra de gastos -->
+    <div class="fin-card" style="margin-bottom:1rem;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <span style="font-size:13px;font-weight:500;">Comprometimento da renda</span>
+        <span style="font-size:13px;font-weight:600;color:${pct > 80 ? '#c0392b' : pct > 60 ? '#c2410c' : '#1a7a4a'}">${pct.toFixed(0)}%</span>
+      </div>
+      <div class="fin-bar"><div class="fin-bar-fill" style="width:${pct}%;background:${pct > 80 ? 'linear-gradient(90deg,#ef4444,#dc2626)' : pct > 60 ? 'linear-gradient(90deg,#f59e0b,#d97706)' : 'linear-gradient(90deg,#22c55e,#16a34a)'};"></div></div>
+    </div>
+
+    <!-- Formulário novo lançamento -->
+    <div class="fin-card" style="margin-bottom:1rem;">
+      <div class="section-title" style="margin-bottom:12px;">Novo lançamento</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+        <div class="field" style="margin:0;"><label>Tipo</label>
+          <select id="fin-tipo">
+            <option value="entrada">💚 Entrada</option>
+            <option value="saida">🔴 Saída</option>
+          </select>
+        </div>
+        <div class="field" style="margin:0;"><label>Valor (R$)</label>
+          <input id="fin-valor" type="number" step="0.01" placeholder="0,00" />
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+        <div class="field" style="margin:0;"><label>Categoria</label>
+          <select id="fin-categoria">
+            <option value="Salário">Salário</option>
+            <option value="Holerite">Holerite</option>
+            <option value="Alimentação">Alimentação</option>
+            <option value="Transporte">Transporte</option>
+            <option value="Moradia">Moradia</option>
+            <option value="Saúde">Saúde</option>
+            <option value="Lazer">Lazer</option>
+            <option value="Educação">Educação</option>
+            <option value="Outros">Outros</option>
+          </select>
+        </div>
+        <div class="field" style="margin:0;"><label>Data</label>
+          <input id="fin-data" type="date" value="${new Date().toISOString().split('T')[0]}" />
+        </div>
+      </div>
+      <div class="field"><label>Descrição</label><input id="fin-desc" type="text" placeholder="ex: Conta de luz" /></div>
+      <div id="fin-msg" class="hidden"></div>
+      <button class="btn btn-primary" onclick="salvarLancamento()">Adicionar</button>
+    </div>
+
+    <!-- Lançamentos por mês -->
+    ${Object.keys(porMes).length === 0 ? '<div class="empty-state">Nenhum lançamento ainda. Adicione acima!</div>' :
+      Object.entries(porMes).sort((a,b) => b[0].localeCompare(a[0])).map(([key, itens]) => {
+        const [ano, mesNum] = key.split('-');
+        const mesLabel = `${mesesNome[parseInt(mesNum)-1]} ${ano}`;
+        const entMes = itens.filter(i => i.tipo==='entrada').reduce((s,i) => s+parseFloat(i.valor),0);
+        const saiMes = itens.filter(i => i.tipo==='saida').reduce((s,i) => s+parseFloat(i.valor),0);
+        return `<div style="margin-bottom:1.25rem;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+            <div class="section-title" style="margin:0;">${mesLabel}</div>
+            <div style="font-size:12px;color:var(--text-secondary);">
+              <span style="color:#1a7a4a;">+${fmtBR(entMes)}</span>
+              <span style="margin:0 4px;">·</span>
+              <span style="color:#c0392b;">-${fmtBR(saiMes)}</span>
+            </div>
+          </div>
+          ${itens.map(l => `
+            <div class="fin-row">
+              <div class="fin-tipo-${l.tipo}"></div>
+              <div style="flex:1;min-width:0;">
+                <div style="font-size:13px;font-weight:500;">${l.descricao || l.categoria}</div>
+                <div style="font-size:11px;color:var(--text-tertiary);">${l.categoria} · ${formatDateBR(l.data)}</div>
+              </div>
+              <div class="fin-valor-${l.tipo}">${l.tipo==='entrada'?'+':'-'}${fmtBR(parseFloat(l.valor))}</div>
+              <button class="btn-delete" onclick="excluirLancamento('${l.id}')">
+                <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+              </button>
+            </div>`).join('')}
+        </div>`;
+      }).join('')
+    }`;
+}
+
+async function salvarLancamento() {
+  const tipo = document.getElementById('fin-tipo').value;
+  const valor = parseFloat(document.getElementById('fin-valor').value);
+  const categoria = document.getElementById('fin-categoria').value;
+  const data = document.getElementById('fin-data').value;
+  const descricao = document.getElementById('fin-desc').value.trim();
+  const msg = document.getElementById('fin-msg');
+
+  if (!valor || valor <= 0 || !data) {
+    msg.className = 'error-msg'; msg.textContent = 'Preencha valor e data.'; msg.classList.remove('hidden'); return;
+  }
+
+  const { error } = await sb.from('financeiro_pessoal').insert({
+    funcionario_cpf: funcionarioLogado.cpf, tipo, categoria, descricao, valor, data,
+    criado_em: new Date().toISOString()
+  });
+
+  if (error) { msg.className='error-msg'; msg.textContent='Erro: '+error.message; msg.classList.remove('hidden'); return; }
+
+  document.getElementById('fin-valor').value = '';
+  document.getElementById('fin-desc').value = '';
+  msg.className='success-msg'; msg.textContent='✓ Lançamento adicionado!'; msg.classList.remove('hidden');
+  setTimeout(() => msg.classList.add('hidden'), 2000);
+  await renderFinanceiro();
+}
+
+async function excluirLancamento(id) {
+  if (!confirm('Excluir este lançamento?')) return;
+  await sb.from('financeiro_pessoal').delete().eq('id', id);
+  await renderFinanceiro();
 }
 
 async function salvarNotifEmail() {
