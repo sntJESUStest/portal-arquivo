@@ -205,23 +205,32 @@ async function processarHolerites(fileBuffer, nomeArquivo, empresaEmail, mes, an
       const linhas = pagina.split('\n').map(l => l.trim()).filter(Boolean);
       
       let nomeFuncionario = null;
+      // Padrão Domínio: nome aparece ANTES de "Nome do Funcionário"
       for (let i = 0; i < linhas.length; i++) {
-        // Padrão Domínio: número + nome em maiúsculas na mesma linha ou próxima
-        if (/^\d+\s+[A-Z]{2,}/.test(linhas[i])) {
-          const match = linhas[i].match(/^\d+\s+([A-Z][A-Z\s]+)$/);
-          if (match) { nomeFuncionario = match[1].trim(); break; }
-        }
-        // Tentar linha com só letras maiúsculas após código
         if (linhas[i] === 'Nome do Funcionário' || linhas[i].includes('Nome do Funcionário')) {
-          if (linhas[i+1]) { nomeFuncionario = linhas[i+1].trim(); break; }
+          // Nome está na linha ANTERIOR
+          if (i > 0 && /^[A-ZÁÉÍÓÚÃÕÂÊÎÔÛÇ\s]{5,}$/.test(linhas[i-1]) && linhas[i-1].split(' ').length >= 2) {
+            nomeFuncionario = linhas[i-1].trim();
+            break;
+          }
+          // Ou 2 linhas antes
+          if (i > 1 && /^[A-ZÁÉÍÓÚÃÕÂÊÎÔÛÇ\s]{5,}$/.test(linhas[i-2]) && linhas[i-2].split(' ').length >= 2) {
+            nomeFuncionario = linhas[i-2].trim();
+            break;
+          }
         }
       }
 
-      // Fallback: pegar linha que parece nome (só letras maiúsculas, > 5 chars)
+      // Fallback: pegar qualquer linha com nome em maiúsculas (2+ palavras)
       if (!nomeFuncionario) {
-        for (const linha of linhas.slice(0, 10)) {
-          if (/^[A-ZÁÉÍÓÚÃÕÂÊÎÔÛÇ\s]{5,}$/.test(linha) && linha.split(' ').length >= 2) {
-            nomeFuncionario = linha; break;
+        for (const linha of linhas) {
+          if (/^[A-ZÁÉÍÓÚÃÕÂÊÎÔÛÇ]{2,}(\s[A-ZÁÉÍÓÚÃÕÂÊÎÔÛÇ]{2,}){1,}$/.test(linha)) {
+            // Ignorar linhas que são descrições de rubricas
+            const ignorar = ['HORAS REPOUSO','SALDO DE SALARIO','SALARIO INTEGRAL','FERIAS PROPORCIONAIS','INSS','IRRF','FGTS','AVISO PREVIO','LIQUIDO RESCISAO','CONTRIBUICAO','DESCONTO','MEDIA HORAS','SERVENTE','MENSALISTA','HORISTA'];
+            if (!ignorar.some(ig => linha.includes(ig))) {
+              nomeFuncionario = linha.trim();
+              break;
+            }
           }
         }
       }
@@ -239,8 +248,14 @@ async function processarHolerites(fileBuffer, nomeArquivo, empresaEmail, mes, an
 
       // Extrair valor líquido
       let valorLiquido = null;
-      const matchValor = pagina.match(/Valor\s+L[íi]quido[^\d]*([\d\.]+,[\d]{2})/i);
+      // Padrão Domínio: "Valor Líquido" seguido do valor na mesma linha ou próxima
+      const matchValor = pagina.match(/Valor\s+L[íi]quido\s*[\n\r\s=>]*([\d\.]+,[\d]{2})/i);
       if (matchValor) valorLiquido = matchValor[1];
+      // Fallback: pegar valor após símbolo de seta
+      if (!valorLiquido) {
+        const matchSeta = pagina.match(/=>\s*([\d\.]+,[\d]{2})/);
+        if (matchSeta) valorLiquido = matchSeta[1];
+      }
 
       // Buscar funcionário pelo nome
       const func = funcionarios.find(f => {
