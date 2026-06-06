@@ -338,7 +338,7 @@
       <span class="logo-name">HP Contabilidade <span style="font-family:Georgia,serif;font-style:italic;color:#ef4444;font-size:12px;">beta</span></span>
     </div>
     <div class="card">
-      <div class="field"><label>E-mail</label><input id="email" type="email" placeholder="seu@email.com" /></div>
+      <div class="field"><label>E-mail ou CPF</label><input id="email" type="text" placeholder="seu@email.com ou CPF" /></div>
       <div class="field"><label>Senha</label><input id="password" type="password" placeholder="••••••••" /></div>
       <div id="login-error" class="error-msg hidden"></div>
       <button class="btn btn-primary btn-full" onclick="login()">Entrar</button>
@@ -416,10 +416,9 @@
       <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
       Relatorios
     </button>
-    <div class="menu-divider"></div>
-    <button class="menu-item" id="menu-avisos" onclick="openPanel('avisos')">
-      <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-      Avisos
+    <button class="menu-item" id="menu-funcionarios" onclick="openPanel('funcionarios')">
+      <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      Funcionários
     </button>
     <div class="menu-divider"></div>
     <button class="menu-item menu-item-logout" onclick="logout()">
@@ -580,6 +579,15 @@
       <div class="tabs" id="subcat-tabs" style="margin-top:-8px;padding-left:8px;border-left:3px solid var(--border);"></div>
       <div id="client-files-list"><div class="loading">Carregando...</div></div>
     </div>
+
+    <!-- FUNCIONARIO VIEW -->
+    <div id="funcionario-view" class="hidden">
+      <div style="margin-bottom:1rem;">
+        <div class="section-title">Olá, <span id="func-nome"></span></div>
+        <p style="font-size:13px;color:var(--text-secondary);margin-top:4px;">Seus holerites e documentos</p>
+      </div>
+      <div id="func-holerites-list"><div class="loading">Carregando...</div></div>
+    </div>
   </div>
 </div>
 
@@ -636,6 +644,8 @@ let allClientFiles = [];
 let activeSetor = 'Todos';
 let activeSubcat = null;
 let isAdmin = false;
+let isFuncionario = false;
+let funcionarioLogado = null;
 let chatInterval = null;
 // Para admin: email do cliente sendo visto no chat
 let chatClientEmail = null;
@@ -756,11 +766,29 @@ function autoDetectSubcat() {
 
 // ── AUTH ──────────────────────────────────────────────
 async function login() {
-  const email = document.getElementById('email').value.trim();
+  const emailInput = document.getElementById('email').value.trim();
   const pass  = document.getElementById('password').value.trim();
   const errEl = document.getElementById('login-error');
   errEl.classList.add('hidden');
-  const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
+
+  // Verificar se é CPF (só números, 11 dígitos)
+  const cpfLimpo = emailInput.replace(/\D/g, '');
+  if (cpfLimpo.length === 11) {
+    // Login de funcionário por CPF
+    const { data: func } = await sb.from('funcionarios').select('*').eq('cpf', cpfLimpo).maybeSingle();
+    if (!func) { errEl.textContent = 'CPF não encontrado.'; errEl.classList.remove('hidden'); return; }
+    // Senha padrão = CPF ou senha cadastrada
+    const senhaOk = pass === cpfLimpo || pass === (func.senha || cpfLimpo);
+    if (!senhaOk) { errEl.textContent = 'Senha incorreta.'; errEl.classList.remove('hidden'); return; }
+    isFuncionario = true;
+    funcionarioLogado = func;
+    currentUser = { email: func.cpf, id: func.id };
+    showApp();
+    return;
+  }
+
+  // Login normal (email)
+  const { data, error } = await sb.auth.signInWithPassword({ email: emailInput, password: pass });
   if (error) { errEl.textContent = 'E-mail ou senha incorretos.'; errEl.classList.remove('hidden'); return; }
   currentUser = data.user;
   showApp();
@@ -768,8 +796,10 @@ async function login() {
 
 async function logout() {
   clearInterval(chatInterval);
-  await sb.auth.signOut();
+  if (!isFuncionario) await sb.auth.signOut();
   currentUser = null;
+  isFuncionario = false;
+  funcionarioLogado = null;
   document.getElementById('main-screen').classList.add('hidden');
   document.getElementById('login-screen').classList.remove('hidden');
   closeMenu();
@@ -779,7 +809,7 @@ async function showApp() {
   document.getElementById('login-screen').classList.add('hidden');
   document.getElementById('main-screen').classList.remove('hidden');
   isAdmin = ADMIN_EMAILS.includes(currentUser.email);
-  document.getElementById('role-badge').textContent = isAdmin ? 'Admin' : 'Cliente';
+  document.getElementById('role-badge').textContent = isAdmin ? 'Admin' : isFuncionario ? 'Funcionário' : 'Cliente';
   const menuRel = document.getElementById('menu-relatorios');
   if (menuRel) menuRel.style.display = isAdmin ? 'flex' : 'none';
 
@@ -811,11 +841,18 @@ async function showApp() {
   if (isAdmin) {
     document.getElementById('admin-view').classList.remove('hidden');
     document.getElementById('client-view').classList.add('hidden');
+    document.getElementById('funcionario-view').classList.add('hidden');
     carregarClientesSelect();
     loadAdminView();
+  } else if (isFuncionario) {
+    document.getElementById('admin-view').classList.add('hidden');
+    document.getElementById('client-view').classList.add('hidden');
+    document.getElementById('funcionario-view').classList.remove('hidden');
+    loadFuncionarioView();
   } else {
     document.getElementById('client-view').classList.remove('hidden');
     document.getElementById('admin-view').classList.add('hidden');
+    document.getElementById('funcionario-view').classList.add('hidden');
     loadClientView();
   }
 }
@@ -847,7 +884,7 @@ function filterSetor(setor) {
 function openPanel(type) {
   closeMenu();
   document.getElementById('panel-overlay').classList.remove('hidden');
-  const title = { dados:'Dados do Cliente', chat:'Chat', certificados:'Certificados', calendario:'Calendario de Guias', relatorios:'Relatorios', avisos:'Avisos' }[type];
+  const title = { dados:'Dados do Cliente', chat:'Chat', certificados:'Certificados', calendario:'Calendario de Guias', relatorios:'Relatorios', avisos:'Avisos', funcionarios:'Funcionários' }[type];
   document.getElementById('panel-title').textContent = title;
   const body = document.getElementById('panel-body');
   body.innerHTML = '<div class="loading">Carregando...</div>';
@@ -857,6 +894,7 @@ function openPanel(type) {
   if (type === 'calendario') renderPanelCalendario(body);
   if (type === 'relatorios') renderPanelRelatorios(body);
   if (type === 'avisos') renderPanelAvisos(body);
+  if (type === 'funcionarios') renderPanelFuncionarios(body);
 }
 
 function closePanel(e) {
@@ -2719,6 +2757,115 @@ async function pollChatNotifs() {
   else badge.classList.add('hidden');
 }
 
+// ── PORTAL FUNCIONÁRIO ───────────────────────────────
+async function loadFuncionarioView() {
+  const func = funcionarioLogado;
+  document.getElementById('func-nome').textContent = func.nome;
+  document.getElementById('menu-user-name').textContent = func.nome;
+  document.getElementById('menu-user-email').textContent = 'CPF: ' + func.cpf;
+
+  const el = document.getElementById('func-holerites-list');
+  const { data: holerites } = await sb.from('holerites').select('*').eq('funcionario_cpf', func.cpf).order('criado_em', { ascending: false });
+
+  if (!holerites || holerites.length === 0) { el.innerHTML = '<div class="empty-state">Nenhum holerite disponível ainda.</div>'; return; }
+
+  const porAno = {};
+  holerites.forEach(h => { if (!porAno[h.ano]) porAno[h.ano] = []; porAno[h.ano].push(h); });
+
+  el.innerHTML = Object.entries(porAno).sort((a,b) => b[0]-a[0]).map(([ano, lista]) => `
+    <div style="margin-bottom:1.5rem;">
+      <div class="section-title" style="margin-bottom:8px;">${ano}</div>
+      ${lista.map(h => `
+        <div class="file-row">
+          <div class="file-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+          <div class="file-info">
+            <div class="file-name">Holerite ${h.mes}/${h.ano}</div>
+            <div class="file-meta">${h.valor_liquido ? 'Líquido: R$ '+h.valor_liquido : ''} · ${formatDate(h.criado_em)}</div>
+          </div>
+          <span class="badge ${h.lido ? 'badge-read' : 'badge-new'}">${h.lido ? 'Visto' : 'Novo'}</span>
+          <button class="download-btn" onclick="downloadHolerite('${h.id}','${h.arquivo_path}','Holerite_${h.mes}_${h.ano}.pdf')">
+            <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Baixar
+          </button>
+        </div>`).join('')}
+    </div>`).join('');
+}
+
+async function downloadHolerite(id, path, name) {
+  const { data, error } = await sb.storage.from('arquivos').download(path);
+  if (error) { alert('Erro ao baixar.'); return; }
+  const url = URL.createObjectURL(data);
+  const a = document.createElement('a'); a.href = url; a.download = name; a.click();
+  URL.revokeObjectURL(url);
+  await sb.from('holerites').update({ lido: true }).eq('id', id);
+  loadFuncionarioView();
+}
+
+async function renderPanelFuncionarios(body) {
+  body.innerHTML = '<div class="loading">Carregando...</div>';
+  const { data: lista } = await sb.from('funcionarios').select('*').order('nome');
+
+  let html = `
+    <div class="section-title" style="margin-bottom:10px;">Cadastrar Funcionário</div>
+    <div class="card" style="margin-bottom:1rem;">
+      <div class="form-row" style="margin-bottom:10px;">
+        <div class="field" style="margin:0;"><label>Nome completo</label><input id="fn-nome" type="text" placeholder="JOAO SILVA" style="text-transform:uppercase;" /></div>
+        <div class="field" style="margin:0;"><label>CPF (só números)</label><input id="fn-cpf" type="text" placeholder="12345678901" maxlength="11" /></div>
+      </div>
+      <div class="form-row" style="margin-bottom:10px;">
+        <div class="field" style="margin:0;"><label>Empresa</label>
+          <select id="fn-empresa"><option value="">Selecione...</option></select>
+        </div>
+        <div class="field" style="margin:0;"><label>E-mail (opcional)</label><input id="fn-email" type="email" placeholder="func@email.com" /></div>
+      </div>
+      <div id="fn-msg" class="hidden"></div>
+      <button class="btn btn-primary" onclick="salvarFuncionario()">Cadastrar</button>
+    </div>
+    <div class="section-title" style="margin-bottom:10px;">Funcionários (${(lista||[]).length})</div>`;
+
+  html += (!lista || lista.length === 0) ? '<div class="empty-state">Nenhum funcionário cadastrado.</div>' :
+    lista.map(f => `<div class="cert-row">
+      <div class="cert-info">
+        <div class="cert-name">${f.nome}</div>
+        <div class="cert-date">CPF: ${f.cpf} · ${f.empresa_email||'Sem empresa'}</div>
+      </div>
+      <button class="btn-delete" onclick="excluirFuncionario('${f.id}')">
+        <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+      </button>
+    </div>`).join('');
+
+  body.innerHTML = html;
+
+  const { data: clientes } = await sb.from('clientes').select('email, nome, empresa, codigo').order('codigo');
+  const sel = document.getElementById('fn-empresa');
+  if (sel && clientes) clientes.forEach(c => {
+    const opt = document.createElement('option');
+    opt.value = c.email;
+    opt.textContent = c.codigo ? `${c.codigo} - ${c.empresa||c.nome}` : (c.empresa||c.nome||c.email);
+    sel.appendChild(opt);
+  });
+}
+
+async function salvarFuncionario() {
+  const nome = document.getElementById('fn-nome').value.trim().toUpperCase();
+  const cpf = document.getElementById('fn-cpf').value.replace(/\D/g,'');
+  const empresa = document.getElementById('fn-empresa').value;
+  const email = document.getElementById('fn-email').value.trim();
+  const msg = document.getElementById('fn-msg');
+  if (!nome || cpf.length !== 11) { msg.className='error-msg'; msg.textContent='Preencha nome e CPF (11 dígitos).'; msg.classList.remove('hidden'); return; }
+  const { error } = await sb.from('funcionarios').upsert({ nome, cpf, empresa_email: empresa||null, email: email||null, criado_em: new Date().toISOString() }, { onConflict: 'cpf' });
+  if (error) { msg.className='error-msg'; msg.textContent='Erro: '+error.message; msg.classList.remove('hidden'); return; }
+  msg.className='success-msg'; msg.textContent='✓ Cadastrado! Senha inicial: '+cpf; msg.classList.remove('hidden');
+  document.getElementById('fn-nome').value=''; document.getElementById('fn-cpf').value='';
+  renderPanelFuncionarios(document.getElementById('panel-body'));
+}
+
+async function excluirFuncionario(id) {
+  if (!confirm('Excluir este funcionário?')) return;
+  await sb.from('funcionarios').delete().eq('id', id);
+  renderPanelFuncionarios(document.getElementById('panel-body'));
+}
+
 // ── PAINEL AVISOS ────────────────────────────────────
 async function renderPanelAvisos(body) {
   if (isAdmin) {
@@ -2730,10 +2877,7 @@ async function renderPanelAvisos(body) {
         <div class="form-row" style="margin-bottom:10px;">
           <div class="field" style="margin:0;"><label>Válido até</label><input id="av-validade" type="date" /></div>
           <div class="field" style="margin:0;"><label>Prioridade</label>
-            <select id="av-prioridade">
-              <option value="normal">Normal</option>
-              <option value="urgente">Urgente</option>
-            </select>
+            <select id="av-prioridade"><option value="normal">Normal</option><option value="urgente">Urgente</option></select>
           </div>
         </div>
         <div id="av-msg" class="hidden"></div>
@@ -2756,11 +2900,11 @@ async function carregarAvisosAdmin() {
   el.innerHTML = avisos.map(a => {
     const vencido = a.validade && a.validade < hoje;
     const urgente = a.prioridade === 'urgente';
-    return `<div class="cert-row" style="${vencido ? 'opacity:0.5;' : ''}">
+    return `<div class="cert-row" style="${vencido?'opacity:0.5;':''}">
       <div class="cert-info">
-        <div class="cert-name" style="${urgente ? 'color:var(--red-text);' : ''}">${urgente ? '🚨 ' : '📢 '}${a.titulo}</div>
+        <div class="cert-name" style="${urgente?'color:var(--red-text);':''}">${urgente?'🚨 ':'📢 '}${a.titulo}</div>
         <div class="cert-date" style="white-space:normal;margin-top:4px;">${a.mensagem}</div>
-        <div class="cert-date" style="margin-top:4px;">${formatDate(a.criado_em)}${a.validade ? ' · Válido até '+formatDateBR(a.validade) : ''}${vencido ? ' · <span style="color:var(--red-text);">Expirado</span>' : ''}</div>
+        <div class="cert-date" style="margin-top:4px;">${formatDate(a.criado_em)}${a.validade?' · Válido até '+formatDateBR(a.validade):''}${vencido?' · <span style="color:var(--red-text);">Expirado</span>':''}</div>
       </div>
       <button class="btn-delete" onclick="excluirAviso('${a.id}')">
         <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
@@ -2776,8 +2920,8 @@ async function carregarAvisosCliente() {
   if (!avisos || avisos.length === 0) { el.innerHTML = '<div class="empty-state">Nenhum aviso no momento.</div>'; return; }
   el.innerHTML = avisos.map(a => {
     const urgente = a.prioridade === 'urgente';
-    return `<div class="notif-banner" style="${urgente ? 'background:var(--red-bg);border-color:#fca5a5;color:var(--red-text);' : 'background:var(--orange-bg);border-color:#fed7aa;color:var(--orange-text);'}">
-      <div><strong>${urgente ? '🚨 ' : '📢 '}${a.titulo}</strong><br>${a.mensagem}</div>
+    return `<div class="notif-banner" style="${urgente?'background:var(--red-bg);border-color:#fca5a5;color:var(--red-text);':'background:var(--orange-bg);border-color:#fed7aa;color:var(--orange-text);'}">
+      <div><strong>${urgente?'🚨 ':'📢 '}${a.titulo}</strong><br>${a.mensagem}</div>
     </div>`;
   }).join('');
 }
@@ -2789,28 +2933,17 @@ async function publicarAviso() {
   const prioridade = document.getElementById('av-prioridade').value;
   const msg = document.getElementById('av-msg');
   if (!titulo || !mensagem) { msg.className='error-msg'; msg.textContent='Preencha título e mensagem.'; msg.classList.remove('hidden'); return; }
-  const { error } = await sb.from('avisos').insert({ titulo, mensagem, prioridade, validade: validade || null, criado_por: currentUser.email, criado_em: new Date().toISOString() });
+  const { error } = await sb.from('avisos').insert({ titulo, mensagem, prioridade, validade: validade||null, criado_por: currentUser.email, criado_em: new Date().toISOString() });
   if (error) { msg.className='error-msg'; msg.textContent='Erro: '+error.message; msg.classList.remove('hidden'); return; }
-
-  // Enviar push para todos os clientes
   try {
-    const { data: clientes } = await sb.from('clientes').select('fcm_token, email').not('fcm_token', 'is', null);
+    const { data: clientes } = await sb.from('clientes').select('fcm_token').not('fcm_token','is',null);
     const emoji = prioridade === 'urgente' ? '🚨' : '📢';
-    for (const c of (clientes || [])) {
-      if (c.fcm_token) {
-        await fetch('/api/send-notification', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ fcm_token: c.fcm_token, title: emoji + ' ' + titulo, body: mensagem })
-        });
-      }
+    for (const c of (clientes||[])) {
+      if (c.fcm_token) await fetch('/api/send-notification', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ fcm_token: c.fcm_token, title: emoji+' '+titulo, body: mensagem }) });
     }
-  } catch(e) { console.log('Erro push avisos:', e.message); }
-
+  } catch(e) { console.log('Push erro:', e.message); }
   msg.className='success-msg'; msg.textContent='✓ Aviso publicado para todos os clientes!'; msg.classList.remove('hidden');
-  document.getElementById('av-titulo').value='';
-  document.getElementById('av-mensagem').value='';
-  document.getElementById('av-validade').value='';
+  document.getElementById('av-titulo').value=''; document.getElementById('av-mensagem').value=''; document.getElementById('av-validade').value='';
   await carregarAvisosAdmin();
 }
 
