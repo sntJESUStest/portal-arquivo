@@ -325,6 +325,26 @@
       .stats-grid { grid-template-columns: 1fr 1fr; }
       .form-row, .form-row-3 { grid-template-columns: 1fr; }
     }
+
+    /* PORTAL FUNCIONÁRIO */
+    body.func-mode { --accent: #5a7a3a; --accent-fg: #ffffff; --bg: #f4f9ee; --blue-bg: #e8f4d4; --blue-text: #3d6b1e; }
+    body.func-mode #login-screen { background: linear-gradient(135deg, #CFE0BC 0%, #a8c98a 100%); }
+    body.func-mode .login-box .card { background: rgba(255,255,255,0.95); }
+    body.func-mode .login-box .logo-name { color: #2d4a1a; text-shadow: 0 1px 4px rgba(0,0,0,0.2); }
+    body.func-mode .login-box .logo-icon { background: #5a7a3a; }
+    body.func-mode .topbar { background: #CFE0BC; border-bottom-color: #a8c98a; }
+    body.func-mode .topbar-logo { color: #2d4a1a; }
+    body.func-mode .topbar-badge { background: #a8c98a; color: #2d4a1a; }
+    body.func-mode .btn-primary { background: #5a7a3a; border-color: #5a7a3a; }
+    body.func-mode .btn-primary:hover { background: #4a6a2a; }
+    body.func-mode .tab-btn.active { background: #5a7a3a; border-color: #5a7a3a; }
+    body.func-mode .download-btn { background: #5a7a3a; }
+    body.func-mode .section-title { color: #5a7a3a; }
+    body.func-mode .badge-new { background: #e8f4d4; color: #3d6b1e; }
+    body.func-mode #funcionario-view { padding-top: 0.5rem; }
+    body.func-mode .func-header { background: linear-gradient(135deg, #CFE0BC, #a8c98a); border-radius: var(--radius-lg); padding: 1.5rem; margin-bottom: 1.5rem; }
+    body.func-mode .func-header-nome { font-size: 20px; font-weight: 600; color: #2d4a1a; }
+    body.func-mode .func-header-sub { font-size: 13px; color: #4a6a2a; margin-top: 4px; }
   </style>
 </head>
 <body>
@@ -582,9 +602,9 @@
 
     <!-- FUNCIONARIO VIEW -->
     <div id="funcionario-view" class="hidden">
-      <div style="margin-bottom:1rem;">
-        <div class="section-title">Olá, <span id="func-nome"></span></div>
-        <p style="font-size:13px;color:var(--text-secondary);margin-top:4px;">Seus holerites e documentos</p>
+      <div class="func-header">
+        <div class="func-header-nome">👋 Olá, <span id="func-nome"></span></div>
+        <div class="func-header-sub">Seus holerites e documentos estão aqui</div>
       </div>
       <div id="func-holerites-list"><div class="loading">Carregando...</div></div>
     </div>
@@ -784,6 +804,7 @@ async function login() {
     funcionarioLogado = func;
     currentUser = { email: func.cpf, id: func.id };
     history.pushState({}, '', '/funcionario');
+    document.body.classList.add('func-mode');
     showApp();
     return;
   }
@@ -802,6 +823,7 @@ async function logout() {
   isFuncionario = false;
   funcionarioLogado = null;
   history.pushState({}, '', '/');
+  document.body.classList.remove('func-mode');
   document.getElementById('main-screen').classList.add('hidden');
   document.getElementById('login-screen').classList.remove('hidden');
   closeMenu();
@@ -2971,8 +2993,8 @@ sb.auth.getSession().then(({ data }) => { if (data.session) { currentUser = data
 
 // Detectar URL /funcionario e adaptar tela de login
 if (window.location.pathname === '/funcionario') {
-  document.querySelector('.logo-name').innerHTML = 'HP Contabilidade <span style="font-family:Georgia,serif;font-style:italic;color:#ef4444;font-size:12px;">Funcionários</span>';
-  document.querySelector('label[for="email"], label').textContent = 'CPF';
+  document.body.classList.add('func-mode');
+  document.querySelector('.logo-name').innerHTML = 'HP Contabilidade <span style="font-family:Georgia,serif;font-style:italic;color:#5a7a3a;font-size:12px;">Funcionários</span>';
   document.getElementById('email').placeholder = 'Digite seu CPF';
   document.getElementById('email').type = 'text';
   document.getElementById('password').placeholder = 'Senha (padrão: seu CPF)';
