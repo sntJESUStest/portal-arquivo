@@ -21,7 +21,7 @@
   ],
   "rewrites": [
     { "source": "/funcionario", "destination": "/index.html" },
-    { "source": "/cliente", "destination": "/index.html" },
+    { "source": "/empresas", "destination": "/index.html" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
