@@ -815,7 +815,7 @@ async function login() {
   currentUser = data.user;
   // Redirecionar URL conforme perfil
   if (!ADMIN_EMAILS.includes(currentUser.email)) {
-    history.pushState({}, '', '/cliente');
+    history.pushState({}, '', '/empresas');
   }
   showApp();
 }
@@ -3021,7 +3021,7 @@ if (window.location.pathname === '/funcionario') {
   document.getElementById('password').placeholder = 'Senha (padrão: seu CPF)';
 }
 
-if (window.location.pathname === '/cliente') {
+if (window.location.pathname === '/empresas') {
   document.querySelector('.logo-name').innerHTML = 'HP Contabilidade <span style="font-family:Georgia,serif;font-style:italic;color:#ef4444;font-size:12px;">beta</span>';
   document.getElementById('email').placeholder = 'seu@email.com';
   document.getElementById('password').placeholder = '••••••••';
