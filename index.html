@@ -783,6 +783,7 @@ async function login() {
     isFuncionario = true;
     funcionarioLogado = func;
     currentUser = { email: func.cpf, id: func.id };
+    history.pushState({}, '', '/funcionario');
     showApp();
     return;
   }
@@ -800,6 +801,7 @@ async function logout() {
   currentUser = null;
   isFuncionario = false;
   funcionarioLogado = null;
+  history.pushState({}, '', '/');
   document.getElementById('main-screen').classList.add('hidden');
   document.getElementById('login-screen').classList.remove('hidden');
   closeMenu();
@@ -2966,6 +2968,15 @@ function formatDate(iso) { if (!iso) return ''; return new Date(iso).toLocaleDat
 function formatDateBR(d) { if (!d) return ''; const [y,m,day] = d.split('-'); return `${day}/${m}/${y}`; }
 
 sb.auth.getSession().then(({ data }) => { if (data.session) { currentUser = data.session.user; showApp(); } });
+
+// Detectar URL /funcionario e adaptar tela de login
+if (window.location.pathname === '/funcionario') {
+  document.querySelector('.logo-name').innerHTML = 'HP Contabilidade <span style="font-family:Georgia,serif;font-style:italic;color:#ef4444;font-size:12px;">Funcionários</span>';
+  document.querySelector('label[for="email"], label').textContent = 'CPF';
+  document.getElementById('email').placeholder = 'Digite seu CPF';
+  document.getElementById('email').type = 'text';
+  document.getElementById('password').placeholder = 'Senha (padrão: seu CPF)';
+}
 
 if ('serviceWorker' in navigator) { window.addEventListener('load', () => { navigator.serviceWorker.register('/sw.js'); }); }
 </script>
