@@ -191,8 +191,13 @@ async function processarHolerites(fileBuffer, nomeArquivo, empresaEmail, mes, an
   console.log('Processando holerites:', nomeArquivo);
   try {
     const pdf = await pdfParse(fileBuffer);
-    const paginas = pdf.text.split(/\f/).filter(p => p.trim().length > 100);
-    console.log(`PDF tem ${paginas.length} paginas`);
+    const pdfOriginal = await PDFDocument.load(fileBuffer);
+    const totalPaginas = pdfOriginal.getPageCount();
+    console.log(`PDF tem ${totalPaginas} paginas fisicas`);
+
+    // Separar blocos de funcionários pelo padrão "Nome do Funcionário"
+    const blocos = pdf.text.split('Nome do Funcionário').filter(b => b.trim().length > 50);
+    console.log(`Blocos de funcionarios encontrados: ${blocos.length}`);
 
     const { data: funcionarios } = await sb.from('funcionarios').select('*').eq('empresa_email', empresaEmail);
     if (!funcionarios || funcionarios.length === 0) {
@@ -200,8 +205,13 @@ async function processarHolerites(fileBuffer, nomeArquivo, empresaEmail, mes, an
       return;
     }
 
+    // Calcular páginas por funcionário (2 páginas por funcionário no Domínio)
+    const pagsPorFunc = Math.floor(totalPaginas / blocos.length) || 2;
+    console.log(`Paginas por funcionario: ${pagsPorFunc}`);
+
     let distribuidos = 0;
-    for (const pagina of paginas) {
+    for (let idx = 0; idx < blocos.length; idx++) {
+      const pagina = blocos[idx];
       // Extrair nome do funcionário (linha após "Nome do Funcionário" ou padrão Domínio)
       const linhas = pagina.split('\n').map(l => l.trim()).filter(Boolean);
       
@@ -249,13 +259,16 @@ async function processarHolerites(fileBuffer, nomeArquivo, empresaEmail, mes, an
 
       // Extrair valor líquido
       let valorLiquido = null;
-      // Padrão Domínio: "Valor Líquido" seguido do valor na mesma linha ou próxima
-      const matchValor = pagina.match(/Valor\s+L[íi]quido\s*[\n\r\s=>]*([\d\.]+,[\d]{2})/i);
-      if (matchValor) valorLiquido = matchValor[1];
-      // Fallback: pegar valor após símbolo de seta
-      if (!valorLiquido) {
-        const matchSeta = pagina.match(/=>\s*([\d\.]+,[\d]{2})/);
-        if (matchSeta) valorLiquido = matchSeta[1];
+      // Padrão Domínio: valor líquido aparece após "Valor Líquido" ou antes de "Total de Descontos"
+      // O bloco começa APÓS "Nome do Funcionário", então o valor está no início
+      const todosValores = pagina.match(/([\d]{1,3}(?:\.\d{3})*,\d{2})/g) || [];
+      // Valor líquido costuma ser o maior valor isolado (não soma de outros)
+      const matchValorLiq = pagina.match(/(?:Valor\s+L[íi]quido|L[íi]quido)[^\d]*([\d\.]+,[\d]{2})/i);
+      if (matchValorLiq) valorLiquido = matchValorLiq[1];
+      // Fallback: primeiro valor grande após o bloco
+      if (!valorLiquido && todosValores.length > 0) {
+        const grandes = todosValores.filter(v => parseFloat(v.replace(/\./g,'').replace(',','.')) > 100);
+        if (grandes.length > 0) valorLiquido = grandes[0];
       }
 
       // Buscar funcionário pelo nome
@@ -272,14 +285,14 @@ async function processarHolerites(fileBuffer, nomeArquivo, empresaEmail, mes, an
         .select('id').eq('funcionario_cpf', func.cpf).eq('mes', mesPagina).eq('ano', anoPagina).maybeSingle();
       if (existe) { console.log('Holerite ja existe:', func.nome, mesPagina, anoPagina); continue; }
 
-      // Separar apenas a página deste funcionário usando pdf-lib
+      // Separar apenas as páginas deste funcionário usando pdf-lib
       const storagePath = `holerites/${empresaEmail}/${anoPagina}/${mesPagina}/${func.cpf}_${mesPagina}_${anoPagina}.pdf`;
       try {
-        const pdfOriginal = await PDFDocument.load(fileBuffer);
         const pdfNovo = await PDFDocument.create();
-        // Cada funcionário ocupa 2 páginas no Domínio (frente e verso)
-        const idxPagina = paginas.indexOf(pagina);
-        const pagsCopiar = [idxPagina * 2, idxPagina * 2 + 1].filter(i => i < pdfOriginal.getPageCount());
+        const inicioFunc = idx * pagsPorFunc;
+        const fimFunc = Math.min(inicioFunc + pagsPorFunc, pdfOriginal.getPageCount());
+        const pagsCopiar = Array.from({length: fimFunc - inicioFunc}, (_, i) => inicioFunc + i);
+        console.log(`Copiando paginas ${pagsCopiar} para ${func.nome}`);
         const copias = await pdfNovo.copyPages(pdfOriginal, pagsCopiar);
         copias.forEach(p => pdfNovo.addPage(p));
         const pdfBytes = await pdfNovo.save();
