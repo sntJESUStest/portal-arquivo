@@ -440,10 +440,7 @@
       <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
       Funcionários
     </button>
-    <button class="menu-item" id="menu-funcionarios" onclick="openPanel('funcionarios')">
-      <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-      Funcionários
-    </button>
+    
     <div class="menu-divider"></div>
     <button class="menu-item" id="menu-avisos" onclick="openPanel('avisos')">
       <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
@@ -784,7 +781,9 @@ async function marcarGuiaComoPaga(clienteEmail, tipo, mes, ano) {
   if (guia) {
     await sb.from('guias').update({ status: 'disponivel' }).eq('id', guia.id);
     console.log('Guia marcada como disponivel:', tipo, mes, ano);
+    return true;
   }
+  return false;
 }
 
 function detectarSubcategoria(nomeArquivo) {
@@ -1977,7 +1976,16 @@ async function uploadFile() {
       await enviarPushParaCliente(clientEmail, 'Nova guia no calendário', `${guiaTipo} — vence em ${dataFormatada}`, false);
       okEl.textContent = `✓ Arquivo enviado para ${clientEmail} (${setor}) e lançado no calendário!`;
     } else {
-      okEl.textContent = `✓ Arquivo enviado para ${clientEmail} (${setor})!`;
+      // Auto-detectar guia pelo nome do arquivo
+      const guiaAuto = detectarGuiaPorNome(file.name);
+      if (guiaAuto && !guiaTipo) {
+        const marcou = await marcarGuiaComoPaga(clientEmail, guiaAuto.tipo, guiaAuto.mes, guiaAuto.ano);
+        okEl.textContent = marcou
+          ? `✓ Arquivo enviado e guia ${guiaAuto.tipo} ${guiaAuto.mes}/${guiaAuto.ano} marcada como disponível!`
+          : `✓ Arquivo enviado para ${clientEmail} (${setor})!`;
+      } else {
+        okEl.textContent = `✓ Arquivo enviado para ${clientEmail} (${setor})!`;
+      }
     }
     okEl.classList.remove('hidden');
     fileInput.value='';
@@ -2140,12 +2148,13 @@ async function downloadFile(id, path, name) {
 async function renderPanelRelatorios(body) {
   body.innerHTML = `
     <div class="tabs" style="margin-bottom:1.25rem;">
-      <button class="tab-btn active" onclick="mostrarRelatorio('guias-pendentes', this)">Guias nao pagas</button>
-      <button class="tab-btn" onclick="mostrarRelatorio('clientes-ativos', this)">Clientes ativos</button>
+      <button class="tab-btn active" onclick="mostrarRelatorio('dashboard', this)">Dashboard</button>
+      <button class="tab-btn" onclick="mostrarRelatorio('guias-pendentes', this)">Guias em aberto</button>
+      <button class="tab-btn" onclick="mostrarRelatorio('clientes-ativos', this)">Clientes</button>
       <button class="tab-btn" onclick="mostrarRelatorio('por-setor', this)">Por setor</button>
     </div>
     <div id="relatorio-content"><div class="loading">Carregando...</div></div>`;
-  await mostrarRelatorio('guias-pendentes');
+  await mostrarRelatorio('dashboard');
 }
 
 async function buscarGuiasPendentes() {
@@ -2233,6 +2242,69 @@ async function mostrarRelatorio(tipo, btnEl) {
   const el = document.getElementById('relatorio-content');
   if (!el) return;
   el.innerHTML = '<div class="loading">Carregando...</div>';
+
+  if (tipo === 'dashboard') {
+    const { data: guias } = await sb.from('guias').select('*');
+    const { data: clientes } = await sb.from('clientes').select('*');
+    const { data: notifs } = await sb.from('notificacoes').select('*');
+    const hoje = new Date(); hoje.setHours(0,0,0,0);
+    const mesAtual = hoje.getMonth();
+    const anoAtual = hoje.getFullYear();
+
+    const guiasMes = (guias||[]).filter(g => {
+      const d = new Date(g.vencimento + 'T00:00:00');
+      return d.getMonth() === mesAtual && d.getFullYear() === anoAtual;
+    });
+    const pendentes = guiasMes.filter(g => g.status === 'pendente').length;
+    const disponiveis = guiasMes.filter(g => g.status === 'disponivel').length;
+    const pagas = guiasMes.filter(g => g.status === 'pago').length;
+    const total = guiasMes.length;
+    const vencidas = guiasMes.filter(g => {
+      const d = new Date(g.vencimento + 'T00:00:00');
+      return d < hoje && g.status === 'pendente';
+    }).length;
+
+    const meses = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+
+    // Gráfico de pizza SVG
+    const dadosPizza = [
+      { label: 'Pendentes', valor: pendentes, cor: '#ef4444' },
+      { label: 'Disponíveis', valor: disponiveis, cor: '#2d5be3' },
+      { label: 'Pagas', valor: pagas, cor: '#22c55e' },
+    ].filter(d => d.valor > 0);
+
+    const pizza = gerarPizzaSVG(dadosPizza, total);
+
+    el.innerHTML = `
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:1.5rem;">
+        <div class="stat-card"><div class="stat-label">Total guias mês</div><div class="stat-value">${total}</div></div>
+        <div class="stat-card" style="border-color:#ef4444;"><div class="stat-label" style="color:#c0392b;">Pendentes</div><div class="stat-value" style="color:#c0392b;">${pendentes}</div></div>
+        <div class="stat-card" style="border-color:#22c55e;"><div class="stat-label" style="color:#1a7a4a;">Pagas</div><div class="stat-value" style="color:#1a7a4a;">${pagas}</div></div>
+        <div class="stat-card" style="border-color:#f59e0b;"><div class="stat-label" style="color:#92400e;">Vencidas</div><div class="stat-value" style="color:#92400e;">${vencidas}</div></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-bottom:1.5rem;">
+        <div class="card">
+          <div class="section-title" style="margin-bottom:1rem;">Guias do mês — ${meses[mesAtual]}/${anoAtual}</div>
+          <div style="display:flex;align-items:center;justify-content:center;">
+            ${pizza}
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:1rem;">
+            ${dadosPizza.map(d => `<div style="display:flex;align-items:center;gap:6px;font-size:12px;">
+              <div style="width:10px;height:10px;border-radius:50%;background:${d.cor};"></div>
+              ${d.label}: <strong>${d.valor}</strong>
+            </div>`).join('')}
+          </div>
+        </div>
+        <div class="card">
+          <div class="section-title" style="margin-bottom:1rem;">Resumo geral</div>
+          <div class="dados-row"><div class="dados-label">Total clientes</div><div class="dados-value">${(clientes||[]).length}</div></div>
+          <div class="dados-row"><div class="dados-label">Documentos enviados</div><div class="dados-value">${(notifs||[]).length}</div></div>
+          <div class="dados-row"><div class="dados-label">Não visualizados</div><div class="dados-value">${(notifs||[]).filter(n=>!n.lido).length}</div></div>
+          <div class="dados-row"><div class="dados-label">Total guias cadastradas</div><div class="dados-value">${(guias||[]).length}</div></div>
+        </div>
+      </div>`;
+    return;
+  }
 
   if (tipo === 'guias-pendentes') {
     // Mostrar filtros primeiro
@@ -3251,6 +3323,30 @@ async function excluirAviso(id) {
   if (!confirm('Excluir este aviso?')) return;
   await sb.from('avisos').delete().eq('id', id);
   await carregarAvisosAdmin();
+}
+
+function gerarPizzaSVG(dados, total) {
+  if (total === 0) return '<div style="text-align:center;color:var(--text-tertiary);padding:2rem;">Sem dados</div>';
+  const r = 70, cx = 90, cy = 90;
+  let startAngle = -Math.PI / 2;
+  let paths = '';
+  dados.forEach(d => {
+    if (d.valor === 0) return;
+    const angle = (d.valor / total) * 2 * Math.PI;
+    const endAngle = startAngle + angle;
+    const x1 = cx + r * Math.cos(startAngle);
+    const y1 = cy + r * Math.sin(startAngle);
+    const x2 = cx + r * Math.cos(endAngle);
+    const y2 = cy + r * Math.sin(endAngle);
+    const largeArc = angle > Math.PI ? 1 : 0;
+    paths += `<path d="M${cx},${cy} L${x1},${y1} A${r},${r} 0 ${largeArc},1 ${x2},${y2} Z" fill="${d.cor}" opacity="0.9"/>`;
+    startAngle = endAngle;
+  });
+  // Círculo central (donut)
+  paths += `<circle cx="${cx}" cy="${cy}" r="35" fill="white"/>`;
+  paths += `<text x="${cx}" y="${cy}" text-anchor="middle" dominant-baseline="middle" font-size="16" font-weight="700" fill="#1a1916">${total}</text>`;
+  paths += `<text x="${cx}" y="${cy+16}" text-anchor="middle" font-size="9" fill="#6b6860">total</text>`;
+  return `<svg width="180" height="180" viewBox="0 0 180 180">${paths}</svg>`;
 }
 
 function formatDate(iso) { if (!iso) return ''; return new Date(iso).toLocaleDateString('pt-BR', { day:'2-digit', month:'2-digit', year:'numeric' }); }
