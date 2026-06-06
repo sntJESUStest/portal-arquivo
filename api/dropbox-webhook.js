@@ -1,4 +1,5 @@
 const { createClient } = require('@supabase/supabase-js');
+const pdfParse = require('pdf-parse');
 
 const SUPABASE_URL = 'https://nacdezqdsouhxgftqaku.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5hY2RlenFkc291aHhnZnRxYWt1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyODU4MjYsImV4cCI6MjA5NDg2MTgyNn0.C1eqGfu7h-oOC0ibw6hzecPsG49e6IrOXrxu0C-mOSY';
@@ -180,6 +181,115 @@ async function marcarGuiaComoPagaWebhook(clienteEmail, tipo, mes, ano) {
   } catch(e) { console.error('Erro marcar guia:', e.message); }
 }
 
+const MESES_PT = {
+  'janeiro':'01','fevereiro':'02','março':'03','abril':'04','maio':'05','junho':'06',
+  'julho':'07','agosto':'08','setembro':'09','outubro':'10','novembro':'11','dezembro':'12'
+};
+
+async function processarHolerites(fileBuffer, nomeArquivo, empresaEmail, mes, ano) {
+  console.log('Processando holerites:', nomeArquivo);
+  try {
+    const pdf = await pdfParse(fileBuffer);
+    const paginas = pdf.text.split(/\f/).filter(p => p.trim().length > 100);
+    console.log(`PDF tem ${paginas.length} paginas`);
+
+    const { data: funcionarios } = await sb.from('funcionarios').select('*').eq('empresa_email', empresaEmail);
+    if (!funcionarios || funcionarios.length === 0) {
+      console.log('Nenhum funcionario cadastrado para empresa:', empresaEmail);
+      return;
+    }
+
+    let distribuidos = 0;
+    for (const pagina of paginas) {
+      // Extrair nome do funcionário (linha após "Nome do Funcionário" ou padrão Domínio)
+      const linhas = pagina.split('\n').map(l => l.trim()).filter(Boolean);
+      
+      let nomeFuncionario = null;
+      for (let i = 0; i < linhas.length; i++) {
+        // Padrão Domínio: número + nome em maiúsculas na mesma linha ou próxima
+        if (/^\d+\s+[A-Z]{2,}/.test(linhas[i])) {
+          const match = linhas[i].match(/^\d+\s+([A-Z][A-Z\s]+)$/);
+          if (match) { nomeFuncionario = match[1].trim(); break; }
+        }
+        // Tentar linha com só letras maiúsculas após código
+        if (linhas[i] === 'Nome do Funcionário' || linhas[i].includes('Nome do Funcionário')) {
+          if (linhas[i+1]) { nomeFuncionario = linhas[i+1].trim(); break; }
+        }
+      }
+
+      // Fallback: pegar linha que parece nome (só letras maiúsculas, > 5 chars)
+      if (!nomeFuncionario) {
+        for (const linha of linhas.slice(0, 10)) {
+          if (/^[A-ZÁÉÍÓÚÃÕÂÊÎÔÛÇ\s]{5,}$/.test(linha) && linha.split(' ').length >= 2) {
+            nomeFuncionario = linha; break;
+          }
+        }
+      }
+
+      if (!nomeFuncionario) { console.log('Nome nao encontrado na pagina'); continue; }
+      console.log('Nome encontrado:', nomeFuncionario);
+
+      // Extrair período (ex: "Julho de 2025")
+      let mesPagina = mes, anoPagina = ano;
+      const matchPeriodo = pagina.match(/(Janeiro|Fevereiro|Março|Abril|Maio|Junho|Julho|Agosto|Setembro|Outubro|Novembro|Dezembro)\s+de\s+(20\d{2})/i);
+      if (matchPeriodo) {
+        mesPagina = MESES_PT[matchPeriodo[1].toLowerCase()] || mes;
+        anoPagina = matchPeriodo[2];
+      }
+
+      // Extrair valor líquido
+      let valorLiquido = null;
+      const matchValor = pagina.match(/Valor\s+L[íi]quido[^\d]*([\d\.]+,[\d]{2})/i);
+      if (matchValor) valorLiquido = matchValor[1];
+
+      // Buscar funcionário pelo nome
+      const func = funcionarios.find(f => {
+        const nomeFunc = f.nome.toUpperCase().trim();
+        const nomePag = nomeFuncionario.toUpperCase().trim();
+        return nomeFunc === nomePag || nomeFunc.includes(nomePag) || nomePag.includes(nomeFunc);
+      });
+
+      if (!func) { console.log('Funcionario nao encontrado:', nomeFuncionario); continue; }
+
+      // Verificar duplicata
+      const { data: existe } = await sb.from('holerites')
+        .select('id').eq('funcionario_cpf', func.cpf).eq('mes', mesPagina).eq('ano', anoPagina).maybeSingle();
+      if (existe) { console.log('Holerite ja existe:', func.nome, mesPagina, anoPagina); continue; }
+
+      // Salvar página como arquivo individual no Storage
+      const storagePath = `holerites/${empresaEmail}/${anoPagina}/${mesPagina}/${func.cpf}_${mesPagina}_${anoPagina}.pdf`;
+      
+      // Para salvar só a página, usamos o buffer do PDF completo por enquanto
+      // (separação real de páginas requer pdf-lib no futuro)
+      const { error: uploadErr } = await sb.storage.from('arquivos')
+        .upload(storagePath, fileBuffer, { contentType: 'application/pdf', upsert: true });
+      
+      if (uploadErr && !uploadErr.message.includes('already exists')) {
+        console.error('Erro upload holerite:', uploadErr.message); continue;
+      }
+
+      // Registrar no banco
+      await sb.from('holerites').insert({
+        funcionario_cpf: func.cpf,
+        funcionario_nome: func.nome,
+        empresa_email: empresaEmail,
+        arquivo_path: storagePath,
+        mes: mesPagina,
+        ano: anoPagina,
+        valor_liquido: valorLiquido,
+        lido: false,
+        criado_em: new Date().toISOString()
+      });
+
+      console.log(`Holerite salvo: ${func.nome} - ${mesPagina}/${anoPagina} - R$ ${valorLiquido}`);
+      distribuidos++;
+    }
+    console.log(`Total distribuidos: ${distribuidos}/${paginas.length}`);
+  } catch(e) {
+    console.error('Erro processar holerites:', e.message);
+  }
+}
+
 async function processarAlteracoes() {
   try {
     const DROPBOX_TOKEN = await getDropboxToken();
@@ -299,6 +409,16 @@ async function processarAlteracoes() {
       const { error: uploadErr } = await sb.storage
         .from('arquivos').upload(storagePath, fileBuffer, { contentType: 'application/octet-stream', upsert: false });
       if (uploadErr) { console.error('Erro upload:', uploadErr.message); continue; }
+
+      // Verificar se é holerite
+      const ehHolerite = nomeArquivo.toUpperCase().includes('HOLERITE');
+
+      if (ehHolerite) {
+        // Processar e distribuir para funcionários
+        await processarHolerites(Buffer.from(fileBuffer), nomeArquivo, cliente.email, mes, ano);
+        await saveCursor(novoCursor);
+        continue;
+      }
 
       const { error: insertError } = await sb.from('notificacoes').insert({
         cliente_email: cliente.email,
