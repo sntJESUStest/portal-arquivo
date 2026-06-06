@@ -190,14 +190,9 @@ const MESES_PT = {
 async function processarHolerites(fileBuffer, nomeArquivo, empresaEmail, mes, ano) {
   console.log('Processando holerites:', nomeArquivo);
   try {
-    const pdf = await pdfParse(fileBuffer);
     const pdfOriginal = await PDFDocument.load(fileBuffer);
     const totalPaginas = pdfOriginal.getPageCount();
     console.log(`PDF tem ${totalPaginas} paginas fisicas`);
-
-    // Separar blocos de funcionários pelo padrão "Nome do Funcionário"
-    const blocos = pdf.text.split('Nome do Funcionário').filter(b => b.trim().length > 50);
-    console.log(`Blocos de funcionarios encontrados: ${blocos.length}`);
 
     const { data: funcionarios } = await sb.from('funcionarios').select('*').eq('empresa_email', empresaEmail);
     if (!funcionarios || funcionarios.length === 0) {
@@ -205,14 +200,35 @@ async function processarHolerites(fileBuffer, nomeArquivo, empresaEmail, mes, an
       return;
     }
 
-    // Calcular páginas por funcionário (2 páginas por funcionário no Domínio)
-    const pagsPorFunc = Math.floor(totalPaginas / blocos.length) || 2;
-    console.log(`Paginas por funcionario: ${pagsPorFunc}`);
-
+    // Processar página por página individualmente
     let distribuidos = 0;
-    const paginas = blocos; // alias para compatibilidade
-    for (let idx = 0; idx < blocos.length; idx++) {
-      const pagina = blocos[idx];
+    const processadas = new Set(); // evitar duplicatas
+
+    for (let numPag = 0; numPag < totalPaginas; numPag++) {
+      // Extrair apenas esta página como PDF temporário para leitura de texto
+      const pdfTemp = await PDFDocument.create();
+      const [pagCopia] = await pdfTemp.copyPages(pdfOriginal, [numPag]);
+      pdfTemp.addPage(pagCopia);
+      const pdfTempBytes = await pdfTemp.save();
+
+      // Extrair texto desta página
+      let textoPagina = '';
+      try {
+        const parsed = await pdfParse(Buffer.from(pdfTempBytes));
+        textoPagina = parsed.text;
+      } catch(e) {
+        console.log(`Erro extrair texto pagina ${numPag}:`, e.message);
+        continue;
+      }
+
+      // Só processar se tiver "Nome do Funcionário" nesta página
+      if (!textoPagina.includes('Nome do Funcionário')) {
+        console.log(`Pagina ${numPag+1}: sem nome de funcionario, pulando`);
+        continue;
+      }
+
+      const pagina = textoPagina;
+      const idx = numPag;
       // Extrair nome do funcionário (linha após "Nome do Funcionário" ou padrão Domínio)
       const linhas = pagina.split('\n').map(l => l.trim()).filter(Boolean);
       
@@ -286,16 +302,19 @@ async function processarHolerites(fileBuffer, nomeArquivo, empresaEmail, mes, an
         .select('id').eq('funcionario_cpf', func.cpf).eq('mes', mesPagina).eq('ano', anoPagina).maybeSingle();
       if (existe) { console.log('Holerite ja existe:', func.nome, mesPagina, anoPagina); continue; }
 
-      // Separar apenas as páginas deste funcionário usando pdf-lib
+      // Salvar apenas esta página para o funcionário
+      const chave = `${func.cpf}_${mesPagina}_${anoPagina}`;
+      if (processadas.has(chave)) {
+        console.log(`Holerite ja processado: ${func.nome} ${mesPagina}/${anoPagina}`);
+        continue;
+      }
+      processadas.add(chave);
+
       const storagePath = `holerites/${empresaEmail}/${anoPagina}/${mesPagina}/${func.cpf}_${mesPagina}_${anoPagina}.pdf`;
       try {
         const pdfNovo = await PDFDocument.create();
-        const inicioFunc = idx * pagsPorFunc;
-        const fimFunc = Math.min(inicioFunc + pagsPorFunc, pdfOriginal.getPageCount());
-        const pagsCopiar = Array.from({length: fimFunc - inicioFunc}, (_, i) => inicioFunc + i);
-        console.log(`Copiando paginas ${pagsCopiar} para ${func.nome}`);
-        const copias = await pdfNovo.copyPages(pdfOriginal, pagsCopiar);
-        copias.forEach(p => pdfNovo.addPage(p));
+        const [pagCopiar] = await pdfNovo.copyPages(pdfOriginal, [numPag]);
+        pdfNovo.addPage(pagCopiar);
         const pdfBytes = await pdfNovo.save();
 
         const { error: uploadErr } = await sb.storage.from('arquivos')
@@ -303,8 +322,9 @@ async function processarHolerites(fileBuffer, nomeArquivo, empresaEmail, mes, an
         if (uploadErr && !uploadErr.message.includes('already exists')) {
           console.error('Erro upload holerite:', uploadErr.message); continue;
         }
+        console.log(`Pagina ${numPag+1} salva para ${func.nome}`);
       } catch(errPdf) {
-        console.error('Erro separar pagina:', errPdf.message);
+        console.error('Erro salvar pagina:', errPdf.message);
         continue;
       }
 
@@ -324,7 +344,7 @@ async function processarHolerites(fileBuffer, nomeArquivo, empresaEmail, mes, an
       console.log(`Holerite salvo: ${func.nome} - ${mesPagina}/${anoPagina} - R$ ${valorLiquido}`);
       distribuidos++;
     }
-    console.log(`Total distribuidos: ${distribuidos}/${paginas.length}`);
+    console.log(`Total distribuidos: ${distribuidos}/${totalPaginas} paginas`);
   } catch(e) {
     console.error('Erro processar holerites:', e.message);
   }
