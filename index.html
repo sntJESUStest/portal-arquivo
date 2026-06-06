@@ -813,6 +813,10 @@ async function login() {
   const { data, error } = await sb.auth.signInWithPassword({ email: emailInput, password: pass });
   if (error) { errEl.textContent = 'E-mail ou senha incorretos.'; errEl.classList.remove('hidden'); return; }
   currentUser = data.user;
+  // Redirecionar URL conforme perfil
+  if (!ADMIN_EMAILS.includes(currentUser.email)) {
+    history.pushState({}, '', '/cliente');
+  }
   showApp();
 }
 
@@ -822,6 +826,7 @@ async function logout() {
   currentUser = null;
   isFuncionario = false;
   funcionarioLogado = null;
+  const eraFuncionario = isFuncionario;
   history.pushState({}, '', '/');
   document.body.classList.remove('func-mode');
   document.getElementById('main-screen').classList.add('hidden');
@@ -3010,10 +3015,16 @@ sb.auth.getSession().then(({ data }) => { if (data.session) { currentUser = data
 // Detectar URL /funcionario e adaptar tela de login
 if (window.location.pathname === '/funcionario') {
   document.body.classList.add('func-mode');
-  document.querySelector('.logo-name').innerHTML = 'HP Contabilidade <span style="font-family:Georgia,serif;font-style:italic;color:#5a7a3a;font-size:12px;">Funcionários</span>';
+  document.querySelector('.logo-name').innerHTML = 'HP Contabilidade <span style="font-family:Georgia,serif;font-style:italic;color:#5a7a3a;font-size:12px;">beta</span>';
   document.getElementById('email').placeholder = 'Digite seu CPF';
   document.getElementById('email').type = 'text';
   document.getElementById('password').placeholder = 'Senha (padrão: seu CPF)';
+}
+
+if (window.location.pathname === '/cliente') {
+  document.querySelector('.logo-name').innerHTML = 'HP Contabilidade <span style="font-family:Georgia,serif;font-style:italic;color:#ef4444;font-size:12px;">beta</span>';
+  document.getElementById('email').placeholder = 'seu@email.com';
+  document.getElementById('password').placeholder = '••••••••';
 }
 
 if ('serviceWorker' in navigator) { window.addEventListener('load', () => { navigator.serviceWorker.register('/sw.js'); }); }
