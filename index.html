@@ -608,16 +608,6 @@
 
     <!-- FUNCIONARIO VIEW -->
     <div id="funcionario-view" class="hidden">
-      <div style="margin-bottom:1rem;">
-        <div class="section-title">Olá, <span id="func-nome"></span></div>
-        <p style="font-size:13px;color:var(--text-secondary);margin-top:4px;">Seus holerites e documentos</p>
-      </div>
-      <div id="func-holerites-list"><div class="loading">Carregando...</div></div>
-      <div id="func-financeiro" class="hidden"></div>
-    </div>
-
-    <!-- FUNCIONARIO VIEW -->
-    <div id="funcionario-view" class="hidden">
       <div class="func-header">
         <div class="func-header-emoji">👋</div>
         <div>
@@ -625,7 +615,12 @@
           <div class="func-header-sub">Seus holerites estão disponíveis abaixo</div>
         </div>
       </div>
+      <div class="tabs" style="margin-bottom:1.25rem;">
+        <button class="tab-btn active" onclick="funcAba('holerites',this)">📄 Holerites</button>
+        <button class="tab-btn" onclick="funcAba('financeiro',this)">💰 Finanças</button>
+      </div>
       <div id="func-holerites-list"><div class="loading">Carregando...</div></div>
+      <div id="func-financeiro" class="hidden"></div>
     </div>
   </div>
 </div>
