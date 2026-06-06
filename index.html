@@ -1959,6 +1959,24 @@ async function uploadFile() {
     const whatsapp = clienteWa?.whatsapp || '';
     await enviarWhatsApp(whatsapp, clientEmail, file.name, setor, note);
 
+    // Enviar e-mail de notificação
+    try {
+      const clienteInfo = clientesCache.find(c => c.email === clientEmail);
+      const emailDestino = clienteInfo?.notif_email || clientEmail;
+      await fetch('/api/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          destinatario: emailDestino,
+          nomeCliente: clienteInfo?.nome || clienteInfo?.empresa || clientEmail,
+          nomeArquivo: file.name,
+          setor,
+          mes: document.getElementById('f-mes').value,
+          ano: document.getElementById('f-ano').value
+        })
+      });
+    } catch(e) { console.log('Erro email:', e.message); }
+
     // Lançar no calendário se preenchido
     const guiaTipo = document.getElementById('f-guia-tipo').value;
     const guiaData = document.getElementById('f-guia-data').value;
