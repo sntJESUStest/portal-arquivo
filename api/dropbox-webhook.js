@@ -1,5 +1,6 @@
 const { createClient } = require('@supabase/supabase-js');
 const pdfParse = require('pdf-parse');
+const { PDFDocument } = require('pdf-lib');
 
 const SUPABASE_URL = 'https://nacdezqdsouhxgftqaku.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5hY2RlenFkc291aHhnZnRxYWt1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyODU4MjYsImV4cCI6MjA5NDg2MTgyNn0.C1eqGfu7h-oOC0ibw6hzecPsG49e6IrOXrxu0C-mOSY';
@@ -271,16 +272,26 @@ async function processarHolerites(fileBuffer, nomeArquivo, empresaEmail, mes, an
         .select('id').eq('funcionario_cpf', func.cpf).eq('mes', mesPagina).eq('ano', anoPagina).maybeSingle();
       if (existe) { console.log('Holerite ja existe:', func.nome, mesPagina, anoPagina); continue; }
 
-      // Salvar página como arquivo individual no Storage
+      // Separar apenas a página deste funcionário usando pdf-lib
       const storagePath = `holerites/${empresaEmail}/${anoPagina}/${mesPagina}/${func.cpf}_${mesPagina}_${anoPagina}.pdf`;
-      
-      // Para salvar só a página, usamos o buffer do PDF completo por enquanto
-      // (separação real de páginas requer pdf-lib no futuro)
-      const { error: uploadErr } = await sb.storage.from('arquivos')
-        .upload(storagePath, fileBuffer, { contentType: 'application/pdf', upsert: true });
-      
-      if (uploadErr && !uploadErr.message.includes('already exists')) {
-        console.error('Erro upload holerite:', uploadErr.message); continue;
+      try {
+        const pdfOriginal = await PDFDocument.load(fileBuffer);
+        const pdfNovo = await PDFDocument.create();
+        // Cada funcionário ocupa 2 páginas no Domínio (frente e verso)
+        const idxPagina = paginas.indexOf(pagina);
+        const pagsCopiar = [idxPagina * 2, idxPagina * 2 + 1].filter(i => i < pdfOriginal.getPageCount());
+        const copias = await pdfNovo.copyPages(pdfOriginal, pagsCopiar);
+        copias.forEach(p => pdfNovo.addPage(p));
+        const pdfBytes = await pdfNovo.save();
+
+        const { error: uploadErr } = await sb.storage.from('arquivos')
+          .upload(storagePath, pdfBytes, { contentType: 'application/pdf', upsert: true });
+        if (uploadErr && !uploadErr.message.includes('already exists')) {
+          console.error('Erro upload holerite:', uploadErr.message); continue;
+        }
+      } catch(errPdf) {
+        console.error('Erro separar pagina:', errPdf.message);
+        continue;
       }
 
       // Registrar no banco
