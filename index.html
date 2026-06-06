@@ -789,15 +789,19 @@ async function login() {
   const emailInput = document.getElementById('email').value.trim();
   const pass  = document.getElementById('password').value.trim();
   const errEl = document.getElementById('login-error');
+  const paginaAtual = window.location.pathname;
   errEl.classList.add('hidden');
 
   // Verificar se é CPF (só números, 11 dígitos)
   const cpfLimpo = emailInput.replace(/\D/g, '');
   if (cpfLimpo.length === 11) {
-    // Login de funcionário por CPF
+    // CPF só permitido na página /funcionario
+    if (paginaAtual !== '/funcionario') {
+      errEl.textContent = 'Para acessar como funcionário use o portal correto.';
+      errEl.classList.remove('hidden'); return;
+    }
     const { data: func } = await sb.from('funcionarios').select('*').eq('cpf', cpfLimpo).maybeSingle();
     if (!func) { errEl.textContent = 'CPF não encontrado.'; errEl.classList.remove('hidden'); return; }
-    // Senha padrão = CPF ou senha cadastrada
     const senhaOk = pass === cpfLimpo || pass === (func.senha || cpfLimpo);
     if (!senhaOk) { errEl.textContent = 'Senha incorreta.'; errEl.classList.remove('hidden'); return; }
     isFuncionario = true;
@@ -813,8 +817,24 @@ async function login() {
   const { data, error } = await sb.auth.signInWithPassword({ email: emailInput, password: pass });
   if (error) { errEl.textContent = 'E-mail ou senha incorretos.'; errEl.classList.remove('hidden'); return; }
   currentUser = data.user;
+  const ehAdmin = ADMIN_EMAILS.includes(currentUser.email);
+
+  // Bloquear admin apenas na página /funcionario
+  if (ehAdmin && paginaAtual === '/funcionario') {
+    await sb.auth.signOut();
+    errEl.textContent = 'Use o portal administrativo para acessar como admin.';
+    errEl.classList.remove('hidden'); return;
+  }
+
+  // Bloquear cliente na página admin (/)
+  if (!ehAdmin && paginaAtual === '/') {
+    await sb.auth.signOut();
+    errEl.textContent = 'Acesso não autorizado. Use o portal de empresas.';
+    errEl.classList.remove('hidden'); return;
+  }
+
   // Redirecionar URL conforme perfil
-  if (!ADMIN_EMAILS.includes(currentUser.email)) {
+  if (!ehAdmin) {
     history.pushState({}, '', '/empresas');
   }
   showApp();
