@@ -18,5 +18,9 @@
       "path": "/api/check-guias",
       "schedule": "0 8 * * *"
     }
+  ],
+  "rewrites": [
+    { "source": "/funcionario", "destination": "/index.html" },
+    { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
