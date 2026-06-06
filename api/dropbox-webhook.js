@@ -6,11 +6,9 @@ const DROPBOX_APP_KEY = '9lovo2qjjo5okdt';
 const DROPBOX_APP_SECRET = 'kmhc2aq4qyl42xa';
 
 async function getDropboxToken() {
-  // Buscar refresh token salvo
   const { data: refreshData } = await sb.from('configuracoes').select('valor').eq('chave', 'dropbox_refresh_token').maybeSingle();
   if (!refreshData?.valor) throw new Error('Refresh token nao encontrado. Acesse /api/dropbox-auth para autorizar.');
 
-  // Renovar access token usando refresh token
   const response = await fetch('https://api.dropboxapi.com/oauth2/token', {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -25,7 +23,6 @@ async function getDropboxToken() {
   const data = await response.json();
   if (data.error) throw new Error(`Erro ao renovar token: ${data.error_description}`);
 
-  // Salvar novo access token
   await sb.from('configuracoes').upsert({ chave: 'dropbox_access_token', valor: data.access_token }, { onConflict: 'chave' });
   return data.access_token;
 }
@@ -94,6 +91,7 @@ async function enviarPushCliente(fcmToken, titulo, corpo) {
     console.log('Push enviado!');
   } catch(e) { console.error('Erro push:', e.message); }
 }
+
 const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 async function enviarEmail(destinatario, nomeCliente, nomeArquivo, setor, mes, ano) {
@@ -123,7 +121,6 @@ async function enviarEmail(destinatario, nomeCliente, nomeArquivo, setor, mes, a
   } catch(e) { console.error('Erro e-mail:', e.message); }
 }
 
-// Buscar cursor salvo ou inicializar
 async function getCursor() {
   const { data } = await sb.from('configuracoes').select('valor').eq('chave', 'dropbox_cursor').maybeSingle();
   return data?.valor || null;
@@ -178,7 +175,7 @@ async function marcarGuiaComoPagaWebhook(clienteEmail, tipo, mes, ano) {
 
     if (guia) {
       await sb.from('guias').update({ status: 'disponivel' }).eq('id', guia.id);
-      console.log('Guia paga automaticamente:', tipo, mes, ano);
+      console.log('Guia marcada como disponivel:', tipo, mes, ano);
     }
   } catch(e) { console.error('Erro marcar guia:', e.message); }
 }
@@ -191,7 +188,6 @@ async function processarAlteracoes() {
     let novoCursor = null;
 
     if (!cursor) {
-      // Primeira vez: inicializar cursor sem processar arquivos existentes
       console.log('Inicializando cursor do Dropbox...');
       const res1 = await fetch('https://api.dropboxapi.com/2/files/list_folder', {
         method: 'POST',
@@ -199,11 +195,8 @@ async function processarAlteracoes() {
         body: JSON.stringify({ path: DROPBOX_ROOT, recursive: true, include_deleted: false })
       });
       const data1 = await res1.json();
-      novoCursor = data1.cursor;
-
-      // Paginar até o fim para pegar o cursor mais recente
       let hasMore = data1.has_more;
-      let tempCursor = novoCursor;
+      let tempCursor = data1.cursor;
       while (hasMore) {
         const resMore = await fetch('https://api.dropboxapi.com/2/files/list_folder/continue', {
           method: 'POST',
@@ -215,12 +208,11 @@ async function processarAlteracoes() {
         hasMore = dataMore.has_more;
       }
       await saveCursor(tempCursor);
-      console.log('Cursor inicializado! Próximos arquivos serão processados.');
+      console.log('Cursor inicializado!');
       return;
     }
 
-    // Usar cursor para pegar só as mudanças desde a última vez
-    console.log('Buscando mudanças desde último cursor...');
+    console.log('Buscando mudancas desde ultimo cursor...');
     const resLong = await fetch('https://api.dropboxapi.com/2/files/list_folder/continue', {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${DROPBOX_TOKEN}`, 'Content-Type': 'application/json' },
@@ -246,28 +238,42 @@ async function processarAlteracoes() {
       const partes = pathSemRoot.split('/').filter(Boolean);
       if (partes.length < 4) continue;
 
-      const [nomeEmpresa, setorRaw, mesAno, nomeArquivo] = partes;
+      // Suportar dois formatos:
+      // Formato 1: EMPRESA/Setor/MM-YYYY/arquivo.pdf (4 partes)
+      // Formato 2: EMPRESA/Setor/YYYY/MM/arquivo.pdf (5 partes)
+      let nomeEmpresa, setorRaw, mes, ano, nomeArquivo;
+
+      if (partes.length >= 5) {
+        // Formato 2: EMPRESA/Setor/YYYY/MM/arquivo.pdf
+        [nomeEmpresa, setorRaw, ano, mes, nomeArquivo] = partes;
+      } else {
+        // Formato 1: EMPRESA/Setor/MM-YYYY/arquivo.pdf
+        const [ne, sr, mesAno, na] = partes;
+        nomeEmpresa = ne; setorRaw = sr; nomeArquivo = na;
+        const partesMesAno = mesAno.split('-');
+        if (partesMesAno.length < 2) continue;
+        mes = partesMesAno[0];
+        ano = partesMesAno[1];
+      }
+
       const setor = SETORES_MAP[setorRaw] || SETORES_MAP[setorRaw?.toUpperCase()];
       if (!setor) continue;
 
-      const partesMesAno = mesAno.split('-');
-      if (partesMesAno.length < 2) continue;
-      const mes = partesMesAno[0];
-      const ano = partesMesAno[1];
       const mesNome = MESES[mes];
       if (!mesNome || !ano) continue;
 
-      // Remover código após _ para comparar só o nome da empresa
-      const nomeEmpresaLimpo = nomeEmpresa.split('_')[0].trim().toLowerCase();
-      const cliente = clientes?.find(c =>
-        c.empresa?.toLowerCase().trim() === nomeEmpresaLimpo
-      );
-      if (!cliente) { console.log(`Cliente não encontrado: "${nomeEmpresa}"`); continue; }
+      // Buscar cliente pelo código após o _ ou pelo nome da empresa
+      const partesPasta = nomeEmpresa.split('_');
+      const codigoPasta = partesPasta.length > 1 ? partesPasta[partesPasta.length - 1].trim() : null;
+      const nomeEmpresaLimpo = nomeEmpresa.toLowerCase().trim();
+      const cliente = (codigoPasta && clientes?.find(c => c.codigo && c.codigo.trim() === codigoPasta)) ||
+                      clientes?.find(c => c.empresa?.toLowerCase().trim() === nomeEmpresaLimpo);
 
-      // Verificar duplicata pelo path do Dropbox
+      if (!cliente) { console.log(`Cliente nao encontrado: "${nomeEmpresa}"`); continue; }
+
       const { data: existente } = await sb.from('notificacoes')
         .select('id').eq('dropbox_path', arquivo.path_display).maybeSingle();
-      if (existente) { console.log(`Já importado: ${nomeArquivo}`); continue; }
+      if (existente) { console.log(`Ja importado: ${nomeArquivo}`); continue; }
 
       const fileRes = await fetch('https://content.dropboxapi.com/2/files/download', {
         method: 'POST',
@@ -295,11 +301,11 @@ async function processarAlteracoes() {
         criado_em: new Date().toISOString()
       });
 
-      // Se inserção falhou (duplicata), não enviar push nem email
-      if (insertError) { console.log(`Duplicata ignorada: ${nomeArquivo}`); }
-      if (!insertError) {
+      if (insertError) {
+        console.log(`Duplicata ignorada: ${nomeArquivo}`);
+        continue;
+      }
 
-      // Detectar guia pelo nome e marcar como disponivel
       const guiaDetectada = detectarGuiaPorNome(nomeArquivo);
       if (guiaDetectada) {
         await marcarGuiaComoPagaWebhook(cliente.email, guiaDetectada.tipo, guiaDetectada.mes, guiaDetectada.ano);
@@ -308,15 +314,12 @@ async function processarAlteracoes() {
       console.log(`Importado: ${nomeArquivo} -> ${cliente.email}`);
       await enviarEmail(cliente.email, cliente.nome, nomeArquivo, setor, mesNome, ano);
 
-      // Enviar push notification apenas se inserção foi bem sucedida
       const { data: clienteData } = await sb.from('clientes').select('fcm_token').eq('email', cliente.email).maybeSingle();
       if (clienteData?.fcm_token) {
         await enviarPushCliente(clienteData.fcm_token, 'Novo documento disponivel', `${nomeArquivo} — ${setor} ${mesNome}/${ano}`);
       }
-      } // fim if (!insertError)
     }
 
-    // Salvar cursor só após processar tudo
     await saveCursor(novoCursor);
 
   } catch (err) {
