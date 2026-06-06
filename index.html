@@ -341,9 +341,10 @@
     body.func-mode .download-btn { background: #5a7a3a; }
     body.func-mode .section-title { color: #5a7a3a; }
     body.func-mode .badge-new { background: #e8f4d4; color: #3d6b1e; }
-    body.func-mode .func-header { background: linear-gradient(135deg, #3d6b1e, #5a7a3a); border-radius: var(--radius-lg); padding: 1.75rem; margin-bottom: 1.5rem; border-bottom: 4px solid #2d4a1a; }
-    body.func-mode .func-header-nome { font-size: 22px; font-weight: 700; color: #fff; letter-spacing: -0.3px; }
-    body.func-mode .func-header-sub { font-size: 13px; color: rgba(255,255,255,0.8); margin-top: 4px; }
+    body.func-mode .func-header { background: rgba(90,122,58,0.12); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border: 1.5px solid rgba(90,122,58,0.25); border-radius: var(--radius-lg); padding: 1.25rem 1.5rem; margin-bottom: 1.5rem; display: inline-flex; align-items: center; gap: 14px; width: 100%; box-shadow: 0 2px 12px rgba(90,122,58,0.08); }
+    body.func-mode .func-header-emoji { font-size: 32px; line-height: 1; }
+    body.func-mode .func-header-nome { font-size: 18px; font-weight: 700; color: #3d6b1e; letter-spacing: -0.3px; }
+    body.func-mode .func-header-sub { font-size: 12px; color: #5a7a3a; margin-top: 3px; opacity: 0.8; }
   </style>
 </head>
 <body>
@@ -620,8 +621,11 @@
     <!-- FUNCIONARIO VIEW -->
     <div id="funcionario-view" class="hidden">
       <div class="func-header">
-        <div class="func-header-nome">👋 Olá, <span id="func-nome"></span>!</div>
-        <div class="func-header-sub">Seus holerites estão disponíveis abaixo</div>
+        <div class="func-header-emoji">👋</div>
+        <div>
+          <div class="func-header-nome">Olá, <span id="func-nome"></span>!</div>
+          <div class="func-header-sub">Seus holerites estão disponíveis abaixo</div>
+        </div>
       </div>
       <div id="func-holerites-list"><div class="loading">Carregando...</div></div>
     </div>
