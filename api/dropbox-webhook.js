@@ -511,10 +511,9 @@ async function processarAlteracoes() {
       const ehHolerite = nomeArquivo.toUpperCase().includes('HOLERITE');
 
       if (ehHolerite) {
-        // Processar e distribuir para funcionários
+        // Processar e distribuir para funcionários (páginas individuais)
         await processarHolerites(Buffer.from(fileBuffer), nomeArquivo, cliente.email, mes, ano);
-        await saveCursor(novoCursor);
-        continue;
+        // Não faz continue — continua para salvar também na empresa normalmente
       }
 
       const { error: insertError } = await sb.from('notificacoes').insert({
