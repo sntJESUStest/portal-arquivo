@@ -238,14 +238,24 @@ async function processarAlteracoes() {
       const partes = pathSemRoot.split('/').filter(Boolean);
       if (partes.length < 4) continue;
 
-      // Suportar dois formatos:
+      // Suportar três formatos:
       // Formato 1: EMPRESA/Setor/MM-YYYY/arquivo.pdf (4 partes)
       // Formato 2: EMPRESA/Setor/YYYY/MM/arquivo.pdf (5 partes)
+      // Formato 3: EMPRESA/Setor/YYYY/MM-YYYY/arquivo.pdf (5 partes)
       let nomeEmpresa, setorRaw, mes, ano, nomeArquivo;
 
       if (partes.length >= 5) {
-        // Formato 2: EMPRESA/Setor/YYYY/MM/arquivo.pdf
-        [nomeEmpresa, setorRaw, ano, mes, nomeArquivo] = partes;
+        // Formato 2 ou 3: EMPRESA/Setor/YYYY/MM ou MM-YYYY/arquivo.pdf
+        nomeEmpresa = partes[0];
+        setorRaw = partes[1];
+        ano = partes[2];
+        nomeArquivo = partes[partes.length - 1];
+        const mesStr = partes[3];
+        // MM-YYYY ou só MM
+        const partesMes = mesStr.split('-');
+        mes = partesMes[0].trim().padStart(2, '0');
+        // Se o ano vier da pasta anterior
+        if (!ano || ano.length !== 4) ano = partesMes[1] || partes[2];
       } else {
         // Formato 1: EMPRESA/Setor/MM-YYYY/arquivo.pdf
         const [ne, sr, mesAno, na] = partes;
