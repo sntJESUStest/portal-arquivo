@@ -834,6 +834,22 @@ async function showApp() {
   document.getElementById('main-screen').classList.remove('hidden');
   isAdmin = ADMIN_EMAILS.includes(currentUser.email);
   document.getElementById('role-badge').textContent = isAdmin ? 'Admin' : isFuncionario ? 'Funcionário' : 'Cliente';
+
+  // Esconder/mostrar itens do menu conforme perfil
+  const itensApenasAdmin = ['menu-relatorios', 'menu-funcionarios', 'menu-avisos'];
+  const itensApenasCliente = ['menu-relatorios', 'menu-avisos'];
+  const itensEsconderFunc = [
+    'menu-relatorios', 'menu-funcionarios', 'menu-avisos'
+  ];
+
+  if (isFuncionario) {
+    // Para funcionário: esconder quase tudo, deixar só Sair
+    document.querySelectorAll('.menu-item:not(.menu-item-logout)').forEach(el => el.style.display = 'none');
+    document.querySelectorAll('.menu-divider').forEach(el => el.style.display = 'none');
+  } else {
+    document.querySelectorAll('.menu-item').forEach(el => el.style.display = '');
+    document.querySelectorAll('.menu-divider').forEach(el => el.style.display = '');
+  }
   const menuRel = document.getElementById('menu-relatorios');
   if (menuRel) menuRel.style.display = isAdmin ? 'flex' : 'none';
 
