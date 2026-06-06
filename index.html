@@ -2791,6 +2791,22 @@ async function publicarAviso() {
   if (!titulo || !mensagem) { msg.className='error-msg'; msg.textContent='Preencha título e mensagem.'; msg.classList.remove('hidden'); return; }
   const { error } = await sb.from('avisos').insert({ titulo, mensagem, prioridade, validade: validade || null, criado_por: currentUser.email, criado_em: new Date().toISOString() });
   if (error) { msg.className='error-msg'; msg.textContent='Erro: '+error.message; msg.classList.remove('hidden'); return; }
+
+  // Enviar push para todos os clientes
+  try {
+    const { data: clientes } = await sb.from('clientes').select('fcm_token, email').not('fcm_token', 'is', null);
+    const emoji = prioridade === 'urgente' ? '🚨' : '📢';
+    for (const c of (clientes || [])) {
+      if (c.fcm_token) {
+        await fetch('/api/send-notification', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fcm_token: c.fcm_token, title: emoji + ' ' + titulo, body: mensagem })
+        });
+      }
+    }
+  } catch(e) { console.log('Erro push avisos:', e.message); }
+
   msg.className='success-msg'; msg.textContent='✓ Aviso publicado para todos os clientes!'; msg.classList.remove('hidden');
   document.getElementById('av-titulo').value='';
   document.getElementById('av-mensagem').value='';
