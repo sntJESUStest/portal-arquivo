@@ -343,11 +343,48 @@ async function processarHolerites(fileBuffer, nomeArquivo, empresaEmail, mes, an
 
       console.log(`Holerite salvo: ${func.nome} - ${mesPagina}/${anoPagina} - R$ ${valorLiquido}`);
       distribuidos++;
+
+      // Enviar e-mail para o funcionário se tiver e-mail cadastrado
+      if (func.email) {
+        try {
+          await enviarEmailFuncionario(func.email, func.nome, mesPagina, anoPagina, valorLiquido);
+        } catch(e) { console.error('Erro email funcionario:', e.message); }
+      }
     }
     console.log(`Total distribuidos: ${distribuidos}/${totalPaginas} paginas`);
   } catch(e) {
     console.error('Erro processar holerites:', e.message);
   }
+}
+
+async function enviarEmailFuncionario(destinatario, nome, mes, ano, valorLiquido) {
+  const nodemailer = require('nodemailer');
+  const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: { user: GMAIL_USER, pass: GMAIL_PASS }
+  });
+  const mesesNome = {
+    '01':'Janeiro','02':'Fevereiro','03':'Março','04':'Abril',
+    '05':'Maio','06':'Junho','07':'Julho','08':'Agosto',
+    '09':'Setembro','10':'Outubro','11':'Novembro','12':'Dezembro'
+  };
+  const mesNome = mesesNome[mes] || mes;
+  await transporter.sendMail({
+    from: `HP Contabilidade <${GMAIL_USER}>`,
+    to: destinatario,
+    subject: `Seu holerite de ${mesNome}/${ano} está disponível`,
+    html: `<div style="font-family:sans-serif;max-width:500px;margin:0 auto;padding:2rem;">
+      <h2 style="color:#5a7a3a;">HP Contabilidade</h2>
+      <p>Olá, <strong>${nome}</strong>!</p>
+      <p>Seu holerite de <strong>${mesNome}/${ano}</strong> já está disponível no portal.</p>
+      ${valorLiquido ? `<div style="background:#f4f9ee;border-radius:8px;padding:1rem;margin:1rem 0;">
+        <p><strong>Valor Líquido:</strong> R$ ${valorLiquido}</p>
+      </div>` : ''}
+      <a href="https://portal-arquivo.vercel.app/funcionario" style="display:inline-block;background:#5a7a3a;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;">Acessar Portal</a>
+      <p style="font-size:12px;color:#999;margin-top:2rem;">HP Contabilidade — Portal do Funcionário</p>
+    </div>`
+  });
+  console.log('E-mail enviado para funcionario:', destinatario);
 }
 
 async function processarAlteracoes() {
