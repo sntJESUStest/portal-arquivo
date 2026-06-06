@@ -341,9 +341,9 @@
     body.func-mode .download-btn { background: #5a7a3a; }
     body.func-mode .section-title { color: #5a7a3a; }
     body.func-mode .badge-new { background: #e8f4d4; color: #3d6b1e; }
-    body.func-mode .func-header { background: linear-gradient(135deg, #CFE0BC, #a8c98a); border-radius: var(--radius-lg); padding: 1.5rem; margin-bottom: 1.5rem; }
-    body.func-mode .func-header-nome { font-size: 20px; font-weight: 600; color: #2d4a1a; }
-    body.func-mode .func-header-sub { font-size: 13px; color: #4a6a2a; margin-top: 4px; }
+    body.func-mode .func-header { background: linear-gradient(135deg, #3d6b1e, #5a7a3a); border-radius: var(--radius-lg); padding: 1.75rem; margin-bottom: 1.5rem; border-bottom: 4px solid #2d4a1a; }
+    body.func-mode .func-header-nome { font-size: 22px; font-weight: 700; color: #fff; letter-spacing: -0.3px; }
+    body.func-mode .func-header-sub { font-size: 13px; color: rgba(255,255,255,0.8); margin-top: 4px; }
   </style>
 </head>
 <body>
@@ -620,24 +620,10 @@
     <!-- FUNCIONARIO VIEW -->
     <div id="funcionario-view" class="hidden">
       <div class="func-header">
-        <div class="func-header-nome">👋 Olá, <span id="func-nome"></span></div>
-        <div class="func-header-sub">Seus holerites e documentos estão aqui</div>
-      </div>
-      <div class="tabs" style="margin-bottom:1.25rem;">
-        <button class="tab-btn active" onclick="funcAba('holerites', this)">📄 Holerites</button>
-        <button class="tab-btn" onclick="funcAba('perfil', this)">👤 Meu Perfil</button>
+        <div class="func-header-nome">👋 Olá, <span id="func-nome"></span>!</div>
+        <div class="func-header-sub">Seus holerites estão disponíveis abaixo</div>
       </div>
       <div id="func-holerites-list"><div class="loading">Carregando...</div></div>
-      <div id="func-perfil" class="hidden">
-        <div class="card" style="margin-bottom:1rem;">
-          <div class="section-title" style="margin-bottom:12px;">Meus dados</div>
-          <div class="field"><label>Nome</label><input id="fp-nome" type="text" disabled style="background:var(--bg);" /></div>
-          <div class="field"><label>CPF</label><input id="fp-cpf" type="text" disabled style="background:var(--bg);" /></div>
-          <div class="field"><label>E-mail para notificações</label><input id="fp-email" type="email" placeholder="seu@email.com" /></div>
-          <div id="fp-msg" class="hidden"></div>
-          <button class="btn btn-primary" onclick="salvarPerfilFuncionario()">Salvar e-mail</button>
-        </div>
-      </div>
     </div>
   </div>
 </div>
@@ -822,10 +808,9 @@ async function login() {
   const errEl = document.getElementById('login-error');
   errEl.classList.add('hidden');
 
-  // Verificar se é CPF (só números, 11 dígitos)
+  // Verificar se é CPF (só números, 11 dígitos) - aceito em / e /funcionario
   const cpfLimpo = emailInput.replace(/\D/g, '');
   if (cpfLimpo.length === 11) {
-    // Login de funcionário por CPF
     const { data: func } = await sb.from('funcionarios').select('*').eq('cpf', cpfLimpo).maybeSingle();
     if (!func) { errEl.textContent = 'CPF não encontrado.'; errEl.classList.remove('hidden'); return; }
     // Senha padrão = CPF ou senha cadastrada
@@ -863,6 +848,21 @@ async function showApp() {
   document.getElementById('role-badge').textContent = isAdmin ? 'Admin' : isFuncionario ? 'Funcionário' : 'Cliente';
   const menuRel = document.getElementById('menu-relatorios');
   if (menuRel) menuRel.style.display = isAdmin ? 'flex' : 'none';
+
+  // Menu funcionário: só Dados do Cliente e Sair
+  if (isFuncionario) {
+    setTimeout(() => {
+      document.querySelectorAll('.menu-item').forEach(el => {
+        const txt = el.textContent.trim();
+        if (txt.includes('Dados do Cliente') || el.classList.contains('menu-item-logout')) {
+          el.style.display = '';
+        } else {
+          el.style.display = 'none';
+        }
+      });
+      document.querySelectorAll('.menu-divider').forEach(el => el.style.display = 'none');
+    }, 100);
+  }
 
   // Buscar dados do cliente para nome
   const { data: dadosCliente } = await sb.from('clientes').select('*').eq('email', currentUser.email).maybeSingle();
@@ -956,6 +956,23 @@ function closePanel(e) {
 
 // ── PAINEL DADOS ──────────────────────────────────────
 async function renderPanelDados(body) {
+  if (isFuncionario) {
+    const func = funcionarioLogado;
+    body.innerHTML = `
+      <div class="dados-row"><div class="dados-label">Nome</div><div class="dados-value">${func.nome}</div></div>
+      <div class="dados-row"><div class="dados-label">CPF</div><div class="dados-value">${func.cpf}</div></div>
+      <div style="margin-top:1.5rem;">
+        <div class="section-title" style="margin-bottom:10px;">Notificações</div>
+        <div class="card">
+          <div class="field"><label>E-mail para receber avisos de documentos</label>
+            <input id="fp-email" type="email" placeholder="seu@email.com" value="${func.email || ''}" />
+          </div>
+          <div id="fp-msg" class="hidden"></div>
+          <button class="btn btn-primary" onclick="salvarPerfilFuncionario()">Salvar e-mail</button>
+        </div>
+      </div>`;
+    return;
+  }
   if (isAdmin) {
     // Admin vê lista de clientes e pode editar
     const { data: lista } = await sb.from('clientes').select('*').order('criado_em', { ascending: false });
@@ -2841,7 +2858,7 @@ async function loadFuncionarioView() {
           <div class="file-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
           <div class="file-info">
             <div class="file-name">Holerite ${h.mes}/${h.ano}</div>
-            <div class="file-meta">${h.valor_liquido ? 'Líquido: R$ '+h.valor_liquido : ''} · ${formatDate(h.criado_em)}</div>
+            <div class="file-meta">${formatDate(h.criado_em)}</div>
           </div>
           <span class="badge ${h.lido ? 'badge-read' : 'badge-new'}">${h.lido ? 'Visto' : 'Novo'}</span>
           <button class="download-btn" onclick="downloadHolerite('${h.id}','${h.arquivo_path}','Holerite_${h.mes}_${h.ano}.pdf')">
@@ -3073,7 +3090,7 @@ async function loadFuncionarioView() {
           <div class="file-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
           <div class="file-info">
             <div class="file-name">Holerite ${h.mes}/${h.ano}</div>
-            <div class="file-meta">${h.valor_liquido ? 'Líquido: R$ '+h.valor_liquido : ''} · ${formatDate(h.criado_em)}</div>
+            <div class="file-meta">${formatDate(h.criado_em)}</div>
           </div>
           <span class="badge ${h.lido ? 'badge-read' : 'badge-new'}">${h.lido ? 'Visto' : 'Novo'}</span>
           <button class="download-btn" onclick="downloadHolerite('${h.id}','${h.arquivo_path}','Holerite_${h.mes}_${h.ano}.pdf')">
