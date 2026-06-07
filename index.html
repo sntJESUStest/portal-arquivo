@@ -2976,6 +2976,26 @@ async function renderPanelFuncionarios(body) {
   const { data: lista } = await sb.from('funcionarios').select('*').order('nome');
 
   let html = `
+    <!-- Importar Excel -->
+    <div class="section-title" style="margin-bottom:10px;">Importar Relatório</div>
+    <div class="card" style="margin-bottom:1.5rem;">
+      <p style="font-size:13px;color:var(--text-secondary);margin-bottom:12px;">
+        Faça upload de um arquivo Excel (.xlsx) com as colunas: <strong>Nome, CPF, Email, Empresa</strong>
+      </p>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+        <button class="btn" onclick="baixarModeloExcel()" style="display:flex;align-items:center;gap:6px;">
+          <svg viewBox="0 0 24 24" style="width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Baixar Modelo
+        </button>
+        <label class="btn btn-primary" style="cursor:pointer;display:flex;align-items:center;gap:6px;">
+          <svg viewBox="0 0 24 24" style="width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          Enviar Relatório
+          <input type="file" id="fn-excel-input" accept=".xlsx,.xls" style="display:none;" onchange="importarExcel(this)" />
+        </label>
+      </div>
+      <div id="fn-import-msg" class="hidden" style="margin-top:10px;"></div>
+    </div>
+
     <div class="section-title" style="margin-bottom:10px;">Cadastrar Funcionário</div>
     <div class="card" style="margin-bottom:1rem;">
       <div class="form-row" style="margin-bottom:10px;">
@@ -3014,6 +3034,78 @@ async function renderPanelFuncionarios(body) {
     opt.textContent = c.codigo ? `${c.codigo} - ${c.empresa||c.nome}` : (c.empresa||c.nome||c.email);
     sel.appendChild(opt);
   });
+}
+
+function baixarModeloExcel() {
+  // Criar CSV simples como modelo
+  const csv = 'Nome,CPF,Email,Empresa
+JOAO SILVA,12345678901,joao@email.com,empresa@email.com
+MARIA SOUZA,98765432100,maria@email.com,empresa@email.com';
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'modelo_funcionarios.csv'; a.click();
+  URL.revokeObjectURL(url);
+}
+
+async function importarExcel(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const msg = document.getElementById('fn-import-msg');
+  msg.className = 'loading'; msg.textContent = 'Processando...'; msg.classList.remove('hidden');
+
+  try {
+    // Usar SheetJS para ler o Excel
+    const XLSX = await import('https://cdn.sheetjs.com/xlsx-0.20.1/package/xlsx.mjs');
+    const buffer = await file.arrayBuffer();
+    const wb = XLSX.read(buffer, { type: 'array' });
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const dados = XLSX.utils.sheet_to_json(ws, { header: 1 });
+
+    if (dados.length < 2) {
+      msg.className = 'error-msg'; msg.textContent = 'Arquivo vazio ou sem dados.'; return;
+    }
+
+    // Pegar cabeçalho e mapear colunas
+    const header = dados[0].map(h => String(h).toLowerCase().trim());
+    const colNome = header.findIndex(h => h.includes('nome'));
+    const colCpf = header.findIndex(h => h.includes('cpf'));
+    const colEmail = header.findIndex(h => h.includes('email') || h.includes('e-mail'));
+    const colEmpresa = header.findIndex(h => h.includes('empresa'));
+
+    if (colNome === -1 || colCpf === -1) {
+      msg.className = 'error-msg'; msg.textContent = 'Arquivo deve ter colunas Nome e CPF.'; return;
+    }
+
+    const linhas = dados.slice(1).filter(row => row[colNome] && row[colCpf]);
+    let cadastrados = 0, erros = 0;
+
+    for (const row of linhas) {
+      const nome = String(row[colNome]).trim().toUpperCase();
+      const cpf = String(row[colCpf]).replace(/\D/g, '');
+      const email = colEmail >= 0 && row[colEmail] ? String(row[colEmail]).trim() : null;
+      const empresaEmail = colEmpresa >= 0 && row[colEmpresa] ? String(row[colEmpresa]).trim() : null;
+
+      if (cpf.length !== 11) { erros++; continue; }
+
+      const { error } = await sb.from('funcionarios').upsert(
+        { nome, cpf, email, empresa_email: empresaEmail, criado_em: new Date().toISOString() },
+        { onConflict: 'cpf' }
+      );
+      if (error) { erros++; } else { cadastrados++; }
+    }
+
+    msg.className = 'success-msg';
+    msg.textContent = `✓ ${cadastrados} funcionário(s) cadastrado(s)${erros > 0 ? ` · ${erros} erro(s)` : ''}.`;
+    input.value = '';
+    // Recarregar lista
+    setTimeout(() => renderPanelFuncionarios(document.getElementById('panel-body')), 1000);
+
+  } catch(e) {
+    msg.className = 'error-msg';
+    msg.textContent = 'Erro ao processar arquivo: ' + e.message;
+    console.error(e);
+  }
 }
 
 async function salvarFuncionario() {
