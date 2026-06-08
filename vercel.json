@@ -23,9 +23,20 @@
       "schedule": "0 8 * * *"
     }
   ],
+  "headers": [
+    {
+      "source": "/(.*).html",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" },
+        { "key": "Pragma", "value": "no-cache" },
+        { "key": "Expires", "value": "0" }
+      ]
+    }
+  ],
   "rewrites": [
     { "source": "/funcionario", "destination": "/index.html" },
     { "source": "/empresas", "destination": "/index.html" },
-    { "source": "/(.*)", "destination": "/index.html" }
+    { "source": "/set-password.html", "destination": "/set-password.html" },
+    { "source": "/((?!set-password\\.html).*)", "destination": "/index.html" }
   ]
 }
