@@ -862,7 +862,13 @@ async function showApp() {
         }
       });
       document.querySelectorAll('.menu-divider').forEach(el => el.style.display = 'none');
+      // Esconder botão de chat na topbar
+      const chatBtn = document.getElementById('chat-notif-trigger');
+      if (chatBtn) chatBtn.style.display = 'none';
     }, 100);
+  } else {
+    const chatBtn = document.getElementById('chat-notif-trigger');
+    if (chatBtn) chatBtn.style.display = '';
   }
 
   // Buscar dados do cliente para nome
