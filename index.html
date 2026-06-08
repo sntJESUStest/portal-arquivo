@@ -1249,50 +1249,22 @@ async function downloadDocCliente(path, name) {
 async function enviarConvite(email, nome) {
   if (!confirm(`Enviar convite de acesso para ${nome} (${email})?`)) return;
 
-  // Gerar senha temporária
-  const senha = Math.random().toString(36).slice(-8).toUpperCase();
-
   try {
-    // Criar usuário no Supabase Auth
-    const res = await fetch('https://nacdezqdsouhxgftqaku.supabase.co/auth/v1/admin/users', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5hY2RlenFkc291aHhnZnRxYWt1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyODU4MjYsImV4cCI6MjA5NDg2MTgyNn0.C1eqGfu7h-oOC0ibw6hzecPsG49e6IrOXrxu0C-mOSY',
-        'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5hY2RlenFkc291aHhnZnRxYWt1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyODU4MjYsImV4cCI6MjA5NDg2MTgyNn0.C1eqGfu7h-oOC0ibw6hzecPsG49e6IrOXrxu0C-mOSY'
-      },
-      body: JSON.stringify({ email, password: senha, email_confirm: true })
-    });
-
-    // Garantir senha_definida = false para este cliente
+    // Marcar senha_definida = false para forçar criação de senha
     await sb.from('clientes').update({ senha_definida: false }).eq('email', email);
 
-    // Link direto para set-password com email e senha temporária embutidos
-    const linkSetPassword = `https://portal-arquivo.vercel.app/set-password.html?email=${encodeURIComponent(email)}&tmp=${encodeURIComponent(senha)}`;
-
-    // Enviar e-mail de convite
-    await fetch('/api/send-email', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        destinatario: email,
-        nomeCliente: nome,
-        nomeArquivo: null,
-        assunto: 'Seu acesso ao Portal HP Contabilidade',
-        mensagemCustom: `
-          <h2 style="color:#4338ca;">Bem-vindo ao Portal HP Contabilidade!</h2>
-          <p>Olá, <strong>${nome}</strong>!</p>
-          <p>Clique no botão abaixo para criar sua senha de acesso ao portal:</p>
-          <div style="margin:1.5rem 0;">
-            <a href="${linkSetPassword}" style="display:inline-block;background:#4338ca;color:#fff;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:600;font-size:15px;">Criar minha senha</a>
-          </div>
-          <p style="color:#666;font-size:13px;">Este link é pessoal e intransferível. Após criar sua senha, use seu e-mail e a nova senha para entrar.</p>
-          <p style="color:#999;font-size:12px;">Se não conseguir clicar no botão, acesse: ${linkSetPassword}</p>
-        `
-      })
+    // Enviar magic link apontando direto para set-password.html
+    const { error } = await sb.auth.signInWithOtp({
+      email,
+      options: {
+        emailRedirectTo: 'https://portal-arquivo.vercel.app/set-password.html',
+        shouldCreateUser: true
+      }
     });
 
-    alert(`✓ Convite enviado para ${email}!`);
+    if (error) throw new Error(error.message);
+
+    alert(`✓ Convite enviado para ${email}!\nO cliente receberá um e-mail para criar a senha.`);
   } catch(e) {
     alert('Erro ao enviar convite: ' + e.message);
   }
