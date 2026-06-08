@@ -3038,9 +3038,7 @@ async function renderPanelFuncionarios(body) {
 
 function baixarModeloExcel() {
   // Criar CSV simples como modelo
-  const csv = 'Nome,CPF,Email,Empresa
-JOAO SILVA,12345678901,joao@email.com,empresa@email.com
-MARIA SOUZA,98765432100,maria@email.com,empresa@email.com';
+  const csv = 'Nome,CPF,Email,Empresa\nJOAO SILVA,12345678901,joao@email.com,empresa@email.com\nMARIA SOUZA,98765432100,maria@email.com,empresa@email.com';
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -3056,7 +3054,9 @@ async function importarExcel(input) {
 
   try {
     // Usar SheetJS para ler o Excel
-    const XLSX = await import('https://cdn.sheetjs.com/xlsx-0.20.1/package/xlsx.mjs');
+    if (typeof XLSX === 'undefined') {
+      msg.className = 'error-msg'; msg.textContent = 'Biblioteca XLSX não carregada. Recarregue a página.'; return;
+    }
     const buffer = await file.arrayBuffer();
     const wb = XLSX.read(buffer, { type: 'array' });
     const ws = wb.Sheets[wb.SheetNames[0]];
