@@ -414,7 +414,7 @@
       <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
       Pessoal
     </button>
-    <button class="menu-item" onclick="filterSetor('Contábil')">
+    <button class="menu-item" onclick="filterSetor('Contabil')">
       <svg viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
       Contábil
     </button>
@@ -481,7 +481,7 @@
             <select id="f-setor" onchange="toggleSubcategoria()">
               <option value="Fiscal">Fiscal</option>
               <option value="Pessoal">Pessoal</option>
-              <option value="Contábil">Contábil</option>
+              <option value="Contabil">Contabil</option>
               <option value="Financeiro">Financeiro</option>
               <option value="Avisos">Avisos</option>
             </select>
@@ -670,7 +670,7 @@ function getNomeAdmin(email, comSetor) {
 const WA_TOKEN = 'EAANf8ZClPMkQBRmk9fNYuQzZBl2h0ABnw3cJDx8TYEjHNE82FC3SnXFL6lJLzr0omNnY26RwhZA0qJPEyADu1cDiy1xesdU6HI843gLf32puVxZAYkZCgYJOdg59kmbMSBPs6A4PewGfZCMgw3wMeUbKXUtm3eoNRZA6IfcZAdRa1gUQkvsnXIhVPLpybfZCTHcmGg3Rl2dtusPDGz5x9wuCCvswX0MkKrIeSvT23USrvWUZAZCnubOBVmhEF32j025kY7jZAkPgi1BovzxVnjDxS1hV';
 const WA_PHONE_ID = '1144342742092824';
 const SUBCATEGORIAS_PESSOAL = ['Encargos', 'Admissões', 'Rescisões', 'Férias', 'Geral'];
-const SETOR_CLASS = { 'Fiscal':'setor-fiscal','Pessoal':'setor-pessoal','Contábil':'setor-contabil','Financeiro':'setor-financeiro','Avisos':'setor-avisos' };
+const SETOR_CLASS = { 'Fiscal':'setor-fiscal','Pessoal':'setor-pessoal','Contabil':'setor-contabil','Financeiro':'setor-financeiro','Avisos':'setor-avisos' };
 
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 let currentUser = null;
@@ -862,13 +862,7 @@ async function showApp() {
         }
       });
       document.querySelectorAll('.menu-divider').forEach(el => el.style.display = 'none');
-      // Esconder botão de chat na topbar
-      const chatBtn = document.getElementById('chat-notif-trigger');
-      if (chatBtn) chatBtn.style.display = 'none';
     }, 100);
-  } else {
-    const chatBtn = document.getElementById('chat-notif-trigger');
-    if (chatBtn) chatBtn.style.display = '';
   }
 
   // Buscar dados do cliente para nome
@@ -2399,7 +2393,7 @@ async function mostrarRelatorio(tipo, btnEl) {
     const setores = ['Fiscal','Pessoal','Contabil','Financeiro','Avisos'];
     let html = `<p style="font-size:13px;color:var(--text-secondary);margin-bottom:12px;">${files.length} arquivo(s) no total</p>`;
     setores.forEach(s => {
-      const sf = files.filter(f => f.setor === s || f.setor === s.replace('Contabil','Contábil'));
+      const sf = files.filter(f => f.setor === s || f.setor === s.replace('Contabil','Contabil'));
       if (sf.length === 0) return;
       html += `<div style="margin-bottom:1rem;">
         <p style="font-size:13px;font-weight:600;margin-bottom:8px;">${s} <span style="color:var(--text-tertiary);font-weight:400;">(${sf.length})</span></p>
