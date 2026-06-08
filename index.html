@@ -3722,6 +3722,14 @@ function formatDateBR(d) { if (!d) return ''; const [y,m,day] = d.split('-'); re
 
 sb.auth.getSession().then(({ data }) => { if (data.session) { currentUser = data.session.user; showApp(); } });
 
+// Detectar magic link na URL (token de acesso no hash)
+sb.auth.onAuthStateChange((event, session) => {
+  if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session && !currentUser) {
+    currentUser = session.user;
+    showApp();
+  }
+});
+
 if (window.location.pathname === '/funcionario') {
   document.body.classList.add('func-mode');
   document.querySelector('.logo-name').innerHTML = 'HP Contabilidade <span style="font-family:Georgia,serif;font-style:italic;color:#5a7a3a;font-size:12px;">beta</span>';
