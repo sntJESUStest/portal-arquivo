@@ -366,6 +366,38 @@
   </div>
 </div>
 
+<!-- DEFINIR SENHA (primeiro acesso via magic link) -->
+<div id="set-password-screen" class="hidden" style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:2rem;background-image:url('https://nacdezqdsouhxgftqaku.supabase.co/storage/v1/object/sign/arquivos/beautiful-shot-snowy-mountain-sunset.jpg?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV9kNmM4ZTIxOC05YTg1LTQxNjEtYTFiNC00YzQ3OWRiNjNiZDAiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJhcnF1aXZvcy9iZWF1dGlmdWwtc2hvdC1zbm93eS1tb3VudGFpbi1zdW5zZXQuanBnIiwiaWF0IjoxNzgwNzEzMzQ0LCJleHAiOjE4MTIyNDkzNDR9.lRu1QYe9mb-3ajTs6g21bOcMkssBl56ubBuCSDk326Y');background-size:cover;background-position:center;">
+  <div class="login-box">
+    <div class="logo">
+      <div class="logo-icon" style="background:rgba(67,56,202,0.85);">
+        <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      </div>
+      <span class="logo-name" style="color:#fff;text-shadow:0 1px 6px rgba(0,0,0,0.5);">HP Contabilidade</span>
+    </div>
+    <div class="card" style="background:rgba(255,255,255,0.92);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);">
+      <p style="font-size:15px;font-weight:600;margin-bottom:6px;">Bem-vindo! Crie sua senha</p>
+      <p style="font-size:13px;color:var(--text-secondary);margin-bottom:1.25rem;">
+        Este é seu primeiro acesso. Crie uma senha para entrar nas próximas vezes.
+      </p>
+      <div class="field">
+        <label>Nova senha</label>
+        <input id="set-pw-new" type="password" placeholder="Mínimo 8 caracteres" />
+      </div>
+      <div class="field">
+        <label>Confirmar senha</label>
+        <input id="set-pw-confirm" type="password" placeholder="Repita a senha"
+               onkeydown="if(event.key==='Enter') definirSenha()" />
+      </div>
+      <div id="set-pw-error" class="error-msg hidden"></div>
+      <div id="set-pw-success" class="success-msg hidden"></div>
+      <button class="btn btn-primary btn-full" onclick="definirSenha()" id="set-pw-btn">
+        Salvar senha e entrar
+      </button>
+    </div>
+  </div>
+</div>
+
 <!-- MAIN -->
 <div id="main-screen" class="hidden">
   <div class="topbar">
@@ -838,6 +870,7 @@ async function logout() {
   isFuncionario = false;
   funcionarioLogado = null;
   document.getElementById('main-screen').classList.add('hidden');
+  document.getElementById('set-password-screen').classList.add('hidden');
   document.getElementById('login-screen').classList.remove('hidden');
   closeMenu();
 }
@@ -3720,12 +3753,82 @@ function gerarPizzaSVG(dados, total) {
 function formatDate(iso) { if (!iso) return ''; return new Date(iso).toLocaleDateString('pt-BR', { day:'2-digit', month:'2-digit', year:'numeric' }); }
 function formatDateBR(d) { if (!d) return ''; const [y,m,day] = d.split('-'); return `${day}/${m}/${y}`; }
 
+// ── PRIMEIRO ACESSO — DEFINIR SENHA ──────────────────
+function mostrarTelaDefinirSenha() {
+  document.getElementById('login-screen').classList.add('hidden');
+  document.getElementById('main-screen').classList.add('hidden');
+  document.getElementById('set-password-screen').classList.remove('hidden');
+}
+
+async function definirSenha() {
+  const pw  = document.getElementById('set-pw-new').value;
+  const pw2 = document.getElementById('set-pw-confirm').value;
+  const errEl = document.getElementById('set-pw-error');
+  const okEl  = document.getElementById('set-pw-success');
+  const btn   = document.getElementById('set-pw-btn');
+
+  errEl.classList.add('hidden');
+  okEl.classList.add('hidden');
+
+  if (pw.length < 8) {
+    errEl.textContent = 'A senha deve ter pelo menos 8 caracteres.';
+    errEl.classList.remove('hidden'); return;
+  }
+  if (pw !== pw2) {
+    errEl.textContent = 'As senhas não coincidem.';
+    errEl.classList.remove('hidden'); return;
+  }
+
+  btn.textContent = 'Salvando...';
+  btn.disabled = true;
+
+  const { error } = await sb.auth.updateUser({ password: pw });
+  if (error) {
+    errEl.textContent = 'Erro ao salvar senha: ' + error.message;
+    errEl.classList.remove('hidden');
+    btn.textContent = 'Salvar senha e entrar';
+    btn.disabled = false;
+    return;
+  }
+
+  // Marcar senha como definida na tabela clientes
+  await sb.from('clientes')
+    .update({ senha_definida: true })
+    .eq('email', currentUser.email);
+
+  okEl.textContent = '✓ Senha criada com sucesso! Entrando...';
+  okEl.classList.remove('hidden');
+
+  setTimeout(() => {
+    document.getElementById('set-password-screen').classList.add('hidden');
+    showApp();
+  }, 1400);
+}
+
 sb.auth.getSession().then(({ data }) => { if (data.session) { currentUser = data.session.user; showApp(); } });
 
 // Detectar magic link na URL (token de acesso no hash)
-sb.auth.onAuthStateChange((event, session) => {
+sb.auth.onAuthStateChange(async (event, session) => {
   if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session && !currentUser) {
     currentUser = session.user;
+
+    // Verificar primeiro acesso: somente para login via magic link
+    // (evento SIGNED_IN vindo de URL com token = magic link)
+    const isFromMagicLink = event === 'SIGNED_IN' &&
+      (window.location.hash.includes('access_token') || window.location.hash.includes('type=magiclink') || window.location.search.includes('token_hash'));
+
+    if (isFromMagicLink) {
+      const { data: cliente } = await sb.from('clientes')
+        .select('senha_definida')
+        .eq('email', currentUser.email)
+        .maybeSingle();
+
+      if (cliente && !cliente.senha_definida) {
+        mostrarTelaDefinirSenha();
+        return;
+      }
+    }
+
     showApp();
   }
 });
