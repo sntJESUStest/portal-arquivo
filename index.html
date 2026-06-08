@@ -1957,6 +1957,11 @@ async function uploadFile() {
     const whatsapp = clienteWa?.whatsapp || '';
     await enviarWhatsApp(whatsapp, clientEmail, file.name, setor, note);
 
+    // Enviar push notification
+    try {
+      await enviarPushParaCliente(clientEmail, '📄 Novo documento', `${file.name} disponível em ${setor}`, false);
+    } catch(e) { console.log('Erro push:', e.message); }
+
     // Enviar e-mail de notificação
     try {
       const clienteInfo = clientesCache.find(c => c.email === clientEmail);
