@@ -68,7 +68,7 @@
     .menu-btn:hover { background: var(--bg); }
     .menu-btn span { width: 4px; height: 4px; background: var(--text-secondary); border-radius: 50%; margin: 1.5px 0; display: block; }
     .menu-overlay { position: fixed; inset: 0; z-index: 200; }
-    .menu-dropdown { position: fixed; top: 56px; left: 0; width: 260px; background: var(--surface); border: 1px solid var(--border); border-radius: 0 0 var(--radius-lg) var(--radius-lg); box-shadow: 0 8px 24px rgba(0,0,0,0.10); z-index: 300; overflow: hidden; }
+    .menu-dropdown { position: fixed; top: 56px; left: 0; width: 260px; background: var(--surface); border: 1px solid var(--border); border-radius: 0 0 var(--radius-lg) var(--radius-lg); box-shadow: 0 8px 24px rgba(0,0,0,0.10); z-index: 300; overflow-y: auto; max-height: calc(100vh - 56px); }
     .menu-header { padding: 14px 16px 10px; border-bottom: 1px solid var(--border); }
     .menu-user-name { font-size: 14px; font-weight: 600; }
     .menu-user-email { font-size: 12px; color: var(--text-tertiary); margin-top: 2px; }
@@ -3038,7 +3038,8 @@ async function renderPanelFuncionarios(body) {
 
 function baixarModeloExcel() {
   // Criar CSV simples como modelo
-  const csv = 'Nome,CPF,Email,Empresa\nJOAO SILVA,12345678901,joao@email.com,empresa@email.com\nMARIA SOUZA,98765432100,maria@email.com,empresa@email.com';
+  const linhas = ['Nome,CPF,Email,Empresa','JOAO SILVA,12345678901,joao@email.com,empresa@email.com','MARIA SOUZA,98765432100,maria@email.com,empresa@email.com'];
+  const csv = linhas.join('\n');
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -3054,9 +3055,7 @@ async function importarExcel(input) {
 
   try {
     // Usar SheetJS para ler o Excel
-    if (typeof XLSX === 'undefined') {
-      msg.className = 'error-msg'; msg.textContent = 'Biblioteca XLSX não carregada. Recarregue a página.'; return;
-    }
+    const XLSX = await import('https://cdn.sheetjs.com/xlsx-0.20.1/package/xlsx.mjs');
     const buffer = await file.arrayBuffer();
     const wb = XLSX.read(buffer, { type: 'array' });
     const ws = wb.Sheets[wb.SheetNames[0]];
