@@ -2271,6 +2271,8 @@ async function mostrarRelatorio(tipo, btnEl) {
       const d = new Date(g.vencimento + 'T00:00:00');
       return d.getMonth() === mesAtual && d.getFullYear() === anoAtual;
     });
+    window._dashGuiasMes = guiasMes;
+    window._dashClientes = clientes;
     const pendentes = guiasMes.filter(g => g.status === 'pendente').length;
     const disponiveis = guiasMes.filter(g => g.status === 'disponivel').length;
     const pagas = guiasMes.filter(g => g.status === 'pago').length;
@@ -2294,7 +2296,11 @@ async function mostrarRelatorio(tipo, btnEl) {
     el.innerHTML = `
       <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:1.5rem;">
         <div class="stat-card"><div class="stat-label">Total guias mês</div><div class="stat-value">${total}</div></div>
-        <div class="stat-card" style="border-color:#ef4444;"><div class="stat-label" style="color:#c0392b;">Pendentes</div><div class="stat-value" style="color:#c0392b;">${pendentes}</div></div>
+        <div class="stat-card" style="border-color:#ef4444;cursor:pointer;transition:box-shadow 0.15s;" onclick="mostrarPendentesMes(window._dashGuiasMes, window._dashClientes)" onmouseover="this.style.boxShadow='0 4px 12px rgba(192,57,43,0.2)'" onmouseout="this.style.boxShadow=''">
+          <div class="stat-label" style="color:#c0392b;">Pendentes</div>
+          <div class="stat-value" style="color:#c0392b;">${pendentes}</div>
+          <div style="font-size:11px;color:#c0392b;opacity:0.7;margin-top:4px;">Clique para ver</div>
+        </div>
         <div class="stat-card" style="border-color:#22c55e;"><div class="stat-label" style="color:#1a7a4a;">Pagas</div><div class="stat-value" style="color:#1a7a4a;">${pagas}</div></div>
         <div class="stat-card" style="border-color:#f59e0b;"><div class="stat-label" style="color:#92400e;">Vencidas</div><div class="stat-value" style="color:#92400e;">${vencidas}</div></div>
       </div>
@@ -3584,6 +3590,54 @@ async function excluirAviso(id) {
   if (!confirm('Excluir este aviso?')) return;
   await sb.from('avisos').delete().eq('id', id);
   await carregarAvisosAdmin();
+}
+
+function mostrarPendentesMes(guiasMes, clientes) {
+  const pendentes = (guiasMes||[]).filter(g => g.status === 'pendente');
+  if (pendentes.length === 0) { alert('Nenhuma guia pendente este mês!'); return; }
+
+  // Agrupar por empresa
+  const porEmpresa = {};
+  pendentes.forEach(g => {
+    if (!porEmpresa[g.cliente_email]) porEmpresa[g.cliente_email] = [];
+    porEmpresa[g.cliente_email].push(g);
+  });
+
+  // Montar HTML do painel
+  const clientesMap = {};
+  (clientes||[]).forEach(c => { clientesMap[c.email] = c; });
+
+  const hoje = new Date(); hoje.setHours(0,0,0,0);
+
+  let html = `<div style="margin-bottom:1rem;font-size:13px;color:var(--text-secondary);">${pendentes.length} guia(s) pendente(s) este mês</div>`;
+  html += Object.entries(porEmpresa).map(([email, guias]) => {
+    const c = clientesMap[email] || {};
+    const label = c.codigo ? `${c.codigo} - ${c.empresa || c.nome || email}` : (c.empresa || c.nome || email);
+    return `<div style="margin-bottom:1rem;">
+      <div style="font-size:13px;font-weight:600;color:var(--accent);margin-bottom:6px;">${label}</div>
+      ${guias.map(g => {
+        const venc = new Date(g.vencimento + 'T00:00:00');
+        const diff = Math.ceil((venc - hoje) / (1000*60*60*24));
+        const badge = diff < 0
+          ? '<span class="cert-badge-exp">Vencida</span>'
+          : diff <= 3
+            ? '<span class="cert-badge-warn">Urgente</span>'
+            : '<span style="background:var(--red-bg);color:var(--red-text);font-size:11px;font-weight:600;padding:2px 10px;border-radius:99px;">Pendente</span>';
+        return `<div class="file-row" style="margin-bottom:4px;">
+          <div class="file-info">
+            <div class="file-name">${g.tipo}</div>
+            <div class="file-meta">Vence ${formatDateBR(g.vencimento)}</div>
+          </div>
+          ${badge}
+        </div>`;
+      }).join('')}
+    </div>`;
+  }).join('');
+
+  // Abrir painel
+  document.getElementById('panel-title').textContent = '⚠️ Guias Pendentes — ' + new Date().toLocaleString('pt-BR', {month:'long', year:'numeric'});
+  document.getElementById('panel-body').innerHTML = html;
+  document.getElementById('panel-overlay').classList.remove('hidden');
 }
 
 function gerarPizzaSVG(dados, total) {
