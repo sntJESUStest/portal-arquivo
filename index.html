@@ -1277,8 +1277,8 @@ async function enviarConvite(email, nome) {
       senha_tmp: senha
     }).eq('email', email);
 
-    // 3. Montar link
-    const link = `https://portal-arquivo.vercel.app/set-password.html?email=${encodeURIComponent(email)}`;
+    // 3. Montar link com senha_tmp na URL para o set-password.html usar sem precisar de sessão
+    const link = `https://portal-arquivo.vercel.app/set-password.html?email=${encodeURIComponent(email)}&tmp=${encodeURIComponent(senha)}`;
 
     // 4. Enviar e-mail pelo /api/send-email (Gmail — já funcionava)
     const resEmail = await fetch('/api/send-email', {
