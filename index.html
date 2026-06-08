@@ -869,6 +869,7 @@ async function logout() {
   currentUser = null;
   isFuncionario = false;
   funcionarioLogado = null;
+  _authHandled = false;
   document.getElementById('main-screen').classList.add('hidden');
   document.getElementById('set-password-screen').classList.add('hidden');
   document.getElementById('login-screen').classList.remove('hidden');
@@ -3805,25 +3806,39 @@ async function definirSenha() {
   }, 1400);
 }
 
-sb.auth.getSession().then(({ data }) => { if (data.session) { currentUser = data.session.user; showApp(); } });
+// ── INICIALIZAÇÃO DE AUTENTICAÇÃO ────────────────────
+// Magic link chega como ?code= (PKCE) ou #access_token= (implícito)
+const _isMagicLinkUrl =
+  window.location.search.includes('code=') ||
+  window.location.hash.includes('access_token') ||
+  window.location.hash.includes('type=magiclink');
 
-// Detectar magic link na URL (token de acesso no hash)
+let _authHandled = false;
+
 sb.auth.onAuthStateChange(async (event, session) => {
-  if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session && !currentUser) {
+  // Sessão já existente ao carregar o app (usuário voltou logado)
+  if (event === 'INITIAL_SESSION') {
+    if (session && !_authHandled) {
+      _authHandled = true;
+      currentUser = session.user;
+      showApp();
+    }
+    return;
+  }
+
+  // Novo login (senha, magic link, etc)
+  if (event === 'SIGNED_IN' && session && !_authHandled) {
+    _authHandled = true;
     currentUser = session.user;
 
-    // Verificar primeiro acesso: somente para login via magic link
-    // (evento SIGNED_IN vindo de URL com token = magic link)
-    const isFromMagicLink = event === 'SIGNED_IN' &&
-      (window.location.hash.includes('access_token') || window.location.hash.includes('type=magiclink') || window.location.search.includes('token_hash'));
-
-    if (isFromMagicLink) {
+    // Se veio de magic link → checar se precisa criar senha
+    if (_isMagicLinkUrl) {
       const { data: cliente } = await sb.from('clientes')
         .select('senha_definida')
         .eq('email', currentUser.email)
         .maybeSingle();
 
-      if (cliente && !cliente.senha_definida) {
+      if (!cliente?.senha_definida) {
         mostrarTelaDefinirSenha();
         return;
       }
