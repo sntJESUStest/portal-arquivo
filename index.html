@@ -845,8 +845,9 @@ async function login() {
   // Verificar se é CPF (só números, 11 dígitos) - aceito em / e /funcionario
   const cpfLimpo = emailInput.replace(/\D/g, '');
   if (cpfLimpo.length === 11) {
-    const { data: func } = await sb.from('funcionarios').select('*').eq('cpf', cpfLimpo).maybeSingle();
-    if (!func) { errEl.textContent = 'CPF não encontrado.'; errEl.classList.remove('hidden'); return; }
+    const { data: func, error: funcErr } = await sb.from('funcionarios').select('*').eq('cpf', cpfLimpo).maybeSingle();
+    console.log('LOGIN FUNC:', { func, funcErr, cpf: cpfLimpo });
+    if (!func) { errEl.textContent = funcErr ? 'Erro: ' + funcErr.message : 'CPF não encontrado.'; errEl.classList.remove('hidden'); return; }
     // Senha padrão = CPF ou senha cadastrada
     const senhaOk = pass === cpfLimpo || pass === (func.senha || cpfLimpo);
     if (!senhaOk) { errEl.textContent = 'Senha incorreta.'; errEl.classList.remove('hidden'); return; }
