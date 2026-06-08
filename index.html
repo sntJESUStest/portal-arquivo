@@ -3807,12 +3807,6 @@ async function definirSenha() {
 }
 
 // ── INICIALIZAÇÃO DE AUTENTICAÇÃO ────────────────────
-// Magic link chega como ?code= (PKCE) ou #access_token= (implícito)
-const _isMagicLinkUrl =
-  window.location.search.includes('code=') ||
-  window.location.hash.includes('access_token') ||
-  window.location.hash.includes('type=magiclink');
-
 let _authHandled = false;
 
 sb.auth.onAuthStateChange(async (event, session) => {
@@ -3826,13 +3820,17 @@ sb.auth.onAuthStateChange(async (event, session) => {
     return;
   }
 
-  // Novo login (senha, magic link, etc)
+  // Novo login (senha, magic link, OAuth, etc)
   if (event === 'SIGNED_IN' && session && !_authHandled) {
     _authHandled = true;
     currentUser = session.user;
 
-    // Se veio de magic link → checar se precisa criar senha
-    if (_isMagicLinkUrl) {
+    // Checar se é cliente que ainda não definiu senha
+    // Não aplicar a admins nem a funcionários (que logar por CPF)
+    const isAdminUser = ADMIN_EMAILS.includes(currentUser.email);
+    const isCpfLogin = /^\d{11}$/.test(currentUser.email);
+
+    if (!isAdminUser && !isCpfLogin) {
       const { data: cliente } = await sb.from('clientes')
         .select('senha_definida')
         .eq('email', currentUser.email)
