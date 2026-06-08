@@ -1,27 +1,12 @@
 {
   "functions": {
-    "api/dropbox-webhook.js": {
-      "memory": 512,
-      "maxDuration": 30
-    },
-    "api/send-notification.js": {
-      "memory": 256,
-      "maxDuration": 10
-    },
-    "api/check-guias.js": {
-      "memory": 256,
-      "maxDuration": 30
-    },
-    "api/send-email.js": {
-      "memory": 256,
-      "maxDuration": 10
-    }
+    "api/dropbox-webhook.js": { "memory": 512, "maxDuration": 30 },
+    "api/send-notification.js": { "memory": 256, "maxDuration": 10 },
+    "api/check-guias.js": { "memory": 256, "maxDuration": 30 },
+    "api/send-email.js": { "memory": 256, "maxDuration": 10 }
   },
   "crons": [
-    {
-      "path": "/api/check-guias",
-      "schedule": "0 8 * * *"
-    }
+    { "path": "/api/check-guias", "schedule": "0 8 * * *" }
   ],
   "headers": [
     {
@@ -37,6 +22,7 @@
     { "source": "/funcionario", "destination": "/index.html" },
     { "source": "/empresas", "destination": "/index.html" },
     { "source": "/set-password.html", "destination": "/set-password.html" },
-    { "source": "/((?!set-password\\.html).*)", "destination": "/index.html" }
+    { "source": "/set-password-func.html", "destination": "/set-password-func.html" },
+    { "source": "/((?!set-password).*)", "destination": "/index.html" }
   ]
 }
