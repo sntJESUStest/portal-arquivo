@@ -1264,6 +1264,12 @@ async function enviarConvite(email, nome) {
       body: JSON.stringify({ email, password: senha, email_confirm: true })
     });
 
+    // Garantir senha_definida = false para este cliente
+    await sb.from('clientes').update({ senha_definida: false }).eq('email', email);
+
+    // Link direto para set-password com email e senha temporária embutidos
+    const linkSetPassword = `https://portal-arquivo.vercel.app/set-password.html?email=${encodeURIComponent(email)}&tmp=${encodeURIComponent(senha)}`;
+
     // Enviar e-mail de convite
     await fetch('/api/send-email', {
       method: 'POST',
@@ -1276,18 +1282,17 @@ async function enviarConvite(email, nome) {
         mensagemCustom: `
           <h2 style="color:#4338ca;">Bem-vindo ao Portal HP Contabilidade!</h2>
           <p>Olá, <strong>${nome}</strong>!</p>
-          <p>Seu acesso ao portal foi criado. Use as credenciais abaixo para entrar:</p>
-          <div style="background:#f7f6f3;border-radius:8px;padding:1rem;margin:1rem 0;">
-            <p><strong>E-mail:</strong> ${email}</p>
-            <p><strong>Senha temporária:</strong> <span style="font-size:20px;font-weight:700;letter-spacing:2px;">${senha}</span></p>
+          <p>Clique no botão abaixo para criar sua senha de acesso ao portal:</p>
+          <div style="margin:1.5rem 0;">
+            <a href="${linkSetPassword}" style="display:inline-block;background:#4338ca;color:#fff;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:600;font-size:15px;">Criar minha senha</a>
           </div>
-          <p style="color:#666;font-size:13px;">Recomendamos alterar sua senha após o primeiro acesso.</p>
-          <a href="https://portal-arquivo.vercel.app/empresas" style="display:inline-block;background:#4338ca;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;">Acessar Portal</a>
+          <p style="color:#666;font-size:13px;">Este link é pessoal e intransferível. Após criar sua senha, use seu e-mail e a nova senha para entrar.</p>
+          <p style="color:#999;font-size:12px;">Se não conseguir clicar no botão, acesse: ${linkSetPassword}</p>
         `
       })
     });
 
-    alert(`✓ Convite enviado para ${email}!\nSenha temporária: ${senha}`);
+    alert(`✓ Convite enviado para ${email}!`);
   } catch(e) {
     alert('Erro ao enviar convite: ' + e.message);
   }
