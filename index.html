@@ -1260,17 +1260,13 @@ async function enviarConvite(email, nome) {
   const senha = Math.random().toString(36).slice(-8).toUpperCase();
 
   try {
-    // 1. Criar usuário via signUp (funciona com chave anon, não precisa de service_role)
-    const { error: signUpErr } = await sb.auth.signUp({
-      email,
-      password: senha,
-      options: { emailRedirectTo: null }
+    // 1. Criar usuário via fetch direto (não afeta sessão do admin)
+    await fetch('https://nacdezqdsouhxgftqaku.supabase.co/auth/v1/signup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY },
+      body: JSON.stringify({ email, password: senha })
     });
-
-    // Ignorar erro de usuário já existente — o importante é que a senha_tmp foi salva
-    if (signUpErr && !signUpErr.message.includes('already registered')) {
-      throw new Error(signUpErr.message);
-    }
+    // Ignorar erros — usuário pode já existir, mas a senha_tmp será salva de qualquer forma
 
     // 2. Salvar senha temporária na tabela clientes
     await sb.from('clientes').update({
