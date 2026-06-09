@@ -1999,7 +1999,8 @@ function renderAdminFilesList(clientEmails, byClient, clientesInfo) {
           <div class="file-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
           <div class="file-info">
             <div class="file-name">${f.arquivo_nome}</div>
-            <div class="file-meta">${formatDate(f.criado_em)} · ${f.postado_por ? getNomeAdmin(f.postado_por)+' · ' : ''}${f.lido ? 'Visualizado' : 'Nao lido'}</div>
+            <div class="file-meta">${formatDate(f.criado_em)}${f.postado_por ? ' · '+getNomeAdmin(f.postado_por) : ''}</div>
+            ${f.visualizado_em ? `<div class="file-meta" style="color:#1a7a4a;font-weight:500;">✓ Cliente visualizou em ${new Date(f.visualizado_em).toLocaleDateString('pt-BR')} às ${new Date(f.visualizado_em).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</div>` : `<div class="file-meta" style="color:#a09d97;">○ Não visualizado ainda</div>`}
           </div>
           ${f.setor ? `<span class="setor-badge ${sc}">${f.setor}</span>` : ''}
           <span class="badge ${f.lido ? 'badge-read' : 'badge-new'}">${f.lido ? 'Visto' : 'Novo'}</span>
@@ -2265,7 +2266,7 @@ async function downloadFile(id, path, name) {
   const url = URL.createObjectURL(data);
   const a = document.createElement('a'); a.href = url; a.download = name; a.click();
   URL.revokeObjectURL(url);
-  await sb.from('notificacoes').update({ lido: true }).eq('id', id);
+  await sb.from('notificacoes').update({ lido: true, visualizado_em: new Date().toISOString() }).eq('id', id);
   const f = allClientFiles.find(x => x.id === id);
   if (f) f.lido = true;
   renderTabs(); renderClientFiles();
