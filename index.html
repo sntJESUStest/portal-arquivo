@@ -4059,7 +4059,17 @@ if (window.location.pathname === '/empresas') {
   document.querySelector('.logo-name').innerHTML = 'HP Contabilidade <span style="font-family:Georgia,serif;font-style:italic;color:#ef4444;font-size:12px;">beta</span>';
 }
 
-if ('serviceWorker' in navigator) { window.addEventListener('load', () => { navigator.serviceWorker.register('/sw.js'); }); }
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    // Limpar todos os caches antigos
+    caches.keys().then(keys => keys.forEach(k => caches.delete(k)));
+    // Desregistrar service workers antigos e registrar novo
+    navigator.serviceWorker.getRegistrations().then(regs => {
+      regs.forEach(r => r.unregister());
+      navigator.serviceWorker.register('/sw.js');
+    });
+  });
+}
 </script>
 </body>
 </html>
