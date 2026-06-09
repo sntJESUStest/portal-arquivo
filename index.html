@@ -955,7 +955,13 @@ async function showApp() {
     document.getElementById('client-view').classList.remove('hidden');
     document.getElementById('admin-view').classList.add('hidden');
     document.getElementById('funcionario-view').classList.add('hidden');
-    loadClientView();
+    loadClientView().then(() => {
+      // Selecionar automaticamente o primeiro setor disponível
+      setTimeout(() => {
+        const firstTab = document.querySelector('#setor-tabs .tab-btn');
+        if (firstTab) firstTab.click();
+      }, 500);
+    });
   }
 }
 
@@ -2188,8 +2194,12 @@ async function loadClientView() {
   }
 
   const emailBusca = activeFilialEmail || currentUser.email;
-  const { data: files } = await sb.from('notificacoes').select('*').eq('cliente_email', emailBusca).order('criado_em', { ascending: false });
-  if (!files) return;
+  const { data: files, error: filesErr } = await sb.from('notificacoes').select('*').eq('cliente_email', emailBusca).order('criado_em', { ascending: false });
+  console.log('CLIENT FILES:', { count: files?.length, error: filesErr, email: emailBusca });
+  if (!files) { 
+    document.getElementById('client-files-list').innerHTML = '<div class="empty-state">Sem arquivos disponíveis.</div>';
+    return; 
+  }
   allClientFiles = files;
   activeSetor = 'Todos';
   activeSubcat = null;
@@ -2199,7 +2209,8 @@ async function loadClientView() {
       <svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:var(--green-text);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0;margin-top:1px;"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
       <span>${f.mensagem}</span>
     </div>`).join('');
-  renderTabs(); renderClientFiles();
+  renderTabs(); 
+  renderClientFiles();
 }
 
 function trocarFilial(email) {
