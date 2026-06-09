@@ -3927,14 +3927,20 @@ async function definirSenha() {
 let _authHandled = false;
 
 sb.auth.onAuthStateChange(async (event, session) => {
+  const domReady = () => new Promise(r => {
+    if (document.readyState === 'complete') r();
+    else window.addEventListener('load', r, { once: true });
+  });
+
   // Sessão já existente ao carregar o app
   if (event === 'INITIAL_SESSION') {
     if (session && !_authHandled) {
       _authHandled = true;
       currentUser = session.user;
+      await domReady();
       showApp();
     } else if (!session) {
-      // Sem sessão — mostrar tela de login
+      await domReady();
       document.getElementById('login-screen').classList.remove('hidden');
       document.getElementById('main-screen').classList.add('hidden');
     }
@@ -3957,11 +3963,13 @@ sb.auth.onAuthStateChange(async (event, session) => {
         .maybeSingle();
 
       if (!cliente?.senha_definida) {
+        await domReady();
         mostrarTelaDefinirSenha();
         return;
       }
     }
 
+    await domReady();
     showApp();
   }
 });
