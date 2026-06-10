@@ -1959,7 +1959,12 @@ async function loadAdminView() {
   document.getElementById('count-files').textContent = files.length;
   document.getElementById('count-unread').textContent = unread;
   const byClient = {};
-  files.forEach(f => { if (!byClient[f.client_email]) byClient[f.client_email] = []; byClient[f.client_email].push(f); });
+  files.forEach(f => {
+    const emailKey = f.client_email || f.cliente_email;
+    if (!emailKey) return; // ignorar arquivos sem email
+    if (!byClient[emailKey]) byClient[emailKey] = [];
+    byClient[emailKey].push(f);
+  });
   const clientEmails = Object.keys(byClient);
   document.getElementById('count-clients').textContent = clientEmails.length;
   const container = document.getElementById('admin-files-list');
