@@ -870,7 +870,6 @@ async function login() {
   const { data, error } = await sb.auth.signInWithPassword({ email: emailInput, password: pass });
   if (error) { errEl.textContent = 'E-mail ou senha incorretos.'; errEl.classList.remove('hidden'); return; }
   currentUser = data.user;
-  _authHandled = true;
   showApp();
 }
 
@@ -880,7 +879,6 @@ async function logout() {
   currentUser = null;
   isFuncionario = false;
   funcionarioLogado = null;
-  _authHandled = false;
   document.getElementById('main-screen').classList.add('hidden');
   document.getElementById('set-password-screen').classList.add('hidden');
   document.getElementById('login-screen').classList.remove('hidden');
@@ -3925,75 +3923,25 @@ async function definirSenha() {
 }
 
 // ── INICIALIZAÇÃO DE AUTENTICAÇÃO ────────────────────
-let _authHandled = false;
+// Auth simples e direto
+sb.auth.getSession().then(({ data }) => {
+  if (data.session) {
+    currentUser = data.session.user;
+    showApp();
+  } else {
+    document.getElementById('login-screen').classList.remove('hidden');
+  }
+});
 
-// Verificar sessão ao carregar — se token inválido, limpar e mostrar login
-(async () => {
-  try {
-    const { data, error } = await Promise.race([
-      sb.auth.getSession(),
-      new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 5000))
-    ]);
-    if (error || !data?.session) {
-      await sb.auth.signOut();
-      localStorage.removeItem('sb-nacdezqdsouhxgftqaku-auth-token');
-    }
-  } catch(e) {
-    // Timeout ou erro — limpar sessão corrompida
-    await sb.auth.signOut();
-    localStorage.removeItem('sb-nacdezqdsouhxgftqaku-auth-token');
+sb.auth.onAuthStateChange((event, session) => {
+  if (event === 'SIGNED_IN' && session && !currentUser) {
+    currentUser = session.user;
+    showApp();
+  }
+  if (event === 'SIGNED_OUT') {
+    currentUser = null;
     document.getElementById('login-screen').classList.remove('hidden');
     document.getElementById('main-screen').classList.add('hidden');
-  }
-})();
-
-sb.auth.onAuthStateChange(async (event, session) => {
-  const domReady = () => new Promise(r => {
-    if (document.readyState === 'complete') r();
-    else window.addEventListener('load', r, { once: true });
-  });
-
-  // Sessão já existente ao carregar o app
-  if (event === 'INITIAL_SESSION') {
-    if (session && !_authHandled) {
-      _authHandled = true;
-      currentUser = session.user;
-      await domReady();
-      showApp();
-    } else if (!session) {
-      await domReady();
-      document.getElementById('login-screen').classList.remove('hidden');
-      document.getElementById('main-screen').classList.add('hidden');
-    }
-    return;
-  }
-
-  // Novo login (senha, magic link, OAuth, etc)
-  if (event === 'SIGNED_IN' && session && !_authHandled) {
-    _authHandled = true;
-    currentUser = session.user;
-    // Se o showApp já foi chamado pelo login manual, não chamar de novo
-    if (document.getElementById('main-screen') && !document.getElementById('main-screen').classList.contains('hidden')) return;
-
-    // Checar se é cliente que ainda não definiu senha
-    const isAdminUser = ADMIN_EMAILS.includes(currentUser.email);
-    const isCpfLogin = /^\d{11}$/.test(currentUser.email);
-
-    if (!isAdminUser && !isCpfLogin) {
-      const { data: cliente } = await sb.from('clientes')
-        .select('senha_definida')
-        .eq('email', currentUser.email)
-        .maybeSingle();
-
-      if (!cliente?.senha_definida) {
-        await domReady();
-        mostrarTelaDefinirSenha();
-        return;
-      }
-    }
-
-    await domReady();
-    showApp();
   }
 });
 
