@@ -1465,17 +1465,24 @@ async function renderChatAtendimento(body) {
     conversas[c.email] = { info: c, ultima: null, naoLidas: 0, atendente: null, status: 'pendente' };
   });
   // Msgs já vêm em ordem decrescente (mais recente primeiro)
-  // Processar status apenas da mensagem mais recente com status
   (msgs || []).forEach(m => {
-    if (!conversas[m.cliente_email]) conversas[m.cliente_email] = { info: { email: m.client_email }, ultima: null, naoLidas: 0, atendente: null, status: 'pendente' };
-    if (!conversas[m.cliente_email].ultima) conversas[m.cliente_email].ultima = m;
-    if (!m.lido && m.autor === 'cliente') conversas[m.cliente_email].naoLidas++;
-    // Usar apenas o status mais recente (primeira ocorrência pois msgs estão desc)
-    if (m.status_atendimento && conversas[m.cliente_email].status === 'pendente') {
-      conversas[m.cliente_email].status = m.status_atendimento;
-      // Só marcar atendente se status não for concluido
-      if (m.status_atendimento !== 'concluido' && m.atendente_email) {
-        conversas[m.cliente_email].atendente = m.atendente_email;
+    if (!conversas[m.cliente_email]) conversas[m.cliente_email] = { info: { email: m.cliente_email }, ultima: null, naoLidas: 0, atendente: null, status: 'pendente' };
+    const conv = conversas[m.cliente_email];
+    if (!conv.ultima) conv.ultima = m;
+    if (!m.lido && m.autor === 'cliente') conv.naoLidas++;
+
+    // Se a mensagem mais recente é do cliente sem status → resetar para pendente
+    if (!conv.statusDefinido) {
+      if (m.autor === 'cliente' && !m.status_atendimento) {
+        conv.status = 'pendente';
+        conv.atendente = null;
+        conv.statusDefinido = true;
+      } else if (m.status_atendimento) {
+        conv.status = m.status_atendimento;
+        if (m.status_atendimento !== 'concluido' && m.atendente_email) {
+          conv.atendente = m.atendente_email;
+        }
+        conv.statusDefinido = true;
       }
     }
   });
