@@ -4081,16 +4081,12 @@ if (window.location.pathname === '/empresas') {
   document.querySelector('.logo-name').innerHTML = 'HP Contabilidade <span style="font-family:Georgia,serif;font-style:italic;color:#ef4444;font-size:12px;">beta</span>';
 }
 
+// Remover service worker e limpar todos os caches
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    // Limpar todos os caches antigos
-    caches.keys().then(keys => keys.forEach(k => caches.delete(k)));
-    // Desregistrar service workers antigos e registrar novo
-    navigator.serviceWorker.getRegistrations().then(regs => {
-      regs.forEach(r => r.unregister());
-      navigator.serviceWorker.register('/sw.js');
-    });
+  navigator.serviceWorker.getRegistrations().then(regs => {
+    regs.forEach(r => r.unregister());
   });
+  caches.keys().then(keys => keys.forEach(k => caches.delete(k)));
 }
 </script>
 </body>
