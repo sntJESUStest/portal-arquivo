@@ -1394,14 +1394,14 @@ async function renderPanelChat(body) {
     body.innerHTML = buildChatUI();
     loadChat(currentUser.email, false);
     clearInterval(chatInterval);
-    chatInterval = setInterval(() => loadChat(currentUser.email, false), 4000);
+    chatInterval = setInterval(() => loadChat(currentUser.email, false), 8000);
   }
 }
 
 async function concluirAtendimento(email) {
   if (!confirm('Concluir este atendimento?')) return;
   await sb.from('chat').insert({
-    client_email: email,
+    cliente_email: email,
     autor: 'admin',
     admin_email: currentUser.email,
     atendente_email: null,
@@ -1420,7 +1420,7 @@ async function concluirAtendimento(email) {
 
 async function iniciarAtendimento(email) {
   await sb.from('chat').insert({
-    client_email: email, autor: 'admin',
+    cliente_email: email, autor: 'admin',
     mensagem: '__SISTEMA__Atendimento iniciado por ' + getNomeAdmin(currentUser.email),
     admin_email: currentUser.email,
     atendente_email: currentUser.email,
@@ -1434,7 +1434,7 @@ async function iniciarAtendimento(email) {
 
 async function encerrarAtendimento(email) {
   await sb.from('chat').insert({
-    client_email: email, autor: 'admin',
+    cliente_email: email, autor: 'admin',
     mensagem: '__SISTEMA__Atendimento encerrado por ' + getNomeAdmin(currentUser.email),
     admin_email: currentUser.email,
     status_atendimento: 'pendente',
@@ -1467,15 +1467,15 @@ async function renderChatAtendimento(body) {
   // Msgs já vêm em ordem decrescente (mais recente primeiro)
   // Processar status apenas da mensagem mais recente com status
   (msgs || []).forEach(m => {
-    if (!conversas[m.client_email]) conversas[m.client_email] = { info: { email: m.client_email }, ultima: null, naoLidas: 0, atendente: null, status: 'pendente' };
-    if (!conversas[m.client_email].ultima) conversas[m.client_email].ultima = m;
-    if (!m.lido && m.autor === 'cliente') conversas[m.client_email].naoLidas++;
+    if (!conversas[m.cliente_email]) conversas[m.cliente_email] = { info: { email: m.client_email }, ultima: null, naoLidas: 0, atendente: null, status: 'pendente' };
+    if (!conversas[m.cliente_email].ultima) conversas[m.cliente_email].ultima = m;
+    if (!m.lido && m.autor === 'cliente') conversas[m.cliente_email].naoLidas++;
     // Usar apenas o status mais recente (primeira ocorrência pois msgs estão desc)
-    if (m.status_atendimento && conversas[m.client_email].status === 'pendente') {
-      conversas[m.client_email].status = m.status_atendimento;
+    if (m.status_atendimento && conversas[m.cliente_email].status === 'pendente') {
+      conversas[m.cliente_email].status = m.status_atendimento;
       // Só marcar atendente se status não for concluido
       if (m.status_atendimento !== 'concluido' && m.atendente_email) {
-        conversas[m.client_email].atendente = m.atendente_email;
+        conversas[m.cliente_email].atendente = m.atendente_email;
       }
     }
   });
@@ -1564,7 +1564,7 @@ async function concluirConversa(email) {
     window.chatConversas[email].atendente = null;
   }
   await sb.from('chat').insert({
-    client_email: email,
+    cliente_email: email,
     autor: 'admin',
     admin_email: currentUser.email,
     atendente_email: null,
@@ -1612,7 +1612,7 @@ async function selecionarChatCliente(email) {
   // Buscar último status de atendimento
   const { data: msgsAtend } = await sb.from('chat')
     .select('*')
-    .eq('client_email', email)
+    .eq('cliente_email', email)
     .not('status_atendimento', 'is', null)
     .order('criado_em', { ascending: false })
     .limit(5);
@@ -1654,7 +1654,7 @@ async function selecionarChatCliente(email) {
     </div>`;
 
   await loadChat(email, true);
-  chatInterval = setInterval(() => loadChat(email, true), 4000);
+  chatInterval = setInterval(() => loadChat(email, true), 8000);
 }
 
 function buildChatUI() {
@@ -1686,7 +1686,7 @@ function buildChatUI() {
 async function iniciarAtendimento(email) {
   // Marcar conversa como em atendimento
   await sb.from('chat').insert({
-    client_email: email,
+    cliente_email: email,
     autor: 'admin',
     admin_email: currentUser.email,
     atendente_email: currentUser.email,
@@ -1713,7 +1713,10 @@ async function loadAdminChat() {
 async function loadChat(clientEmail, adminSide) {
   if (!clientEmail) return;
   chatClientEmail = clientEmail;
-  const { data: msgs } = await sb.from('chat').select('*').eq('client_email', clientEmail).order('criado_em', { ascending: true });
+  // Verificar se sessão ainda é válida
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) { clearInterval(chatInterval); return; }
+  const { data: msgs } = await sb.from('chat').select('*').eq('cliente_email', clientEmail).order('criado_em', { ascending: true });
   const el = document.getElementById('chat-messages');
   if (!el) return;
   if (!msgs || msgs.length === 0) { el.innerHTML = '<div style="text-align:center;color:var(--text-tertiary);font-size:13px;padding:1rem;">Nenhuma mensagem ainda.</div>'; return; }
@@ -1808,16 +1811,16 @@ async function solicitarDocumento(nome, path, dentroHorario) {
   if (dentroHorario) {
     // Dentro do horário: só manda mensagem para o admin responder
     const mensagem = `__SOLICITACAO__${nome}`;
-    await sb.from('chat').insert({ client_email: clientEmail, autor, mensagem, criado_em: new Date().toISOString() });
+    await sb.from('chat').insert({ cliente_email: clientEmail, autor, mensagem, criado_em: new Date().toISOString() });
   } else {
     // Fora do horário: envia o documento automaticamente como mensagem
     const mensagem = `__SOLICITACAO__${nome}`;
-    await sb.from('chat').insert({ client_email: clientEmail, autor, mensagem, criado_em: new Date().toISOString() });
+    await sb.from('chat').insert({ cliente_email: clientEmail, autor, mensagem, criado_em: new Date().toISOString() });
 
     // Resposta automática com o arquivo
     setTimeout(async () => {
       const resposta = `__ARQUIVO__${nome}__URL__${path}`;
-      await sb.from('chat').insert({ client_email: clientEmail, autor: 'admin', mensagem: resposta, criado_em: new Date().toISOString() });
+      await sb.from('chat').insert({ cliente_email: clientEmail, autor: 'admin', mensagem: resposta, criado_em: new Date().toISOString() });
       loadChat(clientEmail, false);
     }, 1500);
   }
@@ -1857,14 +1860,14 @@ async function sendChat() {
     if (uploadErr) { alert('Erro ao enviar arquivo.'); return; }
     const { data: urlData } = sb.storage.from('arquivos').getPublicUrl(path);
     const mensagem = `__ARQUIVO__${file.name}__URL__${path}`;
-    await sb.from('chat').insert({ client_email: clientEmail, autor, mensagem, criado_em: new Date().toISOString() });
+    await sb.from('chat').insert({ cliente_email: clientEmail, autor, mensagem, criado_em: new Date().toISOString() });
     cancelarAnexo();
   }
 
   if (text) {
     input.value = '';
     const adminEmailInsert = isAdmin ? currentUser.email : null;
-    await sb.from('chat').insert({ client_email: clientEmail, autor, mensagem: text, admin_email: adminEmailInsert, atendente_email: isAdmin ? currentUser.email : null, status_atendimento: isAdmin ? 'atendimento' : null, criado_em: new Date().toISOString() });
+    await sb.from('chat').insert({ cliente_email: clientEmail, autor, mensagem: text, admin_email: adminEmailInsert, atendente_email: isAdmin ? currentUser.email : null, status_atendimento: isAdmin ? 'atendimento' : null, criado_em: new Date().toISOString() });
     // Atualizar cache de conversas
     if (window.chatConversas && window.chatConversas[clientEmail] && isAdmin) {
       window.chatConversas[clientEmail].atendente = currentUser.email;
@@ -2985,7 +2988,7 @@ async function loadChatNotifs() {
   if (!msgs) return;
 
   const byClient = {};
-  msgs.forEach(m => { if (!byClient[m.client_email]) byClient[m.client_email] = m; });
+  msgs.forEach(m => { if (!byClient[m.cliente_email]) byClient[m.cliente_email] = m; });
   const notifs = Object.values(byClient);
 
   const badge = document.getElementById('chat-notif-count');
@@ -3027,7 +3030,7 @@ async function marcarChatLido(clienteEmail) {
   const autorOutro = isAdmin ? 'cliente' : 'admin';
   await sb.from('chat')
     .update({ lido: true })
-    .eq('client_email', clienteEmail)
+    .eq('cliente_email', clienteEmail)
     .eq('autor', autorOutro)
     .eq('lido', false);
   // Atualizar badge
