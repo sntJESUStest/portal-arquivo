@@ -1767,7 +1767,6 @@ async function loadChat(clientEmail, adminSide) {
         ${m.mensagem}
         <div class="bubble-meta">${formatDate(m.criado_em)}</div>
       </div>
-      ${!mine && adminSide ? `<button onclick="apagarMensagemChat('${m.id}')" style="background:none;border:none;cursor:pointer;opacity:0;padding:2px 4px;font-size:11px;color:#ef4444;flex-shrink:0;transition:opacity 0.15s;" class="chat-del-btn" title="Apagar">✕</button>` : ''}
     </div>`;
   }).join('');
   el.scrollTop = el.scrollHeight;
