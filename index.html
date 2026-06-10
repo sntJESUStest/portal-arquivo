@@ -3927,6 +3927,26 @@ async function definirSenha() {
 // ── INICIALIZAÇÃO DE AUTENTICAÇÃO ────────────────────
 let _authHandled = false;
 
+// Verificar sessão ao carregar — se token inválido, limpar e mostrar login
+(async () => {
+  try {
+    const { data, error } = await Promise.race([
+      sb.auth.getSession(),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 5000))
+    ]);
+    if (error || !data?.session) {
+      await sb.auth.signOut();
+      localStorage.removeItem('sb-nacdezqdsouhxgftqaku-auth-token');
+    }
+  } catch(e) {
+    // Timeout ou erro — limpar sessão corrompida
+    await sb.auth.signOut();
+    localStorage.removeItem('sb-nacdezqdsouhxgftqaku-auth-token');
+    document.getElementById('login-screen').classList.remove('hidden');
+    document.getElementById('main-screen').classList.add('hidden');
+  }
+})();
+
 sb.auth.onAuthStateChange(async (event, session) => {
   const domReady = () => new Promise(r => {
     if (document.readyState === 'complete') r();
