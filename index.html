@@ -804,7 +804,7 @@ async function marcarGuiaComoPaga(clienteEmail, tipo, mes, ano) {
   // Buscar guia correspondente e marcar como paga
   const { data: guias } = await sb.from('guias')
     .select('id, vencimento')
-    .eq('client_email', clienteEmail)
+    .eq('cliente_email', clienteEmail)
     .eq('tipo', tipo)
     .eq('status', 'pendente');
 
@@ -1093,7 +1093,7 @@ async function renderPanelDados(body) {
     const { data: d } = await sb.from('clientes').select('*').eq('email', currentUser.email).maybeSingle();
     if (!d) { body.innerHTML = '<div class="empty-state">Nenhum dado cadastrado ainda. Fale com a HP Contabilidade.</div>'; return; }
     // Buscar documentos do cliente
-    const { data: docsCliente } = await sb.from('docs_cliente').select('*').eq('client_email', currentUser.email).order('categoria');
+    const { data: docsCliente } = await sb.from('docs_cliente').select('*').eq('cliente_email', currentUser.email).order('categoria');
 
     let docsHtml = '';
     if (docsCliente && docsCliente.length > 0) {
@@ -1159,7 +1159,7 @@ async function lancarGuiasModelo(clienteEmail, tipos) {
 
     tipos.forEach(tipo => {
       guiasParaInserir.push({
-        client_email: clienteEmail,
+        cliente_email: clienteEmail,
         tipo,
         vencimento,
         status: 'pendente',
@@ -1186,7 +1186,7 @@ async function abrirDocsCliente(email, nome) {
   document.getElementById('panel-overlay').classList.remove('hidden');
   body.innerHTML = '<div class="loading">Carregando...</div>';
 
-  const { data: docs } = await sb.from('docs_cliente').select('*').eq('client_email', email).order('categoria');
+  const { data: docs } = await sb.from('docs_cliente').select('*').eq('cliente_email', email).order('categoria');
 
   const byCategoria = {};
   (docs || []).forEach(d => {
@@ -1245,7 +1245,7 @@ async function uploadDocCliente(email) {
   const { error: uploadErr } = await sb.storage.from('arquivos').upload(path, file);
   if (uploadErr) { msg.className = 'error-msg'; msg.textContent = 'Erro: ' + uploadErr.message; msg.classList.remove('hidden'); return; }
 
-  await sb.from('docs_cliente').insert({ client_email: email, categoria, arquivo_nome: file.name, arquivo_path: path, criado_em: new Date().toISOString() });
+  await sb.from('docs_cliente').insert({ cliente_email: email, categoria, arquivo_nome: file.name, arquivo_path: path, criado_em: new Date().toISOString() });
   msg.className = 'success-msg'; msg.textContent = '✓ Documento enviado!'; msg.classList.remove('hidden');
   fileInput.value = '';
 
@@ -1341,7 +1341,7 @@ async function preencherDados(email, nome, empresa, whatsapp, codigo, tipo, matr
   if (document.getElementById('d-matriz')) document.getElementById('d-matriz').value = matriz||'';
 
   // Carregar modelo de guias do cliente
-  const { data: modelo } = await sb.from('modelo_guias').select('tipo').eq('client_email', email);
+  const { data: modelo } = await sb.from('modelo_guias').select('tipo').eq('cliente_email', email);
   const tiposAtivos = (modelo||[]).map(m => m.tipo);
   const guiaIds = ['g-das','g-irpj','g-csll','g-pis','g-inss','g-fgts','g-iss'];
   guiaIds.forEach(id => {
@@ -1372,8 +1372,8 @@ async function salvarDados() {
 
   if (tiposSelecionados.length > 0) {
     // Salvar modelo
-    await sb.from('modelo_guias').delete().eq('client_email', email);
-    await sb.from('modelo_guias').insert(tiposSelecionados.map(tipo => ({ client_email: email, tipo, criado_em: new Date().toISOString() })));
+    await sb.from('modelo_guias').delete().eq('cliente_email', email);
+    await sb.from('modelo_guias').insert(tiposSelecionados.map(tipo => ({ cliente_email: email, tipo, criado_em: new Date().toISOString() })));
     // Lançar guias nos próximos 12 meses
     await lancarGuiasModelo(email, tiposSelecionados);
     msg.className = 'success-msg'; msg.textContent = `✓ Dados salvos e ${tiposSelecionados.length} tipo(s) de guia lançados nos próximos 12 meses!`;
@@ -1799,7 +1799,7 @@ async function toggleListaDocumentos() {
   // Buscar documentos do cliente
   const { data: docs } = await sb.from('notificacoes')
     .select('*')
-    .eq('client_email', currentUser.email)
+    .eq('cliente_email', currentUser.email)
     .order('criado_em', { ascending: false });
 
   if (!docs || docs.length === 0) {
@@ -1921,7 +1921,7 @@ async function renderPanelCertificados(body) {
         html += `<div class="cert-row">
           <div class="cert-info">
             <div class="cert-name">${c.descricao || 'Certificado'}</div>
-            <div class="cert-date">${c.client_email} · Vence em ${formatDateBR(c.vencimento)}</div>
+            <div class="cert-date">${c.cliente_email} · Vence em ${formatDateBR(c.vencimento)}</div>
           </div>
           ${badge}
           <button class="btn-delete" onclick="deleteCert('${c.id}')"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg></button>
@@ -1930,7 +1930,7 @@ async function renderPanelCertificados(body) {
     }
     body.innerHTML = html;
   } else {
-    const { data: certs } = await sb.from('certificados').select('*').eq('client_email', currentUser.email).order('vencimento', { ascending: true });
+    const { data: certs } = await sb.from('certificados').select('*').eq('cliente_email', currentUser.email).order('vencimento', { ascending: true });
     if (!certs || certs.length === 0) { body.innerHTML = '<div class="empty-state">Nenhum certificado cadastrado.</div>'; return; }
     body.innerHTML = certs.map(c => `
       <div class="cert-row">
@@ -1958,7 +1958,7 @@ async function salvarCert() {
   const data  = document.getElementById('c-data').value;
   const msg   = document.getElementById('c-msg');
   if (!email || !data) { msg.className = 'error-msg'; msg.textContent = 'Preencha e-mail e data.'; msg.classList.remove('hidden'); return; }
-  const { error } = await sb.from('certificados').insert({ client_email: email, descricao: desc, vencimento: data, criado_em: new Date().toISOString() });
+  const { error } = await sb.from('certificados').insert({ cliente_email: email, descricao: desc, vencimento: data, criado_em: new Date().toISOString() });
   if (error) { msg.className = 'error-msg'; msg.textContent = 'Erro: ' + error.message; }
   else { msg.className = 'success-msg'; msg.textContent = '✓ Certificado salvo!'; document.getElementById('c-email').value=''; document.getElementById('c-desc').value=''; document.getElementById('c-data').value=''; }
   msg.classList.remove('hidden');
@@ -1980,7 +1980,7 @@ async function loadAdminView() {
   document.getElementById('count-unread').textContent = unread;
   const byClient = {};
   files.forEach(f => {
-    const emailKey = f.client_email || f.cliente_email;
+    const emailKey = f.cliente_email || f.cliente_email;
     if (!emailKey) return; // ignorar arquivos sem email
     if (!byClient[emailKey]) byClient[emailKey] = [];
     byClient[emailKey].push(f);
@@ -2086,7 +2086,7 @@ async function uploadFile() {
   btn.textContent = 'Enviando...'; btn.disabled = true;
   const { error: uploadErr } = await sb.storage.from('arquivos').upload(path, file);
   if (uploadErr) { errEl.textContent = 'Erro: ' + uploadErr.message; errEl.classList.remove('hidden'); btn.textContent = 'Enviar arquivo'; btn.disabled = false; return; }
-  const { error: dbErr } = await sb.from('notificacoes').insert({ client_email: clientEmail, arquivo_nome: file.name, arquivo_path: path, mensagem: note || `Novo arquivo em ${subcat ? setor+' › '+subcat : setor}: ${file.name}`, setor, subcategoria: subcat, lido: false, criado_em: new Date().toISOString() });
+  const { error: dbErr } = await sb.from('notificacoes').insert({ cliente_email: clientEmail, arquivo_nome: file.name, arquivo_path: path, mensagem: note || `Novo arquivo em ${subcat ? setor+' › '+subcat : setor}: ${file.name}`, setor, subcategoria: subcat, lido: false, criado_em: new Date().toISOString() });
   if (dbErr) { errEl.textContent = 'Erro: ' + dbErr.message; errEl.classList.remove('hidden'); }
   else {
     // Enviar WhatsApp automaticamente pelo cadastro
@@ -2122,7 +2122,7 @@ async function uploadFile() {
     const guiaData = document.getElementById('f-guia-data').value;
     if (guiaTipo && guiaData) {
       await sb.from('guias').insert({
-        client_email: clientEmail,
+        cliente_email: clientEmail,
         tipo: guiaTipo,
         vencimento: guiaData,
         status: 'pendente',
@@ -2218,7 +2218,7 @@ async function loadClientView() {
   }
 
   const emailBusca = activeFilialEmail || currentUser.email;
-  const { data: files, error: filesErr } = await sb.from('notificacoes').select('*').eq('client_email', emailBusca).order('criado_em', { ascending: false });
+  const { data: files, error: filesErr } = await sb.from('notificacoes').select('*').eq('cliente_email', emailBusca).order('criado_em', { ascending: false });
   console.log('CLIENT FILES:', { count: files?.length, error: filesErr, email: emailBusca });
   if (!files) { 
     document.getElementById('client-files-list').innerHTML = '<div class="empty-state">Sem arquivos disponíveis.</div>';
@@ -2333,7 +2333,7 @@ async function buscarGuiasPendentes() {
 
   let guias = (todasGuias || [])
     .filter(g => g.status !== 'pago' && g.status !== 'disponivel')
-    .map(g => ({ ...g, clientes: clientesGuias?.find(c => c.email === g.client_email) || null }));
+    .map(g => ({ ...g, clientes: clientesGuias?.find(c => c.email === g.cliente_email) || null }));
 
   // Filtrar por período
   if (mes || ano) {
@@ -2349,14 +2349,14 @@ async function buscarGuiasPendentes() {
   }
 
   // Filtrar por cliente
-  if (clienteEmail) guias = guias.filter(g => g.client_email === clienteEmail);
+  if (clienteEmail) guias = guias.filter(g => g.cliente_email === clienteEmail);
 
   if (guias.length === 0) { el.innerHTML = '<div class="empty-state">Nenhuma guia pendente no periodo.</div>'; return; }
 
   // Agrupar por cliente
   const porCliente = {};
   guias.forEach(g => {
-    const key = g.client_email;
+    const key = g.cliente_email;
     if (!porCliente[key]) porCliente[key] = { info: g.clientes, guias: [] };
     porCliente[key].guias.push(g);
   });
@@ -2547,7 +2547,7 @@ async function mostrarRelatorio(tipo, btnEl) {
         ${sf.map(f => `<div class="file-row" style="margin-bottom:4px;">
           <div class="file-info">
             <div class="file-name">${f.arquivo_nome}</div>
-            <div class="file-meta">${f.client_email} · ${f.mes||''} ${f.ano||''}</div>
+            <div class="file-meta">${f.cliente_email} · ${f.mes||''} ${f.ano||''}</div>
           </div>
           <span class="badge ${f.lido ? 'badge-read' : 'badge-new'}">${f.lido ? 'Visto' : 'Novo'}</span>
         </div>`).join('')}
@@ -2708,7 +2708,7 @@ async function loadCalendario() {
   const email = isAdmin ? (emailEl ? emailEl.value : '') : currentUser.email;
   if (!email) return;
 
-  const { data } = await sb.from('guias').select('*').eq('client_email', email).order('vencimento');
+  const { data } = await sb.from('guias').select('*').eq('cliente_email', email).order('vencimento');
   calGuias = data || [];
   renderCalendario();
 }
@@ -2835,7 +2835,7 @@ async function salvarGuia() {
   const obs   = document.getElementById('g-obs').value.trim();
   const msg   = document.getElementById('g-msg');
   if (!email || !data) { msg.className='error-msg'; msg.textContent='Preencha cliente e data.'; msg.classList.remove('hidden'); return; }
-  const { error } = await sb.from('guias').insert({ client_email: email, tipo, vencimento: data, valor: valor||null, status:'pendente', observacao: obs||null, criado_em: new Date().toISOString() });
+  const { error } = await sb.from('guias').insert({ cliente_email: email, tipo, vencimento: data, valor: valor||null, status:'pendente', observacao: obs||null, criado_em: new Date().toISOString() });
   if (error) { msg.className='error-msg'; msg.textContent='Erro: '+error.message; }
   else { msg.className='success-msg'; msg.textContent='✓ Guia adicionada!'; document.getElementById('g-data').value=''; document.getElementById('g-valor').value=''; document.getElementById('g-obs').value=''; }
   msg.classList.remove('hidden');
@@ -2936,7 +2936,7 @@ async function verificarGuiasVencendo() {
 
   const { data: guias } = await sb.from('guias')
     .select('*')
-    .eq('client_email', currentUser.email)
+    .eq('cliente_email', currentUser.email)
     .eq('status', 'pendente')
     .order('vencimento', { ascending: true });
 
@@ -2999,7 +2999,7 @@ function closeChatNotif() {
 async function loadChatNotifs() {
   let query = sb.from('chat').select('*').eq('lido', false).order('criado_em', { ascending: false });
   if (isAdmin) query = query.eq('autor', 'cliente');
-  else query = query.eq('client_email', currentUser.email).eq('autor', 'admin');
+  else query = query.eq('cliente_email', currentUser.email).eq('autor', 'admin');
 
   const { data: msgs } = await query.limit(20);
   if (!msgs) return;
@@ -3021,14 +3021,14 @@ async function loadChatNotifs() {
   badge.classList.remove('hidden');
 
   if (isAdmin) {
-    const emails = notifs.map(n => n.client_email);
+    const emails = notifs.map(n => n.cliente_email);
     const { data: clientes } = await sb.from('clientes').select('email, nome').in('email', emails);
     const nomeMap = {};
     (clientes || []).forEach(c => { nomeMap[c.email] = c.nome || c.email; });
 
     list.innerHTML = notifs.map(m => `
-      <div class="chat-notif-item" onclick="abrirChatCliente('${m.client_email}')">
-        <div class="chat-notif-item-name">👤 ${nomeMap[m.client_email] || m.client_email}</div>
+      <div class="chat-notif-item" onclick="abrirChatCliente('${m.cliente_email}')">
+        <div class="chat-notif-item-name">👤 ${nomeMap[m.cliente_email] || m.cliente_email}</div>
         <div class="chat-notif-item-msg">${m.mensagem}</div>
         <div class="chat-notif-item-time">${formatDate(m.criado_em)}</div>
       </div>`).join('');
@@ -3073,7 +3073,7 @@ async function abrirChatCliente(email) {
 async function pollChatNotifs() {
   let query = sb.from('chat').select('*', { count: 'exact', head: true }).eq('lido', false);
   if (isAdmin) query = query.eq('autor', 'cliente');
-  else query = query.eq('client_email', currentUser.email).eq('autor', 'admin');
+  else query = query.eq('cliente_email', currentUser.email).eq('autor', 'admin');
   const { count } = await query;
   const badge = document.getElementById('chat-notif-count');
   if (count > 0) { badge.textContent = count > 9 ? '9+' : count; badge.classList.remove('hidden'); }
@@ -3827,8 +3827,8 @@ function mostrarPendentesMes(guiasMes, clientes) {
   // Agrupar por empresa
   const porEmpresa = {};
   pendentes.forEach(g => {
-    if (!porEmpresa[g.client_email]) porEmpresa[g.client_email] = [];
-    porEmpresa[g.client_email].push(g);
+    if (!porEmpresa[g.cliente_email]) porEmpresa[g.cliente_email] = [];
+    porEmpresa[g.cliente_email].push(g);
   });
 
   // Montar HTML do painel
