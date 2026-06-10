@@ -1317,6 +1317,7 @@ async function enviarConvite(email, nome) {
 
     if (!resEmail.ok) throw new Error('Falha ao enviar e-mail');
 
+    registrarLog('convite enviado', `Cliente: ${nome} (${email})`);
     alert(`✓ Convite enviado para ${email}!\nSenha temporária: ${senha}\n\n(Guarde para repassar ao cliente caso o e-mail não chegue)`);
   } catch(e) {
     alert('Erro ao enviar convite: ' + e.message);
@@ -2837,7 +2838,7 @@ async function salvarGuia() {
   if (!email || !data) { msg.className='error-msg'; msg.textContent='Preencha cliente e data.'; msg.classList.remove('hidden'); return; }
   const { error } = await sb.from('guias').insert({ cliente_email: email, tipo, vencimento: data, valor: valor||null, status:'pendente', observacao: obs||null, criado_em: new Date().toISOString() });
   if (error) { msg.className='error-msg'; msg.textContent='Erro: '+error.message; }
-  else { msg.className='success-msg'; msg.textContent='✓ Guia adicionada!'; document.getElementById('g-data').value=''; document.getElementById('g-valor').value=''; document.getElementById('g-obs').value=''; }
+  else { registrarLog('guia cadastrada', `${tipo} - vencimento ${data}`); msg.className='success-msg'; msg.textContent='✓ Guia adicionada!'; document.getElementById('g-data').value=''; document.getElementById('g-valor').value=''; document.getElementById('g-obs').value=''; }
   msg.classList.remove('hidden');
   const viewEmail = document.getElementById('g-view-email');
   if (viewEmail && viewEmail.value === email) await loadCalendario();
