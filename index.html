@@ -870,6 +870,7 @@ async function login() {
   const { data, error } = await sb.auth.signInWithPassword({ email: emailInput, password: pass });
   if (error) { errEl.textContent = 'E-mail ou senha incorretos.'; errEl.classList.remove('hidden'); return; }
   currentUser = data.user;
+  _authHandled = true;
   showApp();
 }
 
@@ -3951,6 +3952,8 @@ sb.auth.onAuthStateChange(async (event, session) => {
   if (event === 'SIGNED_IN' && session && !_authHandled) {
     _authHandled = true;
     currentUser = session.user;
+    // Se o showApp já foi chamado pelo login manual, não chamar de novo
+    if (document.getElementById('main-screen') && !document.getElementById('main-screen').classList.contains('hidden')) return;
 
     // Checar se é cliente que ainda não definiu senha
     const isAdminUser = ADMIN_EMAILS.includes(currentUser.email);
