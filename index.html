@@ -712,13 +712,7 @@ const WA_PHONE_ID = '1144342742092824';
 const SUBCATEGORIAS_PESSOAL = ['Encargos', 'Admissões', 'Rescisões', 'Férias', 'Geral'];
 const SETOR_CLASS = { 'Fiscal':'setor-fiscal','Pessoal':'setor-pessoal','Contabil':'setor-contabil','Financeiro':'setor-financeiro','Avisos':'setor-avisos' };
 
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
-  auth: {
-    storageKey: 'hp-portal-auth',
-    autoRefreshToken: true,
-    persistSession: true
-  }
-});
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 let currentUser = null;
 let allClientFiles = [];
 let activeSetor = 'Todos';
