@@ -12,17 +12,12 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
-// Receber notificações em background
+// Apenas notificações em background (app fechado/minimizado)
+// Quando app está aberto, o handler do index.html cuida
 messaging.onBackgroundMessage((payload) => {
-  const title = payload.notification?.title || 'HP Contabilidade';
-  const body = payload.notification?.body || '';
-  self.registration.showNotification(title, {
-    body,
-    icon: '/icon-192.png',
-    badge: '/icon-192.png',
-    tag: 'hp-notif',
-    data: payload.data
-  });
+  // Não mostrar notificação aqui — deixar o Firebase mostrar automaticamente
+  // via notification payload. Só processar data messages se necessário.
+  console.log('[SW] Background message recebido');
 });
 
 self.addEventListener('notificationclick', (event) => {
