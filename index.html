@@ -3182,12 +3182,8 @@ async function uploadHolerites(empresaEmail) {
     if (btn) { btn.textContent = '📤 Enviar Holerites'; btn.disabled = false; }
 
     if (data.ok) {
-      let msg = `✓ ${data.processados} holerite(s) enviado(s)!`;
-      if (data.avisos?.length) msg += `
-
-Avisos:
-${data.avisos.join('
-')}`;
+      let msg = '✓ ' + data.processados + ' holerite(s) enviado(s)!';
+      if (data.avisos?.length) msg += '\n\nAvisos:\n' + data.avisos.join('\n');
       alert(msg);
     } else {
       alert('Erro: ' + data.erro);
@@ -3776,12 +3772,8 @@ async function uploadHolerites(empresaEmail) {
     if (btn) { btn.textContent = '📤 Enviar Holerites'; btn.disabled = false; }
 
     if (data.ok) {
-      let msg = `✓ ${data.processados} holerite(s) enviado(s)!`;
-      if (data.avisos?.length) msg += `
-
-Avisos:
-${data.avisos.join('
-')}`;
+      let msg = '✓ ' + data.processados + ' holerite(s) enviado(s)!';
+      if (data.avisos?.length) msg += '\n\nAvisos:\n' + data.avisos.join('\n');
       alert(msg);
     } else {
       alert('Erro: ' + data.erro);
