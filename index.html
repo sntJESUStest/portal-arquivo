@@ -1088,6 +1088,16 @@ async function renderPanelDados(body) {
       });
     }
     body.innerHTML = html;
+  // Popular select de empresas para holerites
+  const selEmp = document.getElementById('holerite-empresa-select');
+  if (selEmp && empresasList) {
+    empresasList.forEach(e => {
+      const opt = document.createElement('option');
+      opt.value = e.email;
+      opt.textContent = e.empresa || e.nome || e.email;
+      selEmp.appendChild(opt);
+    });
+  }
   } else {
     // Cliente vê seus dados
     const { data: d } = await sb.from('clientes').select('*').eq('email', currentUser.email).maybeSingle();
@@ -3125,9 +3135,71 @@ async function downloadHolerite(id, path, name) {
   loadFuncionarioView();
 }
 
+async function selecionarEmpresaHolerite() {
+  const select = document.getElementById('holerite-empresa-select');
+  const empresaEmail = select.value;
+  if (!empresaEmail) { alert('Selecione uma empresa primeiro.'); return; }
+  uploadHolerites(empresaEmail);
+}
+
+async function uploadHolerites(empresaEmail) {
+  const fileInput = document.createElement('input');
+  fileInput.type = 'file';
+  fileInput.accept = '.pdf';
+  fileInput.onchange = async () => {
+    const file = fileInput.files[0];
+    if (!file) return;
+
+    // Extrair mês e ano do nome do arquivo ou pedir ao usuário
+    const nomeMatch = file.name.match(/(\d{2})-(\d{4})/);
+    let mes = nomeMatch ? nomeMatch[1] : new Date().getMonth() + 1;
+    let ano = nomeMatch ? nomeMatch[2] : new Date().getFullYear();
+
+    if (!nomeMatch) {
+      const mesAno = prompt('Informe o mês e ano do holerite (MM/AAAA):', `${String(new Date().getMonth()+1).padStart(2,'0')}/${new Date().getFullYear()}`);
+      if (!mesAno) return;
+      const [m, a] = mesAno.split('/');
+      mes = m; ano = a;
+    }
+
+    const btn = document.getElementById('btn-upload-holerite-' + empresaEmail.replace('@','_').replace('.','_'));
+    if (btn) { btn.textContent = '⏳ Processando...'; btn.disabled = true; }
+
+    const base64 = await new Promise((res, rej) => {
+      const r = new FileReader();
+      r.onload = () => res(r.result.split(',')[1]);
+      r.onerror = rej;
+      r.readAsDataURL(file);
+    });
+
+    const resp = await fetch('/api/split-holerite', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ base64, empresa_email: empresaEmail, mes, ano })
+    });
+
+    const data = await resp.json();
+    if (btn) { btn.textContent = '📤 Enviar Holerites'; btn.disabled = false; }
+
+    if (data.ok) {
+      let msg = `✓ ${data.processados} holerite(s) enviado(s)!`;
+      if (data.avisos?.length) msg += `
+
+Avisos:
+${data.avisos.join('
+')}`;
+      alert(msg);
+    } else {
+      alert('Erro: ' + data.erro);
+    }
+  };
+  fileInput.click();
+}
+
 async function renderPanelFuncionarios(body) {
   body.innerHTML = '<div class="loading">Carregando...</div>';
   const { data: lista } = await sb.from('funcionarios').select('*').order('nome');
+  const { data: empresasList } = await sb.from('clientes').select('email, empresa, nome').order('empresa');
 
   let html = `
     <!-- Importar Excel -->
@@ -3148,6 +3220,22 @@ async function renderPanelFuncionarios(body) {
         </label>
       </div>
       <div id="fn-import-msg" class="hidden" style="margin-top:10px;"></div>
+    </div>
+
+    <div class="section-title" style="margin-bottom:10px;">Enviar Holerites por Empresa</div>
+    <div class="card" style="margin-bottom:1.5rem;">
+      <p style="font-size:13px;color:var(--text-secondary);margin-bottom:12px;">
+        Selecione a empresa e faça upload do PDF de holerites. O sistema detecta automaticamente cada funcionário e separa as páginas.
+      </p>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+        <select id="holerite-empresa-select" style="padding:8px 12px;border:1px solid var(--border);border-radius:var(--radius);font-size:13px;background:var(--bg);flex:1;min-width:200px;">
+          <option value="">Selecione a empresa...</option>
+        </select>
+        <button class="btn btn-primary" onclick="selecionarEmpresaHolerite()" style="display:flex;align-items:center;gap:6px;">
+          📤 Enviar PDF de Holerites
+        </button>
+      </div>
+      <div id="holerite-msg" class="hidden" style="margin-top:10px;font-size:13px;"></div>
     </div>
 
     <div class="section-title" style="margin-bottom:10px;">Cadastrar Funcionário</div>
@@ -3639,6 +3727,67 @@ async function downloadHolerite(id, path, name) {
   URL.revokeObjectURL(url);
   await sb.from('holerites').update({ lido: true }).eq('id', id);
   loadFuncionarioView();
+}
+
+async function selecionarEmpresaHolerite() {
+  const select = document.getElementById('holerite-empresa-select');
+  const empresaEmail = select.value;
+  if (!empresaEmail) { alert('Selecione uma empresa primeiro.'); return; }
+  uploadHolerites(empresaEmail);
+}
+
+async function uploadHolerites(empresaEmail) {
+  const fileInput = document.createElement('input');
+  fileInput.type = 'file';
+  fileInput.accept = '.pdf';
+  fileInput.onchange = async () => {
+    const file = fileInput.files[0];
+    if (!file) return;
+
+    // Extrair mês e ano do nome do arquivo ou pedir ao usuário
+    const nomeMatch = file.name.match(/(\d{2})-(\d{4})/);
+    let mes = nomeMatch ? nomeMatch[1] : new Date().getMonth() + 1;
+    let ano = nomeMatch ? nomeMatch[2] : new Date().getFullYear();
+
+    if (!nomeMatch) {
+      const mesAno = prompt('Informe o mês e ano do holerite (MM/AAAA):', `${String(new Date().getMonth()+1).padStart(2,'0')}/${new Date().getFullYear()}`);
+      if (!mesAno) return;
+      const [m, a] = mesAno.split('/');
+      mes = m; ano = a;
+    }
+
+    const btn = document.getElementById('btn-upload-holerite-' + empresaEmail.replace('@','_').replace('.','_'));
+    if (btn) { btn.textContent = '⏳ Processando...'; btn.disabled = true; }
+
+    const base64 = await new Promise((res, rej) => {
+      const r = new FileReader();
+      r.onload = () => res(r.result.split(',')[1]);
+      r.onerror = rej;
+      r.readAsDataURL(file);
+    });
+
+    const resp = await fetch('/api/split-holerite', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ base64, empresa_email: empresaEmail, mes, ano })
+    });
+
+    const data = await resp.json();
+    if (btn) { btn.textContent = '📤 Enviar Holerites'; btn.disabled = false; }
+
+    if (data.ok) {
+      let msg = `✓ ${data.processados} holerite(s) enviado(s)!`;
+      if (data.avisos?.length) msg += `
+
+Avisos:
+${data.avisos.join('
+')}`;
+      alert(msg);
+    } else {
+      alert('Erro: ' + data.erro);
+    }
+  };
+  fileInput.click();
 }
 
 async function renderPanelFuncionarios(body) {
