@@ -2156,6 +2156,45 @@ async function uploadFile() {
         okEl.textContent = `✓ Arquivo enviado para ${clientEmail} (${setor})!`;
       }
     }
+    // Detectar holerite pelo nome do arquivo e processar automaticamente
+    if (file.name.toUpperCase().includes('HOLERITE')) {
+      okEl.textContent = '⏳ Holerite detectado! Processando e distribuindo para funcionários...';
+      okEl.classList.remove('hidden');
+      try {
+        const mesVal = document.getElementById('f-mes').value;
+        const anoVal = document.getElementById('f-ano').value;
+        // Extrair mês/ano do nome do arquivo se não preenchido
+        const nomeMatch = file.name.match(/(\d{2})-(\d{4})/);
+        const mes = mesVal || (nomeMatch ? nomeMatch[1] : String(new Date().getMonth()+1).padStart(2,'0'));
+        const ano = anoVal || (nomeMatch ? nomeMatch[2] : String(new Date().getFullYear()));
+
+        const base64 = await new Promise((res, rej) => {
+          const r = new FileReader();
+          r.onload = () => res(r.result.split(',')[1]);
+          r.onerror = rej;
+          r.readAsDataURL(file);
+        });
+
+        const resp = await fetch('/api/split-holerite', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ base64, empresa_email: clientEmail, mes, ano })
+        });
+        const splitData = await resp.json();
+
+        if (splitData.ok) {
+          okEl.textContent = '✓ Holerite enviado! ' + splitData.processados + ' funcionário(s) notificado(s).';
+          if (splitData.avisos?.length) {
+            okEl.textContent += ' Avisos: ' + splitData.avisos.join(', ');
+          }
+        } else {
+          okEl.textContent = '✓ Arquivo enviado, mas erro ao distribuir holerites: ' + splitData.erro;
+        }
+      } catch(e) {
+        okEl.textContent = '✓ Arquivo enviado, mas erro ao processar holerite: ' + e.message;
+      }
+    }
+
     okEl.classList.remove('hidden');
     fileInput.value='';
     document.getElementById('f-client').value='';
