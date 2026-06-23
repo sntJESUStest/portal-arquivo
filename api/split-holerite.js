@@ -6,10 +6,44 @@ const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 async function sbFetch(path, opts) {
   const r = await fetch(SUPABASE_URL + '/rest/v1' + path, {
     ...opts,
-    headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=representation', ...(opts && opts.headers) }
+    headers: {
+      'apikey': SUPABASE_KEY,
+      'Authorization': 'Bearer ' + SUPABASE_KEY,
+      'Content-Type': 'application/json',
+      'Prefer': 'return=representation',
+      ...(opts && opts.headers)
+    }
   });
   const t = await r.text();
   try { return JSON.parse(t); } catch { return t; }
+}
+
+function normalizar(str) {
+  return (str || '')
+    .toUpperCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function extrairNomes(texto) {
+  const nomes = [];
+  // Padrão: após "CC: [número]" vem o nome em maiúsculas antes de "Nome do Funcionário"
+  const regex = /CC:\s*\d+\s+([A-ZÀ-Ú][A-ZÀ-Ú\s]{3,60}?)\s+Nome do Funcion/gi;
+  let match;
+  while ((match = regex.exec(texto)) !== null) {
+    const nome = match[1].trim().replace(/\s+/g, ' ');
+    if (nome.split(' ').length >= 2) nomes.push(nome);
+  }
+  return [...new Set(nomes)];
+}
+
+function nomeBate(nomePDF, nomeCadastro) {
+  const a = normalizar(nomePDF).split(' ').filter(p => p.length > 2);
+  const b = normalizar(nomeCadastro).split(' ').filter(p => p.length > 2);
+  const matches = a.filter(p => b.includes(p));
+  return matches.length >= 2;
 }
 
 module.exports = async (req, res) => {
@@ -28,39 +62,63 @@ module.exports = async (req, res) => {
       })
     });
 
-    const funcs = await sbFetch('/funcionarios?empresa_email=eq.' + encodeURIComponent(empresa_email) + '&select=cpf,nome');
-    if (!Array.isArray(funcs) || !funcs.length) return res.json({ ok: false, erro: 'Nenhum funcionario cadastrado para esta empresa' });
+    // Log para debug
+    console.log('Total de paginas:', paginasTexto.length);
+    const todosNomes = [];
+    paginasTexto.forEach((t, i) => {
+      const nomes = extrairNomes(t);
+      console.log('Pagina', i+1, ':', nomes);
+      todosNomes.push(...nomes);
+    });
 
-    function extrairNome(txt) {
-      const m = txt.match(/CC:\s*\d+\s+([A-Z\u00C0-\u00DC][A-Z\u00C0-\u00DC\s]{4,60}?)\s+Nome do Funcion/);
-      if (m) return m[1].trim();
-      return null;
+    const funcs = await sbFetch('/funcionarios?empresa_email=eq.' + encodeURIComponent(empresa_email) + '&select=cpf,nome');
+    console.log('Funcionarios cadastrados:', JSON.stringify(funcs));
+
+    if (!Array.isArray(funcs) || !funcs.length) {
+      return res.json({ ok: false, erro: 'Nenhum funcionario cadastrado para esta empresa', debug: { todosNomes } });
     }
 
     const resultados = [], avisos = [], vistos = new Set();
+    const mesStr = String(mes).padStart(2, '0');
 
-    for (let i = 0; i < paginasTexto.length; i++) {
-      const nome = extrairNome(paginasTexto[i]);
-      if (!nome || vistos.has(nome)) continue;
+    for (const nomePDF of todosNomes) {
+      if (vistos.has(normalizar(nomePDF))) continue;
 
-      const func = funcs.find(f => {
-        const a = (f.nome || '').toUpperCase().split(/\s+/).filter(p => p.length > 2);
-        const b = nome.toUpperCase().split(/\s+/).filter(p => p.length > 2);
-        return b.filter(p => a.includes(p)).length >= 2;
-      });
+      const func = funcs.find(f => nomeBate(nomePDF, f.nome));
 
-      if (!func) { avisos.push('"' + nome + '" nao encontrado'); continue; }
-      vistos.add(nome);
+      if (!func) {
+        avisos.push('"' + nomePDF + '" nao encontrado no cadastro');
+        continue;
+      }
+
+      vistos.add(normalizar(nomePDF));
 
       await sbFetch('/holerites', {
         method: 'POST',
         headers: { 'Prefer': 'resolution=merge-duplicates' },
-        body: JSON.stringify({ funcionario_cpf: func.cpf, funcionario_nome: func.nome, empresa_email, arquivo_path: 'holerites/' + empresa_email + '/' + mes + '-' + ano + '.pdf', mes: String(mes).padStart(2,'0'), ano: String(ano), lido: false, criado_em: new Date().toISOString(), pagina: i + 1 })
+        body: JSON.stringify({
+          funcionario_cpf: func.cpf,
+          funcionario_nome: func.nome,
+          empresa_email,
+          arquivo_path: 'holerites/' + empresa_email + '/' + mesStr + '-' + ano + '.pdf',
+          mes: mesStr,
+          ano: String(ano),
+          lido: false,
+          criado_em: new Date().toISOString()
+        })
       });
-      resultados.push({ nome: func.nome, pagina: i + 1 });
+
+      resultados.push({ nome: func.nome, cpf: func.cpf });
     }
 
-    return res.json({ ok: true, processados: resultados.length, resultados, avisos });
+    return res.json({
+      ok: true,
+      processados: resultados.length,
+      resultados,
+      avisos,
+      debug: { todosNomes, totalPaginas: paginasTexto.length }
+    });
+
   } catch(e) {
     console.error(e);
     return res.status(500).json({ ok: false, erro: e.message });
