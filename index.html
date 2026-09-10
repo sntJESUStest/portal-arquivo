@@ -1069,8 +1069,22 @@ async function logout() {
 async function showApp() {
   document.getElementById('login-screen').classList.add('hidden');
   document.getElementById('main-screen').classList.remove('hidden');
+  // Verificar se é admin: primeiro no array hardcoded, depois na tabela escritorio_admins
   isAdmin = ADMIN_EMAILS.includes(currentUser.email);
   isMaster = currentUser.email === ADMIN_MASTER;
+
+  // Se não está no array hardcoded, verificar na tabela do escritório
+  if (!isAdmin && escritorioAtual?.id) {
+    const { data: adminRec } = await sb.from('escritorio_admins')
+      .select('role')
+      .eq('escritorio_id', escritorioAtual.id)
+      .eq('email', currentUser.email)
+      .maybeSingle();
+    if (adminRec) {
+      isAdmin = true;
+      isMaster = adminRec.role === 'master';
+    }
+  }
   document.getElementById('role-badge').textContent = isAdmin ? 'Admin' : isFuncionario ? 'Funcionário' : 'Cliente';
   const menuRel = document.getElementById('menu-relatorios');
   if (menuRel) menuRel.style.display = isAdmin ? 'flex' : 'none';
