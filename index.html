@@ -477,9 +477,9 @@
 
     <!-- Seção principal -->
     <span class="menu-section-label">Menu</span>
-    <button class="menu-item" onclick="openPanel('dados')">
+    <button class="menu-item" onclick="openPanel('perfil')">
       <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-      Dados do Cliente
+      Perfil
     </button>
     <button class="menu-item" onclick="openPanel('chat')">
       <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
@@ -1050,10 +1050,11 @@ function filterSetor(setor) {
 function openPanel(type) {
   closeMenu();
   document.getElementById('panel-overlay').classList.remove('hidden');
-  const title = { dados:'Dados do Cliente', chat:'Chat', certificados:'Certificados', calendario:'Calendario de Guias', relatorios:'Relatorios', avisos:'Avisos', funcionarios:'Funcionários', atividade:'Atividade dos Admins' }[type];
+  const title = { perfil:'Perfil', dados:'Dados do Cliente', chat:'Chat', certificados:'Certificados', calendario:'Calendario de Guias', relatorios:'Relatorios', avisos:'Avisos', funcionarios:'Funcionários', atividade:'Atividade dos Admins' }[type];
   document.getElementById('panel-title').textContent = title;
   const body = document.getElementById('panel-body');
   body.innerHTML = '<div class="loading">Carregando...</div>';
+  if (type === 'perfil') renderPanelPerfil(body);
   if (type === 'dados') renderPanelDados(body);
   if (type === 'chat') renderPanelChat(body);
   if (type === 'certificados') renderPanelCertificados(body);
@@ -1071,6 +1072,78 @@ function closePanel(e) {
 }
 
 // ── PAINEL DADOS ──────────────────────────────────────
+async function renderPanelPerfil(body) {
+  body.innerHTML = '<div class="loading">Carregando...</div>';
+  const email = currentUser?.email;
+  const { data: c } = await sb.from('clientes').select('*').eq('email', email).maybeSingle();
+  if (!c) { body.innerHTML = '<div class="empty-state">Perfil não encontrado.</div>'; return; }
+
+  // Buscar contagens
+  const [{ count: totalDocs }, { count: totalHolerites }, { count: naoLidos }] = await Promise.all([
+    sb.from('notificacoes').select('*', { count: 'exact', head: true }).eq('cliente_email', email),
+    sb.from('holerites').select('*', { count: 'exact', head: true }).eq('empresa_email', email),
+    sb.from('notificacoes').select('*', { count: 'exact', head: true }).eq('cliente_email', email).eq('lido', false)
+  ]);
+
+  const iniciais = (c.empresa || c.nome || email).split(' ').map(w => w[0]).slice(0,2).join('').toUpperCase();
+  const cnpj = c.cnpj ? `CNPJ: ${c.cnpj}` : c.email;
+
+  body.innerHTML = `
+    <div style="display:flex;flex-direction:column;align-items:center;padding:1.5rem 1rem 1rem;text-align:center;">
+      <div style="width:72px;height:72px;background:linear-gradient(135deg,#4e9fff,#7c5cfc);border-radius:50%;display:grid;place-items:center;color:#fff;font-size:22px;font-weight:600;margin-bottom:14px;box-shadow:0 0 24px rgba(78,159,255,0.3);">
+        ${iniciais}
+      </div>
+      <div style="font-size:18px;font-weight:600;color:#dde4f0;margin-bottom:4px;">${c.empresa || c.nome || email}</div>
+      <div style="font-size:13px;color:rgba(221,228,240,0.35);">${cnpj}</div>
+    </div>
+
+    <!-- Stats -->
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:rgba(78,159,255,0.1);border-radius:12px;overflow:hidden;margin:0 1rem 1.5rem;">
+      <div style="background:rgba(10,14,26,0.8);padding:14px 10px;text-align:center;">
+        <div style="font-size:20px;font-weight:700;color:#4e9fff;">${totalDocs || 0}</div>
+        <div style="font-size:11px;color:rgba(221,228,240,0.3);margin-top:3px;">Documentos</div>
+      </div>
+      <div style="background:rgba(10,14,26,0.8);padding:14px 10px;text-align:center;">
+        <div style="font-size:20px;font-weight:700;color:#4e9fff;">${totalHolerites || 0}</div>
+        <div style="font-size:11px;color:rgba(221,228,240,0.3);margin-top:3px;">Holerites</div>
+      </div>
+      <div style="background:rgba(10,14,26,0.8);padding:14px 10px;text-align:center;">
+        <div style="font-size:20px;font-weight:700;color:#7c5cfc;">${naoLidos || 0}</div>
+        <div style="font-size:11px;color:rgba(221,228,240,0.3);margin-top:3px;">Pendentes</div>
+      </div>
+    </div>
+
+    <!-- Menu de opções -->
+    <div style="margin:0 1rem;">
+      <div onclick="closePanel();openPanel('dados');" style="display:flex;align-items:center;gap:12px;padding:14px 0;border-bottom:1px solid rgba(78,159,255,0.07);cursor:pointer;color:rgba(221,228,240,0.6);">
+        <span style="font-size:16px;">👤</span>
+        <span style="font-size:14px;">Dados da empresa</span>
+      </div>
+      <div onclick="alterarSenhaCliente();" style="display:flex;align-items:center;gap:12px;padding:14px 0;border-bottom:1px solid rgba(78,159,255,0.07);cursor:pointer;color:rgba(221,228,240,0.6);">
+        <span style="font-size:16px;">🔒</span>
+        <span style="font-size:14px;">Alterar senha</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;padding:14px 0;border-bottom:1px solid rgba(78,159,255,0.07);cursor:pointer;color:rgba(221,228,240,0.6);">
+        <span style="font-size:16px;">📧</span>
+        <span style="font-size:14px;">${email}</span>
+      </div>
+      <div onclick="logout();" style="display:flex;align-items:center;gap:12px;padding:14px 0;cursor:pointer;color:#f87171;">
+        <span style="font-size:16px;">🚪</span>
+        <span style="font-size:14px;">Sair</span>
+      </div>
+    </div>`;
+}
+
+async function alterarSenhaCliente() {
+  const novaSenha = prompt('Digite sua nova senha (mínimo 8 caracteres):');
+  if (!novaSenha || novaSenha.length < 8) { alert('Senha inválida.'); return; }
+  const confirmar = prompt('Confirme a nova senha:');
+  if (novaSenha !== confirmar) { alert('As senhas não coincidem.'); return; }
+  const { error } = await sb.auth.updateUser({ password: novaSenha });
+  if (error) { alert('Erro: ' + error.message); return; }
+  alert('✓ Senha alterada com sucesso!');
+}
+
 async function renderPanelDados(body) {
   if (isFuncionario) {
     const func = funcionarioLogado;
