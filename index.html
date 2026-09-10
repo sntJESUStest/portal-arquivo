@@ -883,11 +883,7 @@ async function initEscritorio() {
   escritorioAtual = data;
   if (data) {
     document.title = data.nome + ' — orbita';
-    // Redirecionar para onboarding se não configurado (evitar loop)
-    if (!data.configurado && !window.location.pathname.includes('onboarding')) {
-      window.location.replace('/onboarding.html?escritorio=' + ESCRITORIO_SLUG);
-      return null;
-    }
+
   }
   return data;
 }
