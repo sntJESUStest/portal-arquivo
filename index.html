@@ -77,22 +77,31 @@
     .menu-btn { width: 36px; height: 36px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--surface); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0; flex-direction: column; transition: all 0.15s; }
     .menu-btn:hover { background: var(--bg); }
     .menu-btn span { width: 4px; height: 4px; background: var(--text-secondary); border-radius: 50%; margin: 1.5px 0; display: block; }
-    .menu-overlay { position: fixed; inset: 0; z-index: 200; }
-    .menu-dropdown { position: fixed; top: 56px; left: 0; width: 260px; background: rgba(10,14,26,0.98); border: none; border-right: 1px solid rgba(78,159,255,0.1); border-radius: 0; box-shadow: 8px 0 32px rgba(0,0,0,0.4); z-index: 300; overflow-y: auto; max-height: calc(100vh - 56px); backdrop-filter: blur(20px); }
-    .menu-header { padding: 14px 16px 10px; border-bottom: 1px solid rgba(78,159,255,0.08); }
-    .menu-user-name { font-size: 14px; font-weight: 600; }
-    .menu-user-email { font-size: 12px; color: var(--text-tertiary); margin-top: 2px; }
-    .menu-item { display: flex; align-items: center; gap: 12px; padding: 11px 16px; cursor: pointer; transition: all 0.12s; font-size: 13px; font-weight: 400; border: none; background: none; width: 100%; text-align: left; color: rgba(221,228,240,0.5); }
-    .menu-item:hover { background: rgba(78,159,255,0.07); color: #dde4f0; }
+    .menu-overlay { position: fixed; inset: 0; z-index: 200; background: rgba(0,0,0,0.4); backdrop-filter: blur(3px); }
+    .menu-dropdown { position: fixed; top: 0; left: 0; width: 260px; height: 100vh; background: rgba(8,12,24,0.98); border-right: 1px solid rgba(78,159,255,0.12); box-shadow: 12px 0 40px rgba(0,0,0,0.7); z-index: 300; overflow-y: auto; backdrop-filter: blur(24px); display: flex; flex-direction: column; transition: transform 0.25s cubic-bezier(0.4,0,0.2,1); }
+    .menu-dropdown.hidden { transform: translateX(-100%); pointer-events: none; }
+    .menu-dropdown:not(.hidden) { transform: translateX(0); }
+    .menu-header { padding: 20px 18px 14px; border-bottom: 1px solid rgba(78,159,255,0.08); }
+    .menu-logo-row { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+    .menu-orb { position: relative; width: 28px; height: 28px; flex-shrink: 0; }
+    .menu-orb-ring { position: absolute; top: 50%; left: 50%; width: 25px; height: 11px; border: 1.5px solid #4e9fff; border-radius: 50%; transform: translate(-50%,-50%) rotate(-25deg); opacity: 0.8; }
+    .menu-orb-sphere { position: absolute; top: 50%; left: 50%; width: 10px; height: 10px; background: radial-gradient(circle at 35% 35%,#6ab4ff,#1a3a7a); border-radius: 50%; transform: translate(-50%,-50%); }
+    .menu-orb-dot { position: absolute; top: 2px; right: 1px; width: 4px; height: 4px; background: #7c5cfc; border-radius: 50%; }
+    .menu-brand { color: #dde4f0; font-weight: 300; letter-spacing: 2px; font-size: 15px; }
+    .menu-user-card { background: rgba(78,159,255,0.06); border: 1px solid rgba(78,159,255,0.1); border-radius: 10px; padding: 10px 12px; display: flex; align-items: center; gap: 10px; }
+    .menu-avatar { width: 32px; height: 32px; background: linear-gradient(135deg,#4e9fff,#7c5cfc); border-radius: 50%; display: grid; place-items: center; color: #fff; font-size: 11px; font-weight: 600; flex-shrink: 0; }
+    .menu-user-name { font-size: 13px; font-weight: 500; color: #dde4f0; }
+    .menu-user-email { font-size: 11px; color: rgba(221,228,240,0.3); margin-top: 1px; }
+    .menu-section-label { font-size: 10px; font-weight: 500; letter-spacing: 0.1em; color: rgba(78,159,255,0.4); padding: 12px 18px 4px; text-transform: uppercase; display: block; }
+    .menu-item { display: flex; align-items: center; gap: 11px; padding: 10px 18px; cursor: pointer; transition: all 0.15s; font-size: 13px; font-weight: 400; border: none; border-left: 2px solid transparent; background: none; width: 100%; text-align: left; color: rgba(221,228,240,0.45); }
+    .menu-item:hover { background: rgba(78,159,255,0.07); color: #dde4f0; border-left-color: rgba(78,159,255,0.3); }
     .menu-item:hover svg { stroke: #4e9fff; }
-    .menu-item svg { width: 16px; height: 16px; stroke: rgba(221,228,240,0.3); fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; transition: stroke 0.12s; }
-    .menu-divider { height: 1px; background: var(--border); margin: 4px 0; }
-    .menu-item-logout { color: rgba(248,113,113,0.6); }
-    .menu-item-logout svg { stroke: rgba(248,113,113,0.5); }
-    .menu-item-logout:hover { background: rgba(248,113,113,0.06) !important; color: #f87171 !important; }
-    .menu-divider { height: 1px; background: rgba(78,159,255,0.07); margin: 4px 0; }
-    .menu-user-name { font-size: 14px; font-weight: 500; color: #dde4f0; }
-    .menu-user-email { font-size: 12px; color: rgba(221,228,240,0.3); margin-top: 2px; }
+    .menu-item svg { width: 16px; height: 16px; stroke: rgba(221,228,240,0.3); fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; transition: stroke 0.15s; }
+    .menu-divider { height: 1px; background: rgba(78,159,255,0.06); margin: 6px 0; }
+    .menu-item-logout { color: rgba(248,113,113,0.55); }
+    .menu-item-logout svg { stroke: rgba(248,113,113,0.4); }
+    .menu-item-logout:hover { background: rgba(248,113,113,0.07) !important; color: #f87171 !important; border-left-color: rgba(248,113,113,0.3) !important; }
+    .menu-item-logout:hover svg { stroke: #f87171 !important; }
 
     /* PAINEL / MODAL */
     .panel-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.35); z-index: 400; display: flex; align-items: flex-end; justify-content: center; }
@@ -454,10 +463,27 @@
   <!-- DROPDOWN MENU -->
   <div id="menu-overlay" class="menu-overlay hidden" onclick="closeMenu()"></div>
   <div id="menu-dropdown" class="menu-dropdown hidden">
+    <!-- Header com logo e usuário -->
     <div class="menu-header">
-      <div class="menu-user-name" id="menu-user-name">—</div>
-      <div class="menu-user-email" id="menu-user-email">—</div>
+      <div class="menu-logo-row">
+        <div class="menu-orb">
+          <div class="menu-orb-ring"></div>
+          <div class="menu-orb-sphere"></div>
+          <div class="menu-orb-dot"></div>
+        </div>
+        <span class="menu-brand">orbita</span>
+      </div>
+      <div class="menu-user-card">
+        <div class="menu-avatar" id="menu-avatar">—</div>
+        <div>
+          <div class="menu-user-name" id="menu-user-name">—</div>
+          <div class="menu-user-email" id="menu-user-email">—</div>
+        </div>
+      </div>
     </div>
+
+    <!-- Seção principal -->
+    <span class="menu-section-label">Menu</span>
     <button class="menu-item" onclick="openPanel('dados')">
       <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
       Dados do Cliente
@@ -466,7 +492,8 @@
       <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
       Chat
     </button>
-    <div class="menu-divider"></div>
+
+    <span class="menu-section-label">Documentos</span>
     <button class="menu-item" onclick="filterSetor('Fiscal')">
       <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
       Fiscal
@@ -483,7 +510,8 @@
       <svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
       Financeiro
     </button>
-    <div class="menu-divider"></div>
+
+    <span class="menu-section-label">Gestão</span>
     <button class="menu-item" onclick="openPanel('certificados')">
       <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/></svg>
       Certificados
@@ -492,25 +520,24 @@
       <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
       Calendário de Guias
     </button>
-    <div class="menu-divider"></div>
     <button class="menu-item" id="menu-relatorios" onclick="openPanel('relatorios')">
       <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-      Relatorios
+      Relatórios
     </button>
     <button class="menu-item" id="menu-funcionarios" onclick="openPanel('funcionarios')">
       <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
       Funcionários
     </button>
-    
     <button class="menu-item" id="menu-atividade" onclick="openPanel('atividade')" style="display:none;">
       <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
       Atividade dos Admins
     </button>
-    <div class="menu-divider"></div>
     <button class="menu-item" id="menu-avisos" onclick="openPanel('avisos')">
       <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
       Avisos
     </button>
+
+    <div style="flex:1"></div>
     <div class="menu-divider"></div>
     <button class="menu-item menu-item-logout" onclick="logout()">
       <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
@@ -942,6 +969,8 @@ async function showApp() {
   const displayName = dadosCliente?.nome || currentUser.email;
   document.getElementById('menu-user-name').textContent = displayName;
   document.getElementById('menu-user-email').textContent = currentUser.email;
+  const menuAv = document.getElementById('menu-avatar');
+  if (menuAv) menuAv.textContent = (displayName || '?').charAt(0).toUpperCase();
 
   // Iniciar polling de notificações de chat
   clearInterval(chatNotifInterval);
@@ -3154,6 +3183,8 @@ async function loadFuncionarioView() {
   document.getElementById('func-nome').textContent = func.nome;
   document.getElementById('menu-user-name').textContent = func.nome;
   document.getElementById('menu-user-email').textContent = 'CPF: ' + func.cpf;
+  const menuAv2 = document.getElementById('menu-avatar');
+  if (menuAv2) menuAv2.textContent = (func.nome || '?').charAt(0).toUpperCase();
 
   const el = document.getElementById('func-holerites-list');
   const { data: holerites } = await sb.from('holerites').select('*').eq('funcionario_cpf', func.cpf).order('criado_em', { ascending: false });
