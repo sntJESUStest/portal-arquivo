@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>orbita — Configuração Inicial</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0a0e1a; --surface: rgba(15,20,36,0.8);
+      --border: rgba(78,159,255,0.15); --text: #dde4f0;
+      --text-sub: rgba(221,228,240,0.45); --accent: #4e9fff;
+      --accent2: #7c5cfc; --green: #34d399; --red: #f87171;
+      --radius: 10px; --radius-lg: 14px;
+    }
+    body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 2rem; position: relative; overflow: hidden; }
+    body::before { content: ''; position: fixed; top: -200px; right: -100px; width: 500px; height: 500px; background: #1a3a7a; border-radius: 50%; filter: blur(120px); opacity: 0.2; pointer-events: none; }
+    body::after { content: ''; position: fixed; bottom: -100px; left: -50px; width: 350px; height: 350px; background: #7c5cfc; border-radius: 50%; filter: blur(100px); opacity: 0.15; pointer-events: none; }
+
+    .wrap { width: 100%; max-width: 560px; position: relative; z-index: 1; }
+
+    /* Logo */
+    .logo { display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 2.5rem; }
+    .orb { position: relative; width: 36px; height: 36px; }
+    .orb-ring { position: absolute; top: 50%; left: 50%; width: 33px; height: 15px; border: 1.5px solid #4e9fff; border-radius: 50%; transform: translate(-50%,-50%) rotate(-25deg); opacity: 0.85; }
+    .orb-sphere { position: absolute; top: 50%; left: 50%; width: 14px; height: 14px; background: radial-gradient(circle at 35% 35%,#6ab4ff,#1a3a7a); border-radius: 50%; transform: translate(-50%,-50%); box-shadow: 0 0 12px rgba(78,159,255,0.4); }
+    .orb-dot { position: absolute; top: 3px; right: 2px; width: 5px; height: 5px; background: #7c5cfc; border-radius: 50%; }
+    .logo-name { color: #dde4f0; font-weight: 300; letter-spacing: 3px; font-size: 22px; }
+
+    /* Progress */
+    .progress { display: flex; align-items: center; gap: 0; margin-bottom: 2rem; }
+    .step-dot { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; font-size: 13px; font-weight: 600; flex-shrink: 0; transition: all 0.3s; }
+    .step-dot.done { background: rgba(52,211,153,0.2); border: 1.5px solid #34d399; color: #34d399; }
+    .step-dot.active { background: rgba(78,159,255,0.2); border: 1.5px solid #4e9fff; color: #4e9fff; }
+    .step-dot.inactive { background: rgba(255,255,255,0.04); border: 1.5px solid rgba(255,255,255,0.1); color: rgba(221,228,240,0.25); }
+    .step-line { flex: 1; height: 1px; background: rgba(78,159,255,0.15); }
+    .step-line.done { background: rgba(52,211,153,0.4); }
+    .step-labels { display: flex; justify-content: space-between; margin-top: 8px; margin-bottom: 1.5rem; }
+    .step-label { font-size: 11px; color: rgba(221,228,240,0.3); text-align: center; flex: 1; }
+    .step-label.active { color: #4e9fff; }
+    .step-label.done { color: #34d399; }
+
+    /* Card */
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 2rem; backdrop-filter: blur(20px); }
+    .card-title { font-size: 18px; font-weight: 600; margin-bottom: 6px; }
+    .card-sub { font-size: 13px; color: var(--text-sub); margin-bottom: 1.75rem; line-height: 1.6; }
+
+    /* Fields */
+    label { display: block; font-size: 12px; color: var(--text-sub); margin-bottom: 5px; font-weight: 500; }
+    input, select { width: 100%; padding: 10px 13px; background: rgba(255,255,255,0.04); border: 1px solid rgba(78,159,255,0.15); border-radius: var(--radius); font-family: 'Inter', sans-serif; font-size: 14px; color: var(--text); outline: none; transition: border-color 0.15s; }
+    input:focus, select:focus { border-color: rgba(78,159,255,0.4); background: rgba(78,159,255,0.04); }
+    input::placeholder { color: rgba(221,228,240,0.2); }
+    .field { margin-bottom: 1rem; }
+    .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+    /* Buttons */
+    .btn-primary { width: 100%; padding: 12px; background: linear-gradient(135deg,#4e9fff,#7c5cfc); border: none; border-radius: var(--radius); color: #fff; font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 500; cursor: pointer; transition: opacity 0.15s; margin-top: 4px; }
+    .btn-primary:hover { opacity: 0.88; }
+    .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-secondary { width: 100%; padding: 11px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); border-radius: var(--radius); color: rgba(221,228,240,0.5); font-family: 'Inter', sans-serif; font-size: 14px; cursor: pointer; margin-top: 8px; }
+    .btn-secondary:hover { background: rgba(255,255,255,0.07); color: var(--text); }
+    .btn-row { display: flex; gap: 10px; margin-top: 4px; }
+    .btn-row .btn-primary, .btn-row .btn-secondary { margin-top: 0; }
+
+    /* Messages */
+    .msg { font-size: 13px; border-radius: var(--radius); padding: 9px 12px; margin-bottom: 12px; }
+    .msg-error { background: rgba(248,113,113,0.1); color: #f87171; border: 1px solid rgba(248,113,113,0.2); }
+    .msg-success { background: rgba(52,211,153,0.1); color: #34d399; border: 1px solid rgba(52,211,153,0.2); }
+    .hidden { display: none !important; }
+
+    /* Spinner */
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; margin-right: 6px; }
+
+    /* Success screen */
+    .success-icon { width: 64px; height: 64px; background: rgba(52,211,153,0.15); border: 2px solid rgba(52,211,153,0.4); border-radius: 50%; display: grid; place-items: center; margin: 0 auto 1.25rem; font-size: 28px; }
+    .success-title { text-align: center; font-size: 20px; font-weight: 600; margin-bottom: 8px; }
+    .success-sub { text-align: center; color: var(--text-sub); font-size: 13px; line-height: 1.6; margin-bottom: 1.5rem; }
+    .url-box { background: rgba(78,159,255,0.08); border: 1px solid rgba(78,159,255,0.2); border-radius: var(--radius); padding: 10px 14px; font-size: 13px; color: #4e9fff; font-family: monospace; text-align: center; margin-bottom: 1.25rem; }
+
+    /* Invite item */
+    .invite-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: rgba(52,211,153,0.06); border: 1px solid rgba(52,211,153,0.15); border-radius: var(--radius); margin-bottom: 8px; font-size: 13px; color: #34d399; }
+    .invite-remove { margin-left: auto; background: none; border: none; color: rgba(248,113,113,0.5); cursor: pointer; font-size: 16px; }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <!-- Logo -->
+  <div class="logo">
+    <div class="orb">
+      <div class="orb-ring"></div>
+      <div class="orb-sphere"></div>
+      <div class="orb-dot"></div>
+    </div>
+    <span class="logo-name">orbita</span>
+  </div>
+
+  <!-- Progress bar -->
+  <div class="progress" id="progress-bar">
+    <div class="step-dot active" id="dot-1">1</div>
+    <div class="step-line" id="line-1"></div>
+    <div class="step-dot inactive" id="dot-2">2</div>
+    <div class="step-line" id="line-2"></div>
+    <div class="step-dot inactive" id="dot-3">3</div>
+  </div>
+  <div class="step-labels" id="step-labels">
+    <span class="step-label active" id="lbl-1">Escritório</span>
+    <span class="step-label" id="lbl-2">Admin</span>
+    <span class="step-label" id="lbl-3">Funcionários</span>
+  </div>
+
+  <!-- STEP 1: Dados do escritório -->
+  <div class="card" id="step-1">
+    <div class="card-title">Dados do seu escritório</div>
+    <div class="card-sub">Vamos começar com as informações básicas do seu escritório contábil.</div>
+    <div id="s1-msg" class="msg msg-error hidden"></div>
+    <div class="field"><label>Nome do escritório *</label><input id="s1-nome" placeholder="Ex: HP Contabilidade" /></div>
+    <div class="field-row">
+      <div class="field" style="margin:0;"><label>CNPJ</label><input id="s1-cnpj" placeholder="00.000.000/0001-00" /></div>
+      <div class="field" style="margin:0;"><label>Plano</label>
+        <select id="s1-plano">
+          <option value="basico">Básico</option>
+          <option value="pro">Pro</option>
+          <option value="enterprise">Enterprise</option>
+        </select>
+      </div>
+    </div>
+    <div class="field" style="margin-top:1rem;"><label>Cor principal</label>
+      <div style="display:flex;gap:10px;align-items:center;">
+        <input id="s1-cor" type="color" value="#4e9fff" style="width:44px;height:38px;padding:2px;cursor:pointer;" />
+        <span style="font-size:13px;color:var(--text-sub);">Cor de destaque do seu portal</span>
+      </div>
+    </div>
+    <button class="btn-primary" onclick="step1Next()" id="s1-btn">Continuar →</button>
+  </div>
+
+  <!-- STEP 2: Criar admin -->
+  <div class="card hidden" id="step-2">
+    <div class="card-title">Criar conta de administrador</div>
+    <div class="card-sub">Este será o primeiro administrador do escritório. Ele poderá adicionar mais admins depois.</div>
+    <div id="s2-msg" class="msg msg-error hidden"></div>
+    <div class="field-row">
+      <div class="field" style="margin:0;"><label>Nome *</label><input id="s2-nome" placeholder="Seu nome" /></div>
+      <div class="field" style="margin:0;"><label>E-mail *</label><input id="s2-email" type="email" placeholder="admin@escritorio.com" /></div>
+    </div>
+    <div class="field" style="margin-top:1rem;"><label>Senha *</label><input id="s2-senha" type="password" placeholder="Mínimo 8 caracteres" /></div>
+    <div class="field"><label>Confirmar senha *</label><input id="s2-confirm" type="password" placeholder="Repita a senha" onkeydown="if(event.key==='Enter')step2Next()" /></div>
+    <div class="btn-row">
+      <button class="btn-secondary" onclick="goStep(1)">← Voltar</button>
+      <button class="btn-primary" onclick="step2Next()" id="s2-btn">Continuar →</button>
+    </div>
+  </div>
+
+  <!-- STEP 3: Convidar funcionários -->
+  <div class="card hidden" id="step-3">
+    <div class="card-title">Convidar funcionários</div>
+    <div class="card-sub">Adicione os funcionários do escritório que vão usar o sistema. Você pode pular e fazer isso depois.</div>
+    <div id="s3-msg" class="msg msg-error hidden"></div>
+    <div style="display:flex;gap:8px;margin-bottom:12px;">
+      <input id="s3-email" placeholder="email@funcionario.com" style="flex:1;" onkeydown="if(event.key==='Enter')adicionarConvite()" />
+      <button onclick="adicionarConvite()" style="padding:10px 16px;background:rgba(78,159,255,0.15);border:1px solid rgba(78,159,255,0.25);color:#4e9fff;border-radius:var(--radius);cursor:pointer;font-size:13px;font-family:Inter,sans-serif;">+ Adicionar</button>
+    </div>
+    <div id="invite-list"></div>
+    <div class="btn-row" style="margin-top:1rem;">
+      <button class="btn-secondary" onclick="goStep(2)">← Voltar</button>
+      <button class="btn-primary" onclick="step3Next()" id="s3-btn">Concluir →</button>
+    </div>
+    <button class="btn-secondary" onclick="pularFuncionarios()" style="margin-top:4px;">Pular por agora</button>
+  </div>
+
+  <!-- STEP 4: Sucesso -->
+  <div class="card hidden" id="step-4">
+    <div class="success-icon">🚀</div>
+    <div class="success-title">Tudo pronto!</div>
+    <div class="success-sub">Seu escritório foi configurado com sucesso no Orbita. Você já pode começar a usar o sistema.</div>
+    <div class="url-box" id="url-acesso">portal-arquivo.vercel.app?escritorio=...</div>
+    <button class="btn-primary" onclick="entrarNoSistema()">Entrar no sistema →</button>
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://nacdezqdsouhxgftqaku.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5hY2RlenFkc291aHhnZnRxYWt1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyODU4MjYsImV4cCI6MjA5NDg2MTgyNn0.C1eqGfu7h-oOC0ibw6hzecPsG49e6IrOXrxu0C-mOSY';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const params = new URLSearchParams(window.location.search);
+const SLUG = params.get('escritorio') || '';
+
+let dadosEscritorio = {};
+let dadosAdmin = {};
+let convites = [];
+let escritorioId = null;
+
+// Verificar se escritório existe e já está configurado
+(async () => {
+  if (!SLUG) return;
+  const { data } = await sb.from('escritorios').select('*').eq('slug', SLUG).maybeSingle();
+  if (data) {
+    escritorioId = data.id;
+    if (data.configurado) {
+      window.location.href = '/?escritorio=' + SLUG;
+    }
+    // Pré-preencher nome se vier do master
+    if (data.nome) document.getElementById('s1-nome').value = data.nome;
+    if (data.cnpj) document.getElementById('s1-cnpj').value = data.cnpj;
+    if (data.plano) document.getElementById('s1-plano').value = data.plano;
+    if (data.cor_primaria) document.getElementById('s1-cor').value = data.cor_primaria;
+  }
+})();
+
+function goStep(n) {
+  [1,2,3,4].forEach(i => {
+    document.getElementById('step-' + i).classList.toggle('hidden', i !== n);
+  });
+  // Atualizar dots
+  [1,2,3].forEach(i => {
+    const dot = document.getElementById('dot-' + i);
+    const lbl = document.getElementById('lbl-' + i);
+    const line = document.getElementById('line-' + i);
+    if (i < n) { dot.className = 'step-dot done'; dot.textContent = '✓'; lbl.className = 'step-label done'; if(line) line.className = 'step-line done'; }
+    else if (i === n) { dot.className = 'step-dot active'; dot.textContent = i; lbl.className = 'step-label active'; }
+    else { dot.className = 'step-dot inactive'; dot.textContent = i; lbl.className = 'step-label'; if(line) line.className = 'step-line'; }
+  });
+  if (n === 4) {
+    document.getElementById('progress-bar').classList.add('hidden');
+    document.getElementById('step-labels').classList.add('hidden');
+  }
+}
+
+async function step1Next() {
+  const nome = document.getElementById('s1-nome').value.trim();
+  const cnpj = document.getElementById('s1-cnpj').value.trim();
+  const plano = document.getElementById('s1-plano').value;
+  const cor = document.getElementById('s1-cor').value;
+  const msg = document.getElementById('s1-msg');
+  msg.classList.add('hidden');
+
+  if (!nome) { msg.textContent = 'Nome do escritório é obrigatório.'; msg.classList.remove('hidden'); return; }
+
+  dadosEscritorio = { nome, cnpj, plano, cor_primaria: cor };
+  goStep(2);
+}
+
+async function step2Next() {
+  const nome = document.getElementById('s2-nome').value.trim();
+  const email = document.getElementById('s2-email').value.trim();
+  const senha = document.getElementById('s2-senha').value;
+  const confirm = document.getElementById('s2-confirm').value;
+  const msg = document.getElementById('s2-msg');
+  const btn = document.getElementById('s2-btn');
+  msg.classList.add('hidden');
+
+  if (!nome || !email) { msg.textContent = 'Nome e e-mail são obrigatórios.'; msg.classList.remove('hidden'); return; }
+  if (senha.length < 8) { msg.textContent = 'A senha deve ter pelo menos 8 caracteres.'; msg.classList.remove('hidden'); return; }
+  if (senha !== confirm) { msg.textContent = 'As senhas não coincidem.'; msg.classList.remove('hidden'); return; }
+
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Criando conta...';
+
+  try {
+    // Criar usuário no Supabase Auth
+    const { error: signUpErr } = await fetch(SUPABASE_URL + '/auth/v1/signup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY },
+      body: JSON.stringify({ email, password: senha })
+    }).then(r => r.json());
+
+    dadosAdmin = { nome, email, senha };
+    goStep(3);
+  } catch(e) {
+    msg.textContent = 'Erro: ' + e.message;
+    msg.classList.remove('hidden');
+  }
+
+  btn.disabled = false;
+  btn.textContent = 'Continuar →';
+}
+
+function adicionarConvite() {
+  const input = document.getElementById('s3-email');
+  const email = input.value.trim();
+  if (!email || !email.includes('@')) return;
+  if (convites.includes(email)) return;
+  convites.push(email);
+  input.value = '';
+  renderConvites();
+}
+
+function removerConvite(email) {
+  convites = convites.filter(e => e !== email);
+  renderConvites();
+}
+
+function renderConvites() {
+  const list = document.getElementById('invite-list');
+  list.innerHTML = convites.map(e => `
+    <div class="invite-item">
+      <span>✉</span> ${e}
+      <button class="invite-remove" onclick="removerConvite('${e}')">×</button>
+    </div>`).join('');
+}
+
+async function step3Next() {
+  await concluir();
+}
+
+async function pularFuncionarios() {
+  convites = [];
+  await concluir();
+}
+
+async function concluir() {
+  const btn = document.getElementById('s3-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Salvando...';
+
+  try {
+    // 1. Atualizar ou criar escritório
+    if (escritorioId) {
+      await sb.from('escritorios').update({
+        ...dadosEscritorio,
+        configurado: true
+      }).eq('id', escritorioId);
+    } else {
+      const slug = dadosEscritorio.nome.toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,'');
+      const { data: newEsc } = await sb.from('escritorios').insert({
+        ...dadosEscritorio,
+        slug,
+        ativo: true,
+        configurado: true
+      }).select().single();
+      escritorioId = newEsc.id;
+    }
+
+    // 2. Salvar admin na tabela escritorio_admins
+    await sb.from('escritorio_admins').upsert({
+      escritorio_id: escritorioId,
+      email: dadosAdmin.email,
+      nome: dadosAdmin.nome,
+      role: 'admin'
+    }, { onConflict: 'escritorio_id,email' });
+
+    // 3. Fazer login com o admin criado
+    await sb.auth.signInWithPassword({ email: dadosAdmin.email, password: dadosAdmin.senha });
+
+    // 4. Mostrar tela de sucesso
+    const urlBase = window.location.origin + '/?escritorio=' + SLUG;
+    document.getElementById('url-acesso').textContent = urlBase;
+    goStep(4);
+
+  } catch(e) {
+    const msg = document.getElementById('s3-msg');
+    msg.textContent = 'Erro ao salvar: ' + e.message;
+    msg.classList.remove('hidden');
+    btn.disabled = false;
+    btn.textContent = 'Concluir →';
+  }
+}
+
+function entrarNoSistema() {
+  window.location.href = '/?escritorio=' + (SLUG || '');
+}
+</script>
+</body>
+</html>
