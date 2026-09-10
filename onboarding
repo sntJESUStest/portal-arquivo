@@ -9,174 +9,183 @@
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
-      --bg: #0a0e1a; --surface: rgba(15,20,36,0.8);
+      --bg: #0a0e1a; --surface: rgba(15,20,36,0.85);
       --border: rgba(78,159,255,0.15); --text: #dde4f0;
       --text-sub: rgba(221,228,240,0.45); --accent: #4e9fff;
       --accent2: #7c5cfc; --green: #34d399; --red: #f87171;
-      --radius: 10px; --radius-lg: 14px;
+      --radius: 10px; --radius-lg: 16px;
     }
     body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 2rem; position: relative; overflow: hidden; }
-    body::before { content: ''; position: fixed; top: -200px; right: -100px; width: 500px; height: 500px; background: #1a3a7a; border-radius: 50%; filter: blur(120px); opacity: 0.2; pointer-events: none; }
-    body::after { content: ''; position: fixed; bottom: -100px; left: -50px; width: 350px; height: 350px; background: #7c5cfc; border-radius: 50%; filter: blur(100px); opacity: 0.15; pointer-events: none; }
-
-    .wrap { width: 100%; max-width: 560px; position: relative; z-index: 1; }
-
-    /* Logo */
-    .logo { display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 2.5rem; }
-    .orb { position: relative; width: 36px; height: 36px; }
-    .orb-ring { position: absolute; top: 50%; left: 50%; width: 33px; height: 15px; border: 1.5px solid #4e9fff; border-radius: 50%; transform: translate(-50%,-50%) rotate(-25deg); opacity: 0.85; }
-    .orb-sphere { position: absolute; top: 50%; left: 50%; width: 14px; height: 14px; background: radial-gradient(circle at 35% 35%,#6ab4ff,#1a3a7a); border-radius: 50%; transform: translate(-50%,-50%); box-shadow: 0 0 12px rgba(78,159,255,0.4); }
-    .orb-dot { position: absolute; top: 3px; right: 2px; width: 5px; height: 5px; background: #7c5cfc; border-radius: 50%; }
-    .logo-name { color: #dde4f0; font-weight: 300; letter-spacing: 3px; font-size: 22px; }
-
-    /* Progress */
-    .progress { display: flex; align-items: center; gap: 0; margin-bottom: 2rem; }
-    .step-dot { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; font-size: 13px; font-weight: 600; flex-shrink: 0; transition: all 0.3s; }
-    .step-dot.done { background: rgba(52,211,153,0.2); border: 1.5px solid #34d399; color: #34d399; }
-    .step-dot.active { background: rgba(78,159,255,0.2); border: 1.5px solid #4e9fff; color: #4e9fff; }
-    .step-dot.inactive { background: rgba(255,255,255,0.04); border: 1.5px solid rgba(255,255,255,0.1); color: rgba(221,228,240,0.25); }
-    .step-line { flex: 1; height: 1px; background: rgba(78,159,255,0.15); }
+    .bg-blob { position: fixed; border-radius: 50%; filter: blur(120px); pointer-events: none; }
+    .bg-blob-1 { width: 600px; height: 600px; background: #1a3a7a; top: -200px; right: -100px; opacity: 0.18; }
+    .bg-blob-2 { width: 400px; height: 400px; background: #7c5cfc; bottom: -100px; left: -50px; opacity: 0.12; }
+    .wrap { width: 100%; max-width: 580px; position: relative; z-index: 1; }
+    .logo { display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 3rem; }
+    .orb { position: relative; width: 40px; height: 40px; }
+    .orb-ring { position: absolute; top: 50%; left: 50%; width: 37px; height: 17px; border: 1.5px solid #4e9fff; border-radius: 50%; transform: translate(-50%,-50%) rotate(-25deg); opacity: 0.85; }
+    .orb-sphere { position: absolute; top: 50%; left: 50%; width: 16px; height: 16px; background: radial-gradient(circle at 35% 35%,#6ab4ff,#1a3a7a); border-radius: 50%; transform: translate(-50%,-50%); box-shadow: 0 0 16px rgba(78,159,255,0.5); }
+    .orb-dot { position: absolute; top: 4px; right: 2px; width: 6px; height: 6px; background: #7c5cfc; border-radius: 50%; }
+    .logo-name { color: #dde4f0; font-weight: 300; letter-spacing: 3px; font-size: 24px; }
+    .progress-wrap { margin-bottom: 2.5rem; }
+    .progress { display: flex; align-items: center; }
+    .step-dot { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; font-size: 13px; font-weight: 600; flex-shrink: 0; transition: all 0.4s; }
+    .step-dot.done { background: rgba(52,211,153,0.15); border: 1.5px solid #34d399; color: #34d399; }
+    .step-dot.active { background: rgba(78,159,255,0.15); border: 2px solid #4e9fff; color: #4e9fff; box-shadow: 0 0 16px rgba(78,159,255,0.3); }
+    .step-dot.inactive { background: rgba(255,255,255,0.03); border: 1.5px solid rgba(255,255,255,0.08); color: rgba(221,228,240,0.2); }
+    .step-line { flex: 1; height: 1px; background: rgba(78,159,255,0.15); transition: background 0.4s; }
     .step-line.done { background: rgba(52,211,153,0.4); }
-    .step-labels { display: flex; justify-content: space-between; margin-top: 8px; margin-bottom: 1.5rem; }
-    .step-label { font-size: 11px; color: rgba(221,228,240,0.3); text-align: center; flex: 1; }
-    .step-label.active { color: #4e9fff; }
+    .step-labels { display: flex; justify-content: space-between; margin-top: 10px; }
+    .step-label { font-size: 11px; color: rgba(221,228,240,0.25); text-align: center; flex: 1; transition: color 0.3s; }
+    .step-label.active { color: #4e9fff; font-weight: 500; }
     .step-label.done { color: #34d399; }
-
-    /* Card */
-    .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 2rem; backdrop-filter: blur(20px); }
-    .card-title { font-size: 18px; font-weight: 600; margin-bottom: 6px; }
-    .card-sub { font-size: 13px; color: var(--text-sub); margin-bottom: 1.75rem; line-height: 1.6; }
-
-    /* Fields */
-    label { display: block; font-size: 12px; color: var(--text-sub); margin-bottom: 5px; font-weight: 500; }
-    input, select { width: 100%; padding: 10px 13px; background: rgba(255,255,255,0.04); border: 1px solid rgba(78,159,255,0.15); border-radius: var(--radius); font-family: 'Inter', sans-serif; font-size: 14px; color: var(--text); outline: none; transition: border-color 0.15s; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 2.25rem; backdrop-filter: blur(24px); animation: slideUp 0.35s ease; }
+    @keyframes slideUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+    .card-eyebrow { font-size: 11px; color: rgba(78,159,255,0.6); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 8px; font-weight: 500; }
+    .card-title { font-size: 20px; font-weight: 600; margin-bottom: 8px; }
+    .card-sub { font-size: 13px; color: var(--text-sub); margin-bottom: 1.75rem; line-height: 1.65; }
+    label { display: block; font-size: 12px; color: rgba(221,228,240,0.4); margin-bottom: 6px; font-weight: 500; }
+    input, select { width: 100%; padding: 11px 14px; background: rgba(255,255,255,0.04); border: 1px solid rgba(78,159,255,0.12); border-radius: var(--radius); font-family: 'Inter', sans-serif; font-size: 14px; color: var(--text); outline: none; transition: all 0.15s; }
     input:focus, select:focus { border-color: rgba(78,159,255,0.4); background: rgba(78,159,255,0.04); }
-    input::placeholder { color: rgba(221,228,240,0.2); }
-    .field { margin-bottom: 1rem; }
-    .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-
-    /* Buttons */
-    .btn-primary { width: 100%; padding: 12px; background: linear-gradient(135deg,#4e9fff,#7c5cfc); border: none; border-radius: var(--radius); color: #fff; font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 500; cursor: pointer; transition: opacity 0.15s; margin-top: 4px; }
-    .btn-primary:hover { opacity: 0.88; }
-    .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
-    .btn-secondary { width: 100%; padding: 11px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); border-radius: var(--radius); color: rgba(221,228,240,0.5); font-family: 'Inter', sans-serif; font-size: 14px; cursor: pointer; margin-top: 8px; }
+    input::placeholder { color: rgba(221,228,240,0.18); }
+    select option { background: #0f1424; }
+    .field { margin-bottom: 1.1rem; }
+    .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .color-preview { display: flex; gap: 12px; align-items: center; }
+    .color-preview input[type=color] { width: 48px; height: 40px; padding: 3px; cursor: pointer; border-radius: 8px; }
+    .swatch { width: 28px; height: 28px; border-radius: 8px; cursor: pointer; transition: transform 0.15s; border: 2px solid transparent; }
+    .swatch:hover { transform: scale(1.1); }
+    .swatch.selected { border-color: rgba(255,255,255,0.5); }
+    .btn-primary { width: 100%; padding: 13px; background: linear-gradient(135deg,#4e9fff,#7c5cfc); border: none; border-radius: var(--radius); color: #fff; font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 500; cursor: pointer; transition: opacity 0.15s, transform 0.15s; margin-top: 6px; }
+    .btn-primary:hover { opacity: 0.88; transform: translateY(-1px); }
+    .btn-primary:disabled { opacity: 0.35; cursor: not-allowed; transform: none; }
+    .btn-secondary { width: 100%; padding: 12px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: var(--radius); color: rgba(221,228,240,0.45); font-family: 'Inter', sans-serif; font-size: 14px; cursor: pointer; transition: all 0.15s; margin-top: 8px; }
     .btn-secondary:hover { background: rgba(255,255,255,0.07); color: var(--text); }
-    .btn-row { display: flex; gap: 10px; margin-top: 4px; }
+    .btn-row { display: flex; gap: 10px; margin-top: 6px; }
     .btn-row .btn-primary, .btn-row .btn-secondary { margin-top: 0; }
-
-    /* Messages */
-    .msg { font-size: 13px; border-radius: var(--radius); padding: 9px 12px; margin-bottom: 12px; }
-    .msg-error { background: rgba(248,113,113,0.1); color: #f87171; border: 1px solid rgba(248,113,113,0.2); }
-    .msg-success { background: rgba(52,211,153,0.1); color: #34d399; border: 1px solid rgba(52,211,153,0.2); }
+    .msg { font-size: 13px; border-radius: var(--radius); padding: 10px 14px; margin-bottom: 14px; }
+    .msg-error { background: rgba(248,113,113,0.08); color: #f87171; border: 1px solid rgba(248,113,113,0.2); }
     .hidden { display: none !important; }
-
-    /* Spinner */
     @keyframes spin { to { transform: rotate(360deg); } }
-    .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; margin-right: 6px; }
-
-    /* Success screen */
-    .success-icon { width: 64px; height: 64px; background: rgba(52,211,153,0.15); border: 2px solid rgba(52,211,153,0.4); border-radius: 50%; display: grid; place-items: center; margin: 0 auto 1.25rem; font-size: 28px; }
-    .success-title { text-align: center; font-size: 20px; font-weight: 600; margin-bottom: 8px; }
-    .success-sub { text-align: center; color: var(--text-sub); font-size: 13px; line-height: 1.6; margin-bottom: 1.5rem; }
-    .url-box { background: rgba(78,159,255,0.08); border: 1px solid rgba(78,159,255,0.2); border-radius: var(--radius); padding: 10px 14px; font-size: 13px; color: #4e9fff; font-family: monospace; text-align: center; margin-bottom: 1.25rem; }
-
-    /* Invite item */
-    .invite-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: rgba(52,211,153,0.06); border: 1px solid rgba(52,211,153,0.15); border-radius: var(--radius); margin-bottom: 8px; font-size: 13px; color: #34d399; }
-    .invite-remove { margin-left: auto; background: none; border: none; color: rgba(248,113,113,0.5); cursor: pointer; font-size: 16px; }
+    .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.25); border-top-color: #fff; border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; margin-right: 6px; }
+    .strength-bar-wrap { height: 3px; background: rgba(255,255,255,0.06); border-radius: 99px; margin-top: 8px; overflow: hidden; }
+    .strength-bar { height: 100%; border-radius: 99px; transition: width 0.3s, background 0.3s; width: 0%; }
+    .strength-label { font-size: 11px; color: rgba(221,228,240,0.3); margin-top: 4px; }
+    .invite-input-row { display: flex; gap: 8px; margin-bottom: 12px; }
+    .invite-input-row input { flex: 1; }
+    .btn-add { padding: 11px 18px; background: rgba(78,159,255,0.12); border: 1px solid rgba(78,159,255,0.25); color: #4e9fff; border-radius: var(--radius); cursor: pointer; font-size: 13px; font-family: 'Inter', sans-serif; white-space: nowrap; }
+    .invite-item { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: rgba(52,211,153,0.06); border: 1px solid rgba(52,211,153,0.15); border-radius: var(--radius); margin-bottom: 8px; font-size: 13px; color: #34d399; }
+    .invite-remove { margin-left: auto; background: none; border: none; color: rgba(248,113,113,0.4); cursor: pointer; font-size: 18px; }
+    .success-wrap { text-align: center; }
+    .success-orb { position: relative; width: 80px; height: 80px; margin: 0 auto 1.5rem; }
+    .success-orb-ring { position: absolute; top: 50%; left: 50%; width: 72px; height: 32px; border: 2px solid #4e9fff; border-radius: 50%; transform: translate(-50%,-50%) rotate(-25deg); opacity: 0.7; animation: rotateOrb 4s linear infinite; }
+    .success-orb-sphere { position: absolute; top: 50%; left: 50%; width: 28px; height: 28px; background: radial-gradient(circle at 35% 35%,#6ab4ff,#1a3a7a); border-radius: 50%; transform: translate(-50%,-50%); box-shadow: 0 0 24px rgba(78,159,255,0.6); }
+    @keyframes rotateOrb { to { transform: translate(-50%,-50%) rotate(335deg); } }
+    .success-title { font-size: 22px; font-weight: 700; margin-bottom: 8px; }
+    .success-sub { color: var(--text-sub); font-size: 14px; line-height: 1.65; margin-bottom: 1.75rem; }
+    .url-box { background: rgba(78,159,255,0.07); border: 1px solid rgba(78,159,255,0.2); border-radius: var(--radius); padding: 12px 16px; font-size: 13px; color: #4e9fff; font-family: monospace; margin-bottom: 6px; word-break: break-all; cursor: pointer; }
+    .url-hint { font-size: 11px; color: rgba(221,228,240,0.25); margin-bottom: 1.5rem; }
   </style>
 </head>
 <body>
+  <div class="bg-blob bg-blob-1"></div>
+  <div class="bg-blob bg-blob-2"></div>
 <div class="wrap">
-  <!-- Logo -->
   <div class="logo">
-    <div class="orb">
-      <div class="orb-ring"></div>
-      <div class="orb-sphere"></div>
-      <div class="orb-dot"></div>
-    </div>
+    <div class="orb"><div class="orb-ring"></div><div class="orb-sphere"></div><div class="orb-dot"></div></div>
     <span class="logo-name">orbita</span>
   </div>
-
-  <!-- Progress bar -->
-  <div class="progress" id="progress-bar">
-    <div class="step-dot active" id="dot-1">1</div>
-    <div class="step-line" id="line-1"></div>
-    <div class="step-dot inactive" id="dot-2">2</div>
-    <div class="step-line" id="line-2"></div>
-    <div class="step-dot inactive" id="dot-3">3</div>
+  <div class="progress-wrap" id="progress-wrap">
+    <div class="progress">
+      <div class="step-dot active" id="dot-1">1</div>
+      <div class="step-line" id="line-1"></div>
+      <div class="step-dot inactive" id="dot-2">2</div>
+      <div class="step-line" id="line-2"></div>
+      <div class="step-dot inactive" id="dot-3">3</div>
+    </div>
+    <div class="step-labels">
+      <span class="step-label active" id="lbl-1">Escritório</span>
+      <span class="step-label" id="lbl-2">Administrador</span>
+      <span class="step-label" id="lbl-3">Equipe</span>
+    </div>
   </div>
-  <div class="step-labels" id="step-labels">
-    <span class="step-label active" id="lbl-1">Escritório</span>
-    <span class="step-label" id="lbl-2">Admin</span>
-    <span class="step-label" id="lbl-3">Funcionários</span>
-  </div>
 
-  <!-- STEP 1: Dados do escritório -->
   <div class="card" id="step-1">
-    <div class="card-title">Dados do seu escritório</div>
-    <div class="card-sub">Vamos começar com as informações básicas do seu escritório contábil.</div>
+    <div class="card-eyebrow">Passo 1 de 3</div>
+    <div class="card-title">Dados do escritório</div>
+    <div class="card-sub">Informe os dados do seu escritório contábil para configurar o portal.</div>
     <div id="s1-msg" class="msg msg-error hidden"></div>
     <div class="field"><label>Nome do escritório *</label><input id="s1-nome" placeholder="Ex: HP Contabilidade" /></div>
     <div class="field-row">
-      <div class="field" style="margin:0;"><label>CNPJ</label><input id="s1-cnpj" placeholder="00.000.000/0001-00" /></div>
+      <div class="field" style="margin:0;"><label>CNPJ</label><input id="s1-cnpj" placeholder="00.000.000/0001-00" oninput="formatCNPJ(this)" maxlength="18" /></div>
       <div class="field" style="margin:0;"><label>Plano</label>
-        <select id="s1-plano">
-          <option value="basico">Básico</option>
-          <option value="pro">Pro</option>
-          <option value="enterprise">Enterprise</option>
-        </select>
+        <select id="s1-plano"><option value="basico">Básico</option><option value="pro">Pro</option><option value="enterprise">Enterprise</option></select>
       </div>
     </div>
-    <div class="field" style="margin-top:1rem;"><label>Cor principal</label>
-      <div style="display:flex;gap:10px;align-items:center;">
-        <input id="s1-cor" type="color" value="#4e9fff" style="width:44px;height:38px;padding:2px;cursor:pointer;" />
-        <span style="font-size:13px;color:var(--text-sub);">Cor de destaque do seu portal</span>
+    <div class="field" style="margin-top:0.25rem;"><label>Cor de destaque</label>
+      <div class="color-preview">
+        <input id="s1-cor" type="color" value="#4e9fff" oninput="atualizarCor(this.value)" />
+        <div style="display:flex;gap:8px;">
+          <div class="swatch selected" style="background:#4e9fff;" onclick="escolherCor('#4e9fff',this)"></div>
+          <div class="swatch" style="background:#7c5cfc;" onclick="escolherCor('#7c5cfc',this)"></div>
+          <div class="swatch" style="background:#34d399;" onclick="escolherCor('#34d399',this)"></div>
+          <div class="swatch" style="background:#f472b6;" onclick="escolherCor('#f472b6',this)"></div>
+          <div class="swatch" style="background:#fb923c;" onclick="escolherCor('#fb923c',this)"></div>
+        </div>
       </div>
     </div>
-    <button class="btn-primary" onclick="step1Next()" id="s1-btn">Continuar →</button>
+    <button class="btn-primary" onclick="step1Next()">Continuar →</button>
   </div>
 
-  <!-- STEP 2: Criar admin -->
   <div class="card hidden" id="step-2">
-    <div class="card-title">Criar conta de administrador</div>
-    <div class="card-sub">Este será o primeiro administrador do escritório. Ele poderá adicionar mais admins depois.</div>
+    <div class="card-eyebrow">Passo 2 de 3</div>
+    <div class="card-title">Conta do administrador</div>
+    <div class="card-sub">Este será o primeiro administrador com acesso completo ao sistema.</div>
     <div id="s2-msg" class="msg msg-error hidden"></div>
     <div class="field-row">
       <div class="field" style="margin:0;"><label>Nome *</label><input id="s2-nome" placeholder="Seu nome" /></div>
       <div class="field" style="margin:0;"><label>E-mail *</label><input id="s2-email" type="email" placeholder="admin@escritorio.com" /></div>
     </div>
-    <div class="field" style="margin-top:1rem;"><label>Senha *</label><input id="s2-senha" type="password" placeholder="Mínimo 8 caracteres" /></div>
+    <div class="field" style="margin-top:1rem;"><label>Senha *</label>
+      <input id="s2-senha" type="password" placeholder="Mínimo 8 caracteres" oninput="avaliarSenha(this.value)" />
+      <div class="strength-bar-wrap"><div class="strength-bar" id="strength-bar"></div></div>
+      <div class="strength-label" id="strength-label"></div>
+    </div>
     <div class="field"><label>Confirmar senha *</label><input id="s2-confirm" type="password" placeholder="Repita a senha" onkeydown="if(event.key==='Enter')step2Next()" /></div>
     <div class="btn-row">
-      <button class="btn-secondary" onclick="goStep(1)">← Voltar</button>
-      <button class="btn-primary" onclick="step2Next()" id="s2-btn">Continuar →</button>
+      <button class="btn-secondary" onclick="goStep(1)" style="margin:0;">← Voltar</button>
+      <button class="btn-primary" onclick="step2Next()" id="s2-btn" style="margin:0;">Continuar →</button>
     </div>
   </div>
 
-  <!-- STEP 3: Convidar funcionários -->
   <div class="card hidden" id="step-3">
-    <div class="card-title">Convidar funcionários</div>
-    <div class="card-sub">Adicione os funcionários do escritório que vão usar o sistema. Você pode pular e fazer isso depois.</div>
+    <div class="card-eyebrow">Passo 3 de 3</div>
+    <div class="card-title">Adicionar equipe</div>
+    <div class="card-sub">Convide os funcionários que vão usar o sistema. Pode pular e fazer depois.</div>
     <div id="s3-msg" class="msg msg-error hidden"></div>
-    <div style="display:flex;gap:8px;margin-bottom:12px;">
-      <input id="s3-email" placeholder="email@funcionario.com" style="flex:1;" onkeydown="if(event.key==='Enter')adicionarConvite()" />
-      <button onclick="adicionarConvite()" style="padding:10px 16px;background:rgba(78,159,255,0.15);border:1px solid rgba(78,159,255,0.25);color:#4e9fff;border-radius:var(--radius);cursor:pointer;font-size:13px;font-family:Inter,sans-serif;">+ Adicionar</button>
+    <div class="invite-input-row">
+      <input id="s3-email" placeholder="email@funcionario.com" onkeydown="if(event.key==='Enter')adicionarConvite()" />
+      <button class="btn-add" onclick="adicionarConvite()">+ Adicionar</button>
     </div>
     <div id="invite-list"></div>
-    <div class="btn-row" style="margin-top:1rem;">
-      <button class="btn-secondary" onclick="goStep(2)">← Voltar</button>
-      <button class="btn-primary" onclick="step3Next()" id="s3-btn">Concluir →</button>
+    <div class="btn-row" style="margin-top:1.25rem;">
+      <button class="btn-secondary" onclick="goStep(2)" style="margin:0;">← Voltar</button>
+      <button class="btn-primary" onclick="step3Next()" id="s3-btn" style="margin:0;">Concluir →</button>
     </div>
-    <button class="btn-secondary" onclick="pularFuncionarios()" style="margin-top:4px;">Pular por agora</button>
+    <button class="btn-secondary" onclick="pularFuncionarios()">Pular por agora</button>
   </div>
 
-  <!-- STEP 4: Sucesso -->
   <div class="card hidden" id="step-4">
-    <div class="success-icon">🚀</div>
-    <div class="success-title">Tudo pronto!</div>
-    <div class="success-sub">Seu escritório foi configurado com sucesso no Orbita. Você já pode começar a usar o sistema.</div>
-    <div class="url-box" id="url-acesso">portal-arquivo.vercel.app?escritorio=...</div>
-    <button class="btn-primary" onclick="entrarNoSistema()">Entrar no sistema →</button>
+    <div class="success-wrap">
+      <div class="success-orb">
+        <div class="success-orb-ring"></div>
+        <div class="success-orb-sphere"></div>
+      </div>
+      <div class="success-title">Portal configurado! 🎉</div>
+      <div class="success-sub">Seu escritório está pronto no Orbita.<br>Compartilhe o link abaixo com seus clientes.</div>
+      <div class="url-box" id="url-acesso" onclick="copiarURL(this)"></div>
+      <div class="url-hint" id="url-hint">Clique para copiar</div>
+      <button class="btn-primary" onclick="entrarNoSistema()">Entrar no sistema →</button>
+    </div>
   </div>
 </div>
 
@@ -184,62 +193,71 @@
 const SUPABASE_URL = 'https://nacdezqdsouhxgftqaku.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5hY2RlenFkc291aHhnZnRxYWt1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyODU4MjYsImV4cCI6MjA5NDg2MTgyNn0.C1eqGfu7h-oOC0ibw6hzecPsG49e6IrOXrxu0C-mOSY';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
 const params = new URLSearchParams(window.location.search);
 const SLUG = params.get('escritorio') || '';
+let dadosEscritorio = {}, dadosAdmin = {}, convites = [], escritorioId = null;
 
-let dadosEscritorio = {};
-let dadosAdmin = {};
-let convites = [];
-let escritorioId = null;
-
-// Verificar se escritório existe e já está configurado
 (async () => {
   if (!SLUG) return;
   const { data } = await sb.from('escritorios').select('*').eq('slug', SLUG).maybeSingle();
   if (data) {
     escritorioId = data.id;
-    if (data.configurado) {
-      window.location.href = '/?escritorio=' + SLUG;
-    }
-    // Pré-preencher nome se vier do master
+    if (data.configurado) { window.location.href = '/?escritorio=' + SLUG; return; }
     if (data.nome) document.getElementById('s1-nome').value = data.nome;
     if (data.cnpj) document.getElementById('s1-cnpj').value = data.cnpj;
     if (data.plano) document.getElementById('s1-plano').value = data.plano;
-    if (data.cor_primaria) document.getElementById('s1-cor').value = data.cor_primaria;
+    if (data.cor_primaria) { document.getElementById('s1-cor').value = data.cor_primaria; atualizarCor(data.cor_primaria); }
   }
 })();
 
 function goStep(n) {
-  [1,2,3,4].forEach(i => {
-    document.getElementById('step-' + i).classList.toggle('hidden', i !== n);
-  });
-  // Atualizar dots
+  [1,2,3,4].forEach(i => document.getElementById('step-'+i).classList.toggle('hidden', i !== n));
   [1,2,3].forEach(i => {
-    const dot = document.getElementById('dot-' + i);
-    const lbl = document.getElementById('lbl-' + i);
-    const line = document.getElementById('line-' + i);
-    if (i < n) { dot.className = 'step-dot done'; dot.textContent = '✓'; lbl.className = 'step-label done'; if(line) line.className = 'step-line done'; }
-    else if (i === n) { dot.className = 'step-dot active'; dot.textContent = i; lbl.className = 'step-label active'; }
-    else { dot.className = 'step-dot inactive'; dot.textContent = i; lbl.className = 'step-label'; if(line) line.className = 'step-line'; }
+    const dot = document.getElementById('dot-'+i);
+    const lbl = document.getElementById('lbl-'+i);
+    const line = i < 3 ? document.getElementById('line-'+i) : null;
+    if (i < n) { dot.className='step-dot done'; dot.textContent='✓'; lbl.className='step-label done'; if(line) line.className='step-line done'; }
+    else if (i === n) { dot.className='step-dot active'; dot.textContent=i; lbl.className='step-label active'; if(line) line.className='step-line'; }
+    else { dot.className='step-dot inactive'; dot.textContent=i; lbl.className='step-label'; if(line) line.className='step-line'; }
   });
-  if (n === 4) {
-    document.getElementById('progress-bar').classList.add('hidden');
-    document.getElementById('step-labels').classList.add('hidden');
-  }
+  if (n === 4) document.getElementById('progress-wrap').classList.add('hidden');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function formatCNPJ(input) {
+  let v = input.value.replace(/\D/g,'').slice(0,14);
+  if (v.length > 12) v = v.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/,'$1.$2.$3/$4-$5');
+  else if (v.length > 8) v = v.replace(/^(\d{2})(\d{3})(\d{3})(\d+)$/,'$1.$2.$3/$4');
+  else if (v.length > 5) v = v.replace(/^(\d{2})(\d{3})(\d+)$/,'$1.$2.$3');
+  else if (v.length > 2) v = v.replace(/^(\d{2})(\d+)$/,'$1.$2');
+  input.value = v;
+}
+
+function atualizarCor(cor) { document.getElementById('s1-cor').value = cor; }
+
+function escolherCor(cor, el) {
+  document.getElementById('s1-cor').value = cor;
+  document.querySelectorAll('.swatch').forEach(s => s.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+function avaliarSenha(pw) {
+  const bar = document.getElementById('strength-bar');
+  const lbl = document.getElementById('strength-label');
+  let f = 0;
+  if (pw.length >= 8) f++; if (/[A-Z]/.test(pw)) f++; if (/[0-9]/.test(pw)) f++; if (/[^A-Za-z0-9]/.test(pw)) f++;
+  const cores = ['#ef4444','#f59e0b','#3b82f6','#22c55e'];
+  const labels = ['Fraca','Razoável','Boa','Forte'];
+  if (!pw.length) { bar.style.width='0%'; lbl.textContent=''; return; }
+  bar.style.width=(f*25)+'%'; bar.style.background=cores[Math.max(0,f-1)]; lbl.textContent=labels[Math.max(0,f-1)];
 }
 
 async function step1Next() {
   const nome = document.getElementById('s1-nome').value.trim();
-  const cnpj = document.getElementById('s1-cnpj').value.trim();
-  const plano = document.getElementById('s1-plano').value;
-  const cor = document.getElementById('s1-cor').value;
   const msg = document.getElementById('s1-msg');
   msg.classList.add('hidden');
-
-  if (!nome) { msg.textContent = 'Nome do escritório é obrigatório.'; msg.classList.remove('hidden'); return; }
-
-  dadosEscritorio = { nome, cnpj, plano, cor_primaria: cor };
+  if (!nome) { msg.textContent='Nome é obrigatório.'; msg.classList.remove('hidden'); return; }
+  dadosEscritorio = { nome, cnpj: document.getElementById('s1-cnpj').value.trim()||null, plano: document.getElementById('s1-plano').value, cor_primaria: document.getElementById('s1-cor').value };
   goStep(2);
 }
 
@@ -251,117 +269,64 @@ async function step2Next() {
   const msg = document.getElementById('s2-msg');
   const btn = document.getElementById('s2-btn');
   msg.classList.add('hidden');
-
-  if (!nome || !email) { msg.textContent = 'Nome e e-mail são obrigatórios.'; msg.classList.remove('hidden'); return; }
-  if (senha.length < 8) { msg.textContent = 'A senha deve ter pelo menos 8 caracteres.'; msg.classList.remove('hidden'); return; }
-  if (senha !== confirm) { msg.textContent = 'As senhas não coincidem.'; msg.classList.remove('hidden'); return; }
-
-  btn.disabled = true;
-  btn.innerHTML = '<span class="spinner"></span>Criando conta...';
-
+  if (!nome || !email) { msg.textContent='Nome e e-mail são obrigatórios.'; msg.classList.remove('hidden'); return; }
+  if (senha.length < 8) { msg.textContent='Senha deve ter pelo menos 8 caracteres.'; msg.classList.remove('hidden'); return; }
+  if (senha !== confirm) { msg.textContent='As senhas não coincidem.'; msg.classList.remove('hidden'); return; }
+  btn.disabled=true; btn.innerHTML='<span class="spinner"></span>Verificando...';
   try {
-    // Criar usuário no Supabase Auth
-    const { error: signUpErr } = await fetch(SUPABASE_URL + '/auth/v1/signup', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY },
-      body: JSON.stringify({ email, password: senha })
-    }).then(r => r.json());
-
+    await fetch(SUPABASE_URL+'/auth/v1/signup', { method:'POST', headers:{'Content-Type':'application/json','apikey':SUPABASE_KEY}, body:JSON.stringify({email,password:senha}) });
     dadosAdmin = { nome, email, senha };
     goStep(3);
-  } catch(e) {
-    msg.textContent = 'Erro: ' + e.message;
-    msg.classList.remove('hidden');
-  }
-
-  btn.disabled = false;
-  btn.textContent = 'Continuar →';
+  } catch(e) { msg.textContent='Erro: '+e.message; msg.classList.remove('hidden'); }
+  btn.disabled=false; btn.textContent='Continuar →';
 }
 
 function adicionarConvite() {
   const input = document.getElementById('s3-email');
   const email = input.value.trim();
-  if (!email || !email.includes('@')) return;
-  if (convites.includes(email)) return;
-  convites.push(email);
-  input.value = '';
-  renderConvites();
+  if (!email || !email.includes('@') || convites.includes(email)) return;
+  convites.push(email); input.value=''; renderConvites();
 }
-
-function removerConvite(email) {
-  convites = convites.filter(e => e !== email);
-  renderConvites();
-}
-
+function removerConvite(email) { convites=convites.filter(e=>e!==email); renderConvites(); }
 function renderConvites() {
-  const list = document.getElementById('invite-list');
-  list.innerHTML = convites.map(e => `
-    <div class="invite-item">
-      <span>✉</span> ${e}
-      <button class="invite-remove" onclick="removerConvite('${e}')">×</button>
-    </div>`).join('');
+  document.getElementById('invite-list').innerHTML = convites.map(e => `
+    <div class="invite-item"><span>✉</span> ${e}<button class="invite-remove" onclick="removerConvite('${e}')">×</button></div>`).join('');
 }
 
-async function step3Next() {
-  await concluir();
-}
-
-async function pularFuncionarios() {
-  convites = [];
-  await concluir();
-}
+async function step3Next() { await concluir(); }
+async function pularFuncionarios() { convites=[]; await concluir(); }
 
 async function concluir() {
   const btn = document.getElementById('s3-btn');
-  btn.disabled = true;
-  btn.innerHTML = '<span class="spinner"></span>Salvando...';
-
+  btn.disabled=true; btn.innerHTML='<span class="spinner"></span>Configurando...';
   try {
-    // 1. Atualizar ou criar escritório
     if (escritorioId) {
-      await sb.from('escritorios').update({
-        ...dadosEscritorio,
-        configurado: true
-      }).eq('id', escritorioId);
+      await sb.from('escritorios').update({...dadosEscritorio,configurado:true}).eq('id',escritorioId);
     } else {
       const slug = dadosEscritorio.nome.toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,'');
-      const { data: newEsc } = await sb.from('escritorios').insert({
-        ...dadosEscritorio,
-        slug,
-        ativo: true,
-        configurado: true
-      }).select().single();
+      const { data: newEsc } = await sb.from('escritorios').insert({...dadosEscritorio,slug,ativo:true,configurado:true}).select().single();
       escritorioId = newEsc.id;
     }
-
-    // 2. Salvar admin na tabela escritorio_admins
-    await sb.from('escritorio_admins').upsert({
-      escritorio_id: escritorioId,
-      email: dadosAdmin.email,
-      nome: dadosAdmin.nome,
-      role: 'admin'
-    }, { onConflict: 'escritorio_id,email' });
-
-    // 3. Fazer login com o admin criado
-    await sb.auth.signInWithPassword({ email: dadosAdmin.email, password: dadosAdmin.senha });
-
-    // 4. Mostrar tela de sucesso
-    const urlBase = window.location.origin + '/?escritorio=' + SLUG;
-    document.getElementById('url-acesso').textContent = urlBase;
+    await sb.from('escritorio_admins').upsert({ escritorio_id:escritorioId, email:dadosAdmin.email, nome:dadosAdmin.nome, role:'admin' }, { onConflict:'escritorio_id,email' });
+    await sb.auth.signInWithPassword({ email:dadosAdmin.email, password:dadosAdmin.senha });
+    document.getElementById('url-acesso').textContent = window.location.origin+'/?escritorio='+(SLUG||'');
     goStep(4);
-
   } catch(e) {
-    const msg = document.getElementById('s3-msg');
-    msg.textContent = 'Erro ao salvar: ' + e.message;
-    msg.classList.remove('hidden');
-    btn.disabled = false;
-    btn.textContent = 'Concluir →';
+    const msg=document.getElementById('s3-msg');
+    msg.textContent='Erro: '+e.message; msg.classList.remove('hidden');
+    btn.disabled=false; btn.textContent='Concluir →';
   }
 }
 
-function entrarNoSistema() {
-  window.location.href = '/?escritorio=' + (SLUG || '');
+function copiarURL(el) {
+  navigator.clipboard.writeText(el.textContent).then(() => {
+    const h=document.getElementById('url-hint');
+    h.textContent='✓ Copiado!'; h.style.color='#34d399';
+    setTimeout(()=>{h.textContent='Clique para copiar';h.style.color='';},2000);
+  });
 }
+
+function entrarNoSistema() { window.location.href='/?escritorio='+(SLUG||''); }
 </script>
 </body>
 </html>
