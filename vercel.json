@@ -25,6 +25,6 @@
     { "source": "/set-password.html", "destination": "/set-password.html" },
     { "source": "/set-password-func.html", "destination": "/set-password-func.html" },
     { "source": "/onboarding.html", "destination": "/onboarding.html" },
-    { "source": "/((?!set-password\\.html|set-password-func\\.html|onboarding\\.html).*)", "destination": "/index.html" }
+    { "source": "/((?!set-password|onboarding).*)", "destination": "/index.html" }
   ]
 }
