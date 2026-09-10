@@ -6,14 +6,14 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
-  <title>HP Contabilidade</title>
+  <title>orbita</title>
   <link rel="manifest" href="/manifest.json" />
   <meta name="theme-color" content="#4338ca" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-title" content="HP Conta" />
   <link rel="apple-touch-icon" href="/icon-192.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-messaging-compat.js"></script>
@@ -21,20 +21,27 @@
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
-      --bg: #f7f6f3; --surface: #ffffff; --border: #e5e3de; --border-strong: #ccc9c0;
-      --text: #1a1916; --text-secondary: #6b6860; --text-tertiary: #a09d97;
-      --accent: #4338ca; --accent-fg: #ffffff;
+      --bg: #0a0e1a; --surface: #0f1424; --border: rgba(78,159,255,0.12); --border-strong: rgba(78,159,255,0.25);
+      --text: #dde4f0; --text-secondary: rgba(221,228,240,0.5); --text-tertiary: rgba(221,228,240,0.25);
+      --accent: #4e9fff; --accent-fg: #ffffff;
+      --accent2: #7c5cfc;
+      --glass: rgba(255,255,255,0.04);
+      --glass-border: rgba(78,159,255,0.1);
       --blue-bg: #eef4ff; --blue-text: #2d5be3;
       --green-bg: #edfaf3; --green-text: #1a7a4a;
       --red-bg: #fff0f0; --red-text: #c0392b;
       --orange-bg: #fff7ed; --orange-text: #c2410c;
       --radius: 10px; --radius-lg: 14px;
     }
-    body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; font-size: 15px; }
+    body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; font-size: 15px; }
+    body::before { content: ''; position: fixed; top: -200px; right: -100px; width: 500px; height: 500px; background: #1a3a7a; border-radius: 50%; filter: blur(120px); opacity: 0.15; pointer-events: none; z-index: 0; }
+    body::after { content: ''; position: fixed; bottom: -100px; left: 100px; width: 300px; height: 300px; background: #7c5cfc; border-radius: 50%; filter: blur(100px); opacity: 0.1; pointer-events: none; z-index: 0; }
     .hidden { display: none !important; }
 
     /* LOGIN */
-   #login-screen { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 2rem; background-image: url('https://nacdezqdsouhxgftqaku.supabase.co/storage/v1/object/sign/arquivos/beautiful-shot-snowy-mountain-sunset.jpg?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV9kNmM4ZTIxOC05YTg1LTQxNjEtYTFiNC00YzQ3OWRiNjNiZDAiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJhcnF1aXZvcy9iZWF1dGlmdWwtc2hvdC1zbm93eS1tb3VudGFpbi1zdW5zZXQuanBnIiwiaWF0IjoxNzgwNzEzMzQ0LCJleHAiOjE4MTIyNDkzNDR9.lRu1QYe9mb-3ajTs6g21bOcMkssBl56ubBuCSDk326Y'); background-size: cover; background-position: center; }
+   #login-screen { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 2rem; background: #0a0e1a; position: relative; overflow: hidden; }
+    #login-screen::before { content: ''; position: absolute; top: -200px; right: -100px; width: 500px; height: 500px; background: #1a3a7a; border-radius: 50%; filter: blur(120px); opacity: 0.2; }
+    #login-screen::after { content: ''; position: absolute; bottom: -100px; left: -50px; width: 350px; height: 350px; background: #7c5cfc; border-radius: 50%; filter: blur(100px); opacity: 0.15; }
     .login-box { width: 100%; max-width: 380px; }
     .login-box .card { background: rgba(255,255,255,0.92); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
     .login-box .logo-name { color: #fff; text-shadow: 0 1px 6px rgba(0,0,0,0.5); }
@@ -43,12 +50,12 @@
     .logo-icon { width: 44px; height: 44px; background: var(--accent); border-radius: var(--radius); display: flex; align-items: center; justify-content: center; }
     .logo-icon svg { width: 22px; height: 22px; stroke: #fff; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
     .logo-name { font-size: 17px; font-weight: 600; letter-spacing: -0.3px; }
-    .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1.5rem; }
+    .card { background: rgba(15,20,36,0.8); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1.5rem; }
     label { display: block; font-size: 13px; color: var(--text-secondary); margin-bottom: 5px; font-weight: 500; }
-    input, select, textarea { width: 100%; padding: 9px 12px; border: 1px solid var(--border); border-radius: var(--radius); font-family: 'DM Sans', sans-serif; font-size: 14px; background: var(--bg); color: var(--text); outline: none; transition: border-color 0.15s; }
+    input, select, textarea { width: 100%; padding: 9px 12px; border: 1px solid var(--border); border-radius: var(--radius); font-family: 'Inter', sans-serif; font-size: 14px; background: var(--bg); color: var(--text); outline: none; transition: border-color 0.15s; }
     input:focus, select:focus, textarea:focus { border-color: var(--border-strong); background: #fff; }
     .field { margin-bottom: 14px; }
-    .btn { padding: 9px 18px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--surface); font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500; color: var(--text); cursor: pointer; transition: all 0.15s; display: inline-flex; align-items: center; gap: 6px; }
+    .btn { padding: 9px 18px; border-radius: var(--radius); border: 1px solid var(--border); background: rgba(15,20,36,0.7); font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 500; color: var(--text); cursor: pointer; transition: all 0.15s; display: inline-flex; align-items: center; gap: 6px; }
     .btn:hover { background: var(--bg); border-color: var(--border-strong); }
     .btn-primary { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
     .btn-primary:hover { opacity: 0.88; background: var(--accent); }
@@ -114,13 +121,13 @@
     .btn-delete { padding: 5px 8px; border-radius: var(--radius); border: 1px solid var(--border); background: transparent; cursor: pointer; color: var(--text-tertiary); transition: all 0.15s; display: flex; align-items: center; }
     .btn-delete:hover { background: var(--red-bg); color: var(--red-text); border-color: #fca5a5; }
     .btn-delete svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
-    .download-btn { padding: 6px 14px; border-radius: var(--radius); background: var(--accent); color: #fff; border: none; cursor: pointer; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 5px; transition: opacity 0.15s; flex-shrink: 0; }
+    .download-btn { padding: 6px 14px; border-radius: var(--radius); background: var(--accent); color: #fff; border: none; cursor: pointer; font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 5px; transition: opacity 0.15s; flex-shrink: 0; }
     .download-btn:hover { opacity: 0.85; }
     .download-btn svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 
     /* ABAS */
     .tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 1.25rem; }
-    .tab-btn { padding: 6px 14px; border-radius: 99px; border: 1px solid var(--border); background: var(--surface); font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500; color: var(--text-secondary); cursor: pointer; transition: all 0.15s; }
+    .tab-btn { padding: 6px 14px; border-radius: 99px; border: 1px solid var(--border); background: var(--surface); font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 500; color: var(--text-secondary); cursor: pointer; transition: all 0.15s; }
     .tab-btn:hover { border-color: var(--border-strong); color: var(--text); }
     .tab-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
     .tab-count { display: inline-block; margin-left: 5px; background: rgba(255,255,255,0.2); border-radius: 99px; padding: 0 6px; font-size: 11px; }
@@ -147,7 +154,7 @@
     .chat-bubble-wrap:hover .chat-del-btn { opacity: 1 !important; }
     .chat-input-row { display: flex; gap: 8px; padding: 10px; border-top: 1px solid var(--border); background: var(--surface); align-items: center; }
     .chat-input-row input { flex: 1; }
-    .chat-send-btn { padding: 8px 14px; background: var(--accent); color: #fff; border: none; border-radius: var(--radius); font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500; cursor: pointer; flex-shrink: 0; }
+    .chat-send-btn { padding: 8px 14px; background: var(--accent); color: #fff; border: none; border-radius: var(--radius); font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 500; cursor: pointer; flex-shrink: 0; }
     .chat-attach-btn { width: 36px; height: 36px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--surface); cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.15s; }
     .chat-attach-btn:hover { background: var(--bg); }
     .chat-attach-btn svg { width: 16px; height: 16px; stroke: var(--text-secondary); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
@@ -224,7 +231,7 @@
 
     /* SELEÇÃO MÚLTIPLA */
     .file-checkbox { width: 16px; height: 16px; cursor: pointer; flex-shrink: 0; accent-color: var(--accent); }
-    .btn-delete-selected { padding: 7px 14px; border-radius: var(--radius); border: 1px solid #fca5a5; background: var(--red-bg); color: var(--red-text); font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500; cursor: pointer; display: none; align-items: center; gap: 6px; transition: all 0.15s; }
+    .btn-delete-selected { padding: 7px 14px; border-radius: var(--radius); border: 1px solid #fca5a5; background: var(--red-bg); color: var(--red-text); font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 500; cursor: pointer; display: none; align-items: center; gap: 6px; transition: all 0.15s; }
     .btn-delete-selected:hover { background: #fee2e2; }
     .select-all-row { display: flex; align-items: center; gap: 10px; padding: 8px 14px; margin-bottom: 6px; }
     .select-all-label { font-size: 13px; color: var(--text-secondary); cursor: pointer; }
@@ -234,7 +241,7 @@
     .chat-wp-sidebar { width: 200px; border-right: 1px solid var(--border); display: flex; flex-direction: column; flex-shrink: 0; background: var(--bg); }
     .chat-wp-sidebar-header { padding: 10px 12px; border-bottom: 1px solid var(--border); font-size: 13px; font-weight: 600; color: var(--text-secondary); background: var(--surface); }
     .chat-wp-search { padding: 8px 10px; border-bottom: 1px solid var(--border); background: var(--surface); }
-    .chat-wp-search input { width: 100%; padding: 6px 10px; border: 1px solid var(--border); border-radius: 99px; font-family: 'DM Sans', sans-serif; font-size: 12px; background: var(--bg); color: var(--text); outline: none; }
+    .chat-wp-search input { width: 100%; padding: 6px 10px; border: 1px solid var(--border); border-radius: 99px; font-family: 'Inter', sans-serif; font-size: 12px; background: var(--bg); color: var(--text); outline: none; }
     .chat-wp-list { flex: 1; overflow-y: auto; }
     .chat-wp-item { display: flex; align-items: center; gap: 8px; padding: 10px 12px; cursor: pointer; border-bottom: 1px solid var(--border); transition: background 0.12s; }
     .chat-wp-item:hover { background: var(--surface); }
@@ -251,7 +258,7 @@
     .chat-wp-empty { flex: 1; display: flex; align-items: center; justify-content: center; color: var(--text-tertiary); font-size: 13px; }
 
     /* SOLICITAR DOCUMENTO */
-    .chat-solicitar-btn { padding: 6px 12px; border-radius: 99px; border: 1px solid var(--accent); background: var(--blue-bg); color: var(--accent); font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 500; cursor: pointer; margin: 4px 10px 8px; display: inline-flex; align-items: center; gap: 5px; transition: all 0.15s; }
+    .chat-solicitar-btn { padding: 6px 12px; border-radius: 99px; border: 1px solid var(--accent); background: var(--blue-bg); color: var(--accent); font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 500; cursor: pointer; margin: 4px 10px 8px; display: inline-flex; align-items: center; gap: 5px; transition: all 0.15s; }
     .chat-solicitar-btn:hover { background: var(--accent); color: #fff; }
     .chat-solicitar-btn svg { width: 13px; height: 13px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
     .chat-doc-list { background: var(--bg); border-top: 1px solid var(--border); padding: 10px; max-height: 200px; overflow-y: auto; }
@@ -289,7 +296,7 @@
     .chat-atend-header-empresa { font-size: 12px; color: var(--text-tertiary); }
     .chat-atend-empty { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text-tertiary); gap: 12px; }
     .chat-atend-empty svg { width: 48px; height: 48px; stroke: var(--border); fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
-    .btn-iniciar { padding: 6px 14px; background: var(--accent); color: #fff; border: none; border-radius: var(--radius); font-size: 12px; font-weight: 500; cursor: pointer; font-family: 'DM Sans', sans-serif; }
+    .btn-iniciar { padding: 6px 14px; background: var(--accent); color: #fff; border: none; border-radius: var(--radius); font-size: 12px; font-weight: 500; cursor: pointer; font-family: 'Inter', sans-serif; }
     .chat-atend-atendente { font-size: 11px; color: var(--text-tertiary); padding: 4px 10px; }
 
     /* CHAT ATENDIMENTO */
@@ -300,7 +307,7 @@
     .chat-atend-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
     .chat-atend-tab-badge { background: #ef4444; color: #fff; font-size: 10px; font-weight: 700; min-width: 16px; height: 16px; border-radius: 99px; display: inline-flex; align-items: center; justify-content: center; padding: 0 4px; }
     .chat-atend-search { padding: 8px 10px; border-bottom: 1px solid var(--border); }
-    .chat-atend-search input { width: 100%; padding: 7px 12px; border: 1px solid var(--border); border-radius: 99px; font-family: 'DM Sans', sans-serif; font-size: 12px; background: var(--bg); outline: none; }
+    .chat-atend-search input { width: 100%; padding: 7px 12px; border: 1px solid var(--border); border-radius: 99px; font-family: 'Inter', sans-serif; font-size: 12px; background: var(--bg); outline: none; }
     .chat-atend-list { flex: 1; overflow-y: auto; }
     .chat-atend-item { display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; cursor: pointer; border-bottom: 1px solid var(--border); transition: background 0.12s; position: relative; }
     .chat-atend-item:hover { background: var(--bg); }
@@ -320,7 +327,7 @@
     .chat-atend-header-sub { font-size: 11px; color: var(--text-tertiary); }
     .chat-atend-empty { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text-tertiary); font-size: 13px; gap: 12px; }
     .chat-atend-empty svg { width: 48px; height: 48px; stroke: var(--border); fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
-    .btn-iniciar { padding: 6px 14px; border-radius: 99px; border: 1px solid var(--accent); background: var(--accent); color: #fff; font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 500; cursor: pointer; }
+    .btn-iniciar { padding: 6px 14px; border-radius: 99px; border: 1px solid var(--accent); background: var(--accent); color: #fff; font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 500; cursor: pointer; }
     .btn-iniciar:hover { opacity: 0.85; }
     .chat-atend-atendente { font-size: 11px; color: var(--text-tertiary); padding: 4px 12px; text-align: center; }
 
@@ -353,33 +360,38 @@
 </head>
 <body>
 
-<!-- LOGIN -->
-<div style="position:fixed;bottom:12px;right:16px;font-size:11px;color:rgba(255,255,255,0.5);z-index:10;pointer-events:none;font-family:'DM Sans',sans-serif;">SNT sistemas</div>
+<!-- LOGIN ORBITA -->
+<div style="position:fixed;bottom:12px;right:16px;font-size:11px;color:rgba(221,228,240,0.2);z-index:10;pointer-events:none;font-family:'Inter',sans-serif;letter-spacing:1px;">SNT sistemas</div>
 <div id="login-screen">
-  <div class="login-box">
-    <div class="logo">
-      <div class="logo-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
-      <span class="logo-name">HP Contabilidade <span style="font-family:Georgia,serif;font-style:italic;color:#ef4444;font-size:12px;">beta</span></span>
+  <div style="position:relative;z-index:1;width:100%;max-width:380px;">
+    <div style="display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:2rem;">
+      <div style="position:relative;width:40px;height:40px;">
+        <div style="position:absolute;top:50%;left:50%;width:36px;height:16px;border:1.5px solid #4e9fff;border-radius:50%;transform:translate(-50%,-50%) rotate(-25deg);opacity:0.85;"></div>
+        <div style="position:absolute;top:50%;left:50%;width:15px;height:15px;background:radial-gradient(circle at 35% 35%,#6ab4ff,#1a3a7a);border-radius:50%;transform:translate(-50%,-50%);box-shadow:0 0 12px rgba(78,159,255,0.5);"></div>
+        <div style="position:absolute;top:3px;right:2px;width:6px;height:6px;background:#7c5cfc;border-radius:50%;box-shadow:0 0 6px rgba(124,92,252,0.7);"></div>
+      </div>
+      <span style="color:#dde4f0;font-weight:300;letter-spacing:3px;font-size:22px;font-family:Inter,sans-serif;">orbita</span>
     </div>
-    <div class="card">
-      <div class="field"><label>E-mail ou CPF</label><input id="email" type="text" placeholder="seu@email.com ou CPF" /></div>
-      <div class="field"><label>Senha</label><input id="password" type="password" placeholder="••••••••" /></div>
+    <div style="background:rgba(15,20,36,0.8);border:1px solid rgba(78,159,255,0.15);border-radius:16px;padding:2rem;backdrop-filter:blur(20px);">
+      <p style="color:rgba(221,228,240,0.5);font-size:13px;text-align:center;margin-bottom:1.5rem;letter-spacing:0.5px;">Acesse sua conta</p>
+      <div class="field"><label style="color:rgba(221,228,240,0.4)">E-mail ou CPF</label><input id="email" type="text" placeholder="seu@email.com ou CPF" style="background:rgba(255,255,255,0.05);border-color:rgba(78,159,255,0.2);color:#dde4f0;" /></div>
+      <div class="field"><label style="color:rgba(221,228,240,0.4)">Senha</label><input id="password" type="password" placeholder="••••••••" style="background:rgba(255,255,255,0.05);border-color:rgba(78,159,255,0.2);color:#dde4f0;" /></div>
       <div id="login-error" class="error-msg hidden"></div>
-      <button class="btn btn-primary btn-full" onclick="login()">Entrar</button>
+      <button class="btn btn-primary btn-full" onclick="login()" style="background:linear-gradient(135deg,#4e9fff,#7c5cfc);border:none;font-weight:500;letter-spacing:0.5px;margin-top:4px;">Entrar</button>
     </div>
   </div>
 </div>
 
 <!-- DEFINIR SENHA (primeiro acesso via magic link) -->
-<div id="set-password-screen" class="hidden" style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:2rem;background-image:url('https://nacdezqdsouhxgftqaku.supabase.co/storage/v1/object/sign/arquivos/beautiful-shot-snowy-mountain-sunset.jpg?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV9kNmM4ZTIxOC05YTg1LTQxNjEtYTFiNC00YzQ3OWRiNjNiZDAiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJhcnF1aXZvcy9iZWF1dGlmdWwtc2hvdC1zbm93eS1tb3VudGFpbi1zdW5zZXQuanBnIiwiaWF0IjoxNzgwNzEzMzQ0LCJleHAiOjE4MTIyNDkzNDR9.lRu1QYe9mb-3ajTs6g21bOcMkssBl56ubBuCSDk326Y');background-size:cover;background-position:center;">
+<div id="set-password-screen" class="hidden" style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:2rem;background:#0a0e1a;">
   <div class="login-box">
     <div class="logo">
       <div class="logo-icon" style="background:rgba(67,56,202,0.85);">
         <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
       </div>
-      <span class="logo-name" style="color:#fff;text-shadow:0 1px 6px rgba(0,0,0,0.5);">HP Contabilidade</span>
+      <span style="color:#dde4f0;font-weight:300;letter-spacing:2px;font-size:18px;">orbita</span>
     </div>
-    <div class="card" style="background:rgba(255,255,255,0.92);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);">
+    <div class="card" style="background:rgba(15,20,36,0.9);border:1px solid rgba(78,159,255,0.15);backdrop-filter:blur(20px);">
       <p style="font-size:15px;font-weight:600;margin-bottom:6px;">Bem-vindo! Crie sua senha</p>
       <p style="font-size:13px;color:var(--text-secondary);margin-bottom:1.25rem;">
         Este é seu primeiro acesso. Crie uma senha para entrar nas próximas vezes.
@@ -404,25 +416,33 @@
 
 <!-- MAIN -->
 <div id="main-screen" class="hidden">
-  <div class="topbar">
+  <div class="topbar" style="background:rgba(10,14,26,0.98);border-bottom:1px solid rgba(78,159,255,0.1);backdrop-filter:blur(20px);">
     <div class="topbar-left">
-      <!-- MENU 3 PONTOS -->
       <div style="position:relative;">
-        <button class="menu-btn" onclick="toggleMenu()" id="menu-trigger" aria-label="Menu">
-          <span></span><span></span><span></span>
+        <button class="menu-btn" onclick="toggleMenu()" id="menu-trigger" aria-label="Menu" style="border-color:rgba(78,159,255,0.15);">
+          <span style="background:rgba(221,228,240,0.5)"></span>
+          <span style="background:rgba(221,228,240,0.5)"></span>
+          <span style="background:rgba(221,228,240,0.5)"></span>
         </button>
       </div>
-      <span class="topbar-logo">HP Contabilidade <span style="font-family:Georgia,serif;font-style:italic;color:#ef4444;font-size:10px;">beta</span></span>
-      <span class="topbar-badge" id="role-badge">Admin</span>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div style="position:relative;width:32px;height:32px;">
+          <div style="position:absolute;top:50%;left:50%;width:28px;height:13px;border:1.5px solid #4e9fff;border-radius:50%;transform:translate(-50%,-50%) rotate(-25deg);opacity:0.85;"></div>
+          <div style="position:absolute;top:50%;left:50%;width:12px;height:12px;background:radial-gradient(circle at 35% 35%,#6ab4ff,#1a3a7a);border-radius:50%;transform:translate(-50%,-50%);"></div>
+          <div style="position:absolute;top:3px;right:2px;width:5px;height:5px;background:#7c5cfc;border-radius:50%;"></div>
+        </div>
+        <span class="topbar-logo" style="color:#dde4f0;font-weight:300;letter-spacing:1px;font-size:17px;">orbita</span>
+      </div>
+      <span class="topbar-badge" id="role-badge" style="background:rgba(124,92,252,0.2);color:#a78bfa;border:1px solid rgba(124,92,252,0.3);">Admin</span>
     </div>
     <div style="display:flex;align-items:center;gap:8px;">
       <div style="position:relative;">
-        <button class="chat-notif-btn" onclick="toggleChatNotif()" id="chat-notif-trigger" title="Mensagens">
-          <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        <button class="chat-notif-btn" onclick="toggleChatNotif()" id="chat-notif-trigger" title="Mensagens" style="background:rgba(78,159,255,0.08);border:1px solid rgba(78,159,255,0.15);">
+          <svg viewBox="0 0 24 24" style="stroke:#4e9fff"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
           <span class="chat-notif-badge hidden" id="chat-notif-count">0</span>
         </button>
       </div>
-      <button class="btn btn-ghost" onclick="logout()">Sair</button>
+      <button class="btn btn-ghost" onclick="logout()" style="color:rgba(221,228,240,0.4);border-color:rgba(78,159,255,0.1);">Sair</button>
     </div>
   </div>
 
@@ -1101,7 +1121,7 @@ async function renderPanelDados(body) {
   } else {
     // Cliente vê seus dados
     const { data: d } = await sb.from('clientes').select('*').eq('email', currentUser.email).maybeSingle();
-    if (!d) { body.innerHTML = '<div class="empty-state">Nenhum dado cadastrado ainda. Fale com a HP Contabilidade.</div>'; return; }
+    if (!d) { body.innerHTML = '<div class="empty-state">Nenhum dado cadastrado ainda. Fale com a Orbita.</div>'; return; }
     // Buscar documentos do cliente
     const { data: docsCliente } = await sb.from('docs_cliente').select('*').eq('cliente_email', currentUser.email).order('categoria');
 
@@ -1310,9 +1330,9 @@ async function enviarConvite(email, nome) {
       body: JSON.stringify({
         destinatario: email,
         nomeCliente: nome,
-        assunto: 'Seu acesso ao Portal HP Contabilidade',
+        assunto: 'Seu acesso ao Portal Orbita',
         mensagemCustom: `
-          <h2 style="color:#4338ca;margin-bottom:8px;">HP Contabilidade</h2>
+          <h2 style="color:#4338ca;margin-bottom:8px;">Orbita</h2>
           <p style="margin-bottom:16px;">Olá, <strong>${nome}</strong>! Seu acesso ao portal foi criado.</p>
           <p style="margin-bottom:8px;">Clique no botão abaixo para definir sua senha:</p>
           <div style="margin:24px 0;">
@@ -1902,7 +1922,7 @@ async function sendChat() {
     }
     // Enviar push para o outro lado
     if (isAdmin) {
-      await enviarPushParaCliente(clientEmail, 'HP Contabilidade', text, false);
+      await enviarPushParaCliente(clientEmail, 'Orbita', text, false);
     }
   }
 
@@ -2054,7 +2074,7 @@ function renderAdminFilesList(clientEmails, byClient, clientesInfo) {
 
 async function enviarWhatsApp(telefone, clientEmail, fileName, setor, note) {
   if (!telefone) return;
-  const mensagem = note || `Novo documento disponível no seu portal HP Contabilidade!\n\n📄 *${fileName}*\n📂 Setor: ${setor}\n\nAcesse agora: https://portal-arquivo.vercel.app`;
+  const mensagem = note || `Novo documento disponível no seu portal Orbita!\n\n📄 *${fileName}*\n📂 Setor: ${setor}\n\nAcesse agora: https://portal-arquivo.vercel.app`;
   try {
     await fetch(`https://graph.facebook.com/v19.0/${WA_PHONE_ID}/messages`, {
       method: 'POST',
@@ -2619,7 +2639,7 @@ async function exportarPDF() {
     <html lang="pt-BR">
     <head>
       <meta charset="UTF-8">
-      <title>${titulo} - HP Contabilidade</title>
+      <title>${titulo} - Orbita</title>
       <style>
         body { font-family: Arial, sans-serif; padding: 2rem; color: #1a1916; }
         h1 { font-size: 18px; margin-bottom: 4px; }
@@ -2636,7 +2656,7 @@ async function exportarPDF() {
       </style>
     </head>
     <body>
-      <h1>HP Contabilidade</h1>
+      <h1>Orbita</h1>
       <div class="sub">${titulo} · Gerado em ${new Date().toLocaleDateString('pt-BR')}</div>
       ${conteudo.innerHTML
         .replace(/class="file-row[^"]*"/g, 'style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #eee;"')
@@ -3078,7 +3098,7 @@ async function loadChatNotifs() {
   } else {
     list.innerHTML = notifs.map(m => `
       <div class="chat-notif-item" onclick="abrirChatClienteNotif()">
-        <div class="chat-notif-item-name">💼 HP Contabilidade</div>
+        <div class="chat-notif-item-name">💼 Orbita</div>
         <div class="chat-notif-item-msg">${m.mensagem}</div>
         <div class="chat-notif-item-time">${formatDate(m.criado_em)}</div>
       </div>`).join('');
@@ -3409,9 +3429,9 @@ async function enviarConviteFuncionario(cpf, nome, email) {
       body: JSON.stringify({
         destinatario: email,
         nomeCliente: nome,
-        assunto: 'Seu acesso ao Portal HP Contabilidade',
+        assunto: 'Seu acesso ao Portal Orbita',
         mensagemCustom: `
-          <h2 style="color:#4338ca;margin-bottom:8px;">HP Contabilidade</h2>
+          <h2 style="color:#4338ca;margin-bottom:8px;">Orbita</h2>
           <p style="margin-bottom:16px;">Olá, <strong>${nome}</strong>! Seu acesso ao portal foi criado.</p>
           <p style="margin-bottom:8px;">Clique no botão abaixo para definir sua senha:</p>
           <div style="margin:24px 0;">
@@ -3883,9 +3903,9 @@ async function enviarConviteFuncionario(cpf, nome, email) {
       body: JSON.stringify({
         destinatario: email,
         nomeCliente: nome,
-        assunto: 'Seu acesso ao Portal HP Contabilidade',
+        assunto: 'Seu acesso ao Portal Orbita',
         mensagemCustom: `
-          <h2 style="color:#4338ca;margin-bottom:8px;">HP Contabilidade</h2>
+          <h2 style="color:#4338ca;margin-bottom:8px;">Orbita</h2>
           <p style="margin-bottom:16px;">Olá, <strong>${nome}</strong>! Seu acesso ao portal foi criado.</p>
           <p style="margin-bottom:8px;">Clique no botão abaixo para definir sua senha:</p>
           <div style="margin:24px 0;">
@@ -4239,13 +4259,13 @@ function filtrarLog() {
 
 if (window.location.pathname === '/funcionario') {
   document.body.classList.add('func-mode');
-  document.querySelector('.logo-name').innerHTML = 'HP Contabilidade <span style="font-family:Georgia,serif;font-style:italic;color:#5a7a3a;font-size:12px;">beta</span>';
+  document.querySelector('.logo-name').innerHTML = 'Orbita <span style="font-family:Georgia,serif;font-style:italic;color:#5a7a3a;font-size:12px;">beta</span>';
   document.getElementById('email').placeholder = 'Digite seu CPF';
   document.getElementById('email').type = 'text';
   document.getElementById('password').placeholder = 'Senha (padrão: seu CPF)';
 }
 if (window.location.pathname === '/empresas') {
-  document.querySelector('.logo-name').innerHTML = 'HP Contabilidade <span style="font-family:Georgia,serif;font-style:italic;color:#ef4444;font-size:12px;">beta</span>';
+  document.querySelector('.logo-name').innerHTML = 'Orbita <span style="font-family:Georgia,serif;font-style:italic;color:#ef4444;font-size:12px;">beta</span>';
 }
 
 // Remover service worker e limpar todos os caches
