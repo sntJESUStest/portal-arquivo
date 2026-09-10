@@ -27,10 +27,10 @@
       --accent2: #7c5cfc;
       --glass: rgba(255,255,255,0.04);
       --glass-border: rgba(78,159,255,0.1);
-      --blue-bg: #eef4ff; --blue-text: #2d5be3;
-      --green-bg: #edfaf3; --green-text: #1a7a4a;
-      --red-bg: #fff0f0; --red-text: #c0392b;
-      --orange-bg: #fff7ed; --orange-text: #c2410c;
+      --blue-bg: rgba(78,159,255,0.1); --blue-text: #4e9fff;
+      --green-bg: rgba(52,211,153,0.1); --green-text: #34d399;
+      --red-bg: rgba(244,63,94,0.1); --red-text: #f87171;
+      --orange-bg: rgba(251,146,60,0.1); --orange-text: #fb923c;
       --radius: 10px; --radius-lg: 14px;
     }
     body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; font-size: 15px; }
@@ -53,7 +53,7 @@
     .card { background: rgba(15,20,36,0.8); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1.5rem; }
     label { display: block; font-size: 13px; color: var(--text-secondary); margin-bottom: 5px; font-weight: 500; }
     input, select, textarea { width: 100%; padding: 9px 12px; border: 1px solid var(--border); border-radius: var(--radius); font-family: 'Inter', sans-serif; font-size: 14px; background: var(--bg); color: var(--text); outline: none; transition: border-color 0.15s; }
-    input:focus, select:focus, textarea:focus { border-color: var(--border-strong); background: #fff; }
+    input:focus, select:focus, textarea:focus { border-color: var(--border-strong); background: rgba(15,20,36,0.9); }
     .field { margin-bottom: 14px; }
     .btn { padding: 9px 18px; border-radius: var(--radius); border: 1px solid var(--border); background: rgba(15,20,36,0.7); font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 500; color: var(--text); cursor: pointer; transition: all 0.15s; display: inline-flex; align-items: center; gap: 6px; }
     .btn:hover { background: var(--bg); border-color: var(--border-strong); }
@@ -141,9 +141,9 @@
     /* SETOR BADGE */
     .setor-fiscal     { background: #e8f4fd; color: #1565c0; }
     .setor-pessoal    { background: #fdf3e8; color: #b45309; }
-    .setor-contabil   { background: #f0fdf4; color: #166534; }
+    .setor-contabil   { background: rgba(52,211,153,0.08); color: #34d399; }
     .setor-financeiro { background: #fdf2f8; color: #86198f; }
-    .setor-avisos     { background: #fff7ed; color: #c2410c; }
+    .setor-avisos     { background: rgba(251,146,60,0.1); color: #fb923c; }
     .setor-badge { font-size: 10px; font-weight: 700; padding: 2px 9px; border-radius: 99px; white-space: nowrap; flex-shrink: 0; }
 
     /* NOTIF */
@@ -230,7 +230,7 @@
     .guia-meta { font-size: 11px; color: var(--text-tertiary); margin-top: 2px; }
     .guia-badge-pendente { background: var(--red-bg); color: var(--red-text); font-size: 11px; font-weight: 600; padding: 2px 10px; border-radius: 99px; flex-shrink: 0; }
     .guia-badge-pago { background: var(--green-bg); color: var(--green-text); font-size: 11px; font-weight: 600; padding: 2px 10px; border-radius: 99px; flex-shrink: 0; }
-    .guia-badge-disponivel { background: #eef4ff; color: #2d5be3; font-size: 11px; font-weight: 600; padding: 2px 10px; border-radius: 99px; flex-shrink: 0; }
+    .guia-badge-disponivel { background: rgba(78,159,255,0.1); color: #4e9fff; font-size: 11px; font-weight: 600; padding: 2px 10px; border-radius: 99px; flex-shrink: 0; }
     .guia-badge-vencido { background: #fef3c7; color: #92400e; font-size: 11px; font-weight: 600; padding: 2px 10px; border-radius: 99px; flex-shrink: 0; }
     .selected-day-guias { background: var(--bg); border-radius: var(--radius); padding: 1rem; margin-bottom: 1rem; border: 1px solid var(--border); }
 
@@ -1107,7 +1107,7 @@ async function renderPanelDados(body) {
           </div>
           <button class="btn" style="font-size:12px;padding:5px 10px;" onclick="abrirDocsCliente('${c.email}','${c.nome||c.empresa||c.email}')">Documentos</button>
           <button class="btn" style="font-size:12px;padding:5px 10px;" onclick="preencherDados('${c.email}','${c.nome||''}','${c.empresa||''}','${c.whatsapp||''}','${c.codigo||''}','${c.tipo||'matriz'}','${c.matriz_email||''}')">Editar</button>
-          <button class="btn" style="font-size:12px;padding:5px 10px;background:var(--green-bg,#f0fdf4);color:#166534;border-color:#bbf7d0;" onclick="enviarConvite('${c.email}','${c.nome||c.empresa||c.email}')">✉ Convidar</button>
+          <button class="btn" style="font-size:12px;padding:5px 10px;background:var(--green-bg,rgba(52,211,153,0.08));color:#34d399;border-color:rgba(52,211,153,0.2);" onclick="enviarConvite('${c.email}','${c.nome||c.empresa||c.email}')">✉ Convidar</button>
           <button class="btn-delete" onclick="excluirCliente('${c.email}')" title="Excluir"><svg viewBox="0 0 24 24" style="width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg></button>
         </div>`;
       });
@@ -2066,7 +2066,7 @@ function renderAdminFilesList(clientEmails, byClient, clientesInfo) {
           <div class="file-info">
             <div class="file-name">${f.arquivo_nome}</div>
             <div class="file-meta">${formatDate(f.criado_em)}${f.postado_por ? ' · '+getNomeAdmin(f.postado_por) : ''}</div>
-            ${f.visualizado_em ? `<div class="file-meta" style="color:#1a7a4a;font-weight:500;">✓ Cliente visualizou em ${new Date(f.visualizado_em).toLocaleDateString('pt-BR')} às ${new Date(f.visualizado_em).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</div>` : `<div class="file-meta" style="color:#a09d97;">○ Não visualizado ainda</div>`}
+            ${f.visualizado_em ? `<div class="file-meta" style="color:#34d399;font-weight:500;">✓ Cliente visualizou em ${new Date(f.visualizado_em).toLocaleDateString('pt-BR')} às ${new Date(f.visualizado_em).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</div>` : `<div class="file-meta" style="color:#a09d97;">○ Não visualizado ainda</div>`}
           </div>
           ${f.setor ? `<span class="setor-badge ${sc}">${f.setor}</span>` : ''}
           <span class="badge ${f.lido ? 'badge-read' : 'badge-new'}">${f.lido ? 'Visto' : 'Novo'}</span>
@@ -2502,7 +2502,7 @@ async function mostrarRelatorio(tipo, btnEl) {
     // Gráfico de pizza SVG
     const dadosPizza = [
       { label: 'Pendentes', valor: pendentes, cor: '#ef4444' },
-      { label: 'Disponíveis', valor: disponiveis, cor: '#2d5be3' },
+      { label: 'Disponíveis', valor: disponiveis, cor: '#4e9fff' },
       { label: 'Pagas', valor: pagas, cor: '#22c55e' },
     ].filter(d => d.valor > 0);
 
@@ -2512,11 +2512,11 @@ async function mostrarRelatorio(tipo, btnEl) {
       <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:1.5rem;">
         <div class="stat-card"><div class="stat-label">Total guias mês</div><div class="stat-value">${total}</div></div>
         <div class="stat-card" style="border-color:#ef4444;cursor:pointer;transition:box-shadow 0.15s;" onclick="mostrarPendentesMes(window._dashGuiasMes, window._dashClientes)" onmouseover="this.style.boxShadow='0 4px 12px rgba(192,57,43,0.2)'" onmouseout="this.style.boxShadow=''">
-          <div class="stat-label" style="color:#c0392b;">Pendentes</div>
-          <div class="stat-value" style="color:#c0392b;">${pendentes}</div>
-          <div style="font-size:11px;color:#c0392b;opacity:0.7;margin-top:4px;">Clique para ver</div>
+          <div class="stat-label" style="color:#f87171;">Pendentes</div>
+          <div class="stat-value" style="color:#f87171;">${pendentes}</div>
+          <div style="font-size:11px;color:#f87171;opacity:0.7;margin-top:4px;">Clique para ver</div>
         </div>
-        <div class="stat-card" style="border-color:#22c55e;"><div class="stat-label" style="color:#1a7a4a;">Pagas</div><div class="stat-value" style="color:#1a7a4a;">${pagas}</div></div>
+        <div class="stat-card" style="border-color:#22c55e;"><div class="stat-label" style="color:#34d399;">Pagas</div><div class="stat-value" style="color:#34d399;">${pagas}</div></div>
         <div class="stat-card" style="border-color:#f59e0b;"><div class="stat-label" style="color:#92400e;">Vencidas</div><div class="stat-value" style="color:#92400e;">${vencidas}</div></div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-bottom:1.5rem;">
@@ -2653,9 +2653,9 @@ async function exportarPDF() {
         .name { font-weight: 600; }
         .meta { color: #666; font-size: 12px; }
         .badge { font-size: 11px; padding: 2px 8px; border-radius: 99px; font-weight: 600; }
-        .vencido { background: #fff0f0; color: #c0392b; }
-        .urgente { background: #fff7ed; color: #c2410c; }
-        .ok { background: #edfaf3; color: #1a7a4a; }
+        .vencido { background: rgba(244,63,94,0.1); color: #f87171; }
+        .urgente { background: rgba(251,146,60,0.1); color: #fb923c; }
+        .ok { background: rgba(52,211,153,0.1); color: #34d399; }
         .section { font-size: 13px; font-weight: 700; margin: 1rem 0 6px; color: #4338ca; }
         @media print { body { padding: 1rem; } }
       </style>
@@ -2829,7 +2829,7 @@ function renderCalendario() {
     html += `<div class="cal-day ${isToday ? 'today' : ''}" style="${isSelected ? 'border-color:var(--accent);background:var(--blue-bg);' : ''}" onclick="calSelecionarDia(${d})">
       <span class="cal-day-num">${d}</span>
       ${temPendente ? '<div class="cal-dot cal-dot-pendente"></div>' : ''}
-      ${temDisponivel && !temPendente ? '<div class="cal-dot" style="background:#2d5be3;"></div>' : ''}
+      ${temDisponivel && !temPendente ? '<div class="cal-dot" style="background:#4e9fff;"></div>' : ''}
       ${temPago && !temPendente && !temDisponivel ? '<div class="cal-dot cal-dot-pago"></div>' : ''}
     </div>`;
   }
@@ -3622,21 +3622,21 @@ async function renderFinanceiro() {
     <div class="fin-grid">
       <div class="fin-mini-card" style="border-color:#22c55e;">
         <div class="fin-mini-label">Entradas</div>
-        <div class="fin-mini-value" style="color:#1a7a4a;">${fmtBR(totalEntradas)}</div>
+        <div class="fin-mini-value" style="color:#34d399;">${fmtBR(totalEntradas)}</div>
       </div>
       <div class="fin-mini-card" style="border-color:#ef4444;">
         <div class="fin-mini-label">Saídas</div>
-        <div class="fin-mini-value" style="color:#c0392b;">${fmtBR(totalSaidas)}</div>
+        <div class="fin-mini-value" style="color:#f87171;">${fmtBR(totalSaidas)}</div>
       </div>
       <div class="fin-mini-card" style="border-color:${saldo >= 0 ? '#22c55e' : '#ef4444'};">
         <div class="fin-mini-label">Saldo</div>
-        <div class="fin-mini-value" style="font-size:18px;color:${saldo >= 0 ? '#1a7a4a' : '#c0392b'}">${fmtBR(saldo)}</div>
+        <div class="fin-mini-value" style="font-size:18px;color:${saldo >= 0 ? '#34d399' : '#f87171'}">${fmtBR(saldo)}</div>
       </div>
     </div>
     <div class="fin-card" style="margin-bottom:1rem;">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
         <span style="font-size:13px;font-weight:500;">Comprometimento da renda</span>
-        <span style="font-size:13px;font-weight:600;color:${pct > 80 ? '#c0392b' : pct > 60 ? '#c2410c' : '#1a7a4a'}">${pct.toFixed(0)}%</span>
+        <span style="font-size:13px;font-weight:600;color:${pct > 80 ? '#f87171' : pct > 60 ? '#fb923c' : '#34d399'}">${pct.toFixed(0)}%</span>
       </div>
       <div class="fin-bar"><div class="fin-bar-fill" style="width:${pct}%;background:${pct > 80 ? 'linear-gradient(90deg,#ef4444,#dc2626)' : pct > 60 ? 'linear-gradient(90deg,#f59e0b,#d97706)' : 'linear-gradient(90deg,#22c55e,#16a34a)'};"></div></div>
     </div>
@@ -3685,7 +3685,7 @@ async function renderFinanceiro() {
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
             <div class="section-title" style="margin:0;">${mesLabel}</div>
             <div style="font-size:12px;color:var(--text-secondary);">
-              <span style="color:#1a7a4a;">+${fmtBR(entMes)}</span> · <span style="color:#c0392b;">-${fmtBR(saiMes)}</span>
+              <span style="color:#34d399;">+${fmtBR(entMes)}</span> · <span style="color:#f87171;">-${fmtBR(saiMes)}</span>
             </div>
           </div>
           ${itens.map(l => `
@@ -3861,7 +3861,7 @@ async function renderPanelFuncionarios(body) {
     lista.map(f => `<div class="cert-row">
       <div class="cert-info"><div class="cert-name">${f.nome}</div><div class="cert-date">CPF: ${f.cpf} · ${f.empresa_email||'Sem empresa'}</div></div>
       <div style="display:flex;gap:6px;align-items:center;">
-        ${f.email ? `<button class="btn" style="font-size:12px;padding:5px 10px;background:var(--green-bg,#f0fdf4);color:#166534;border-color:#bbf7d0;" onclick="enviarConviteFuncionario('${f.cpf}','${f.nome}','${f.email}')">✉ Convidar</button>` : `<span style="font-size:11px;color:var(--text-tertiary);">Sem e-mail</span>`}
+        ${f.email ? `<button class="btn" style="font-size:12px;padding:5px 10px;background:var(--green-bg,rgba(52,211,153,0.08));color:#34d399;border-color:rgba(52,211,153,0.2);" onclick="enviarConviteFuncionario('${f.cpf}','${f.nome}','${f.email}')">✉ Convidar</button>` : `<span style="font-size:11px;color:var(--text-tertiary);">Sem e-mail</span>`}
         <button class="btn-delete" onclick="excluirFuncionario('${f.id}')"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg></button>
       </div>
     </div>`).join('');
@@ -4231,8 +4231,8 @@ function renderLogLista(logs) {
     const data = new Date(l.criado_em);
     const dataStr = data.toLocaleDateString('pt-BR') + ' ' + data.toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'});
     const cores = {
-      'documento': '#2d5be3', 'convite': '#1a7a4a', 'cliente': '#7c3aed',
-      'guia': '#b45309', 'certificado': '#0891b2', 'aviso': '#c0392b'
+      'documento': '#4e9fff', 'convite': '#34d399', 'cliente': '#7c3aed',
+      'guia': '#b45309', 'certificado': '#0891b2', 'aviso': '#f87171'
     };
     const tipo = Object.keys(cores).find(k => l.acao.toLowerCase().includes(k)) || 'outros';
     const cor = cores[tipo] || '#6b6860';
