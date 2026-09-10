@@ -882,8 +882,12 @@ async function initEscritorio() {
     .maybeSingle();
   escritorioAtual = data;
   if (data) {
-    // Atualizar título da página
     document.title = data.nome + ' — orbita';
+    // Redirecionar para onboarding se não configurado
+    if (!data.configurado) {
+      window.location.href = '/onboarding.html?escritorio=' + ESCRITORIO_SLUG;
+      return null;
+    }
   }
   return data;
 }
