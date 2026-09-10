@@ -463,7 +463,7 @@
   <!-- DROPDOWN MENU -->
   <div id="menu-overlay" class="menu-overlay hidden" onclick="closeMenu()"></div>
   <div id="menu-dropdown" class="menu-dropdown hidden">
-    <!-- Header com logo e usuário -->
+    <!-- Header só com logo -->
     <div class="menu-header">
       <div class="menu-logo-row">
         <div class="menu-orb">
@@ -472,13 +472,6 @@
           <div class="menu-orb-dot"></div>
         </div>
         <span class="menu-brand">orbita</span>
-      </div>
-      <div class="menu-user-card">
-        <div class="menu-avatar" id="menu-avatar">—</div>
-        <div>
-          <div class="menu-user-name" id="menu-user-name">—</div>
-          <div class="menu-user-email" id="menu-user-email">—</div>
-        </div>
       </div>
     </div>
 
@@ -539,6 +532,14 @@
 
     <div style="flex:1"></div>
     <div class="menu-divider"></div>
+    <!-- Card do usuário no rodapé -->
+    <div class="menu-user-card" style="margin:8px 12px 0;">
+      <div class="menu-avatar" id="menu-avatar">—</div>
+      <div>
+        <div class="menu-user-name" id="menu-user-name">—</div>
+        <div class="menu-user-email" id="menu-user-email">—</div>
+      </div>
+    </div>
     <button class="menu-item menu-item-logout" onclick="logout()">
       <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
       Sair
@@ -964,13 +965,16 @@ async function showApp() {
     }, 100);
   }
 
-  // Buscar dados do cliente para nome
+  // Buscar dados do cliente/admin para nome
   const { data: dadosCliente } = await sb.from('clientes').select('*').eq('email', currentUser.email).maybeSingle();
-  const displayName = dadosCliente?.nome || currentUser.email;
-  document.getElementById('menu-user-name').textContent = displayName;
-  document.getElementById('menu-user-email').textContent = currentUser.email;
+  const adminInfo = ADMINS.find(a => a.email === currentUser.email);
+  const displayName = adminInfo?.nome || dadosCliente?.nome || dadosCliente?.empresa || currentUser.email.split('@')[0];
+  const roleLabel = isAdmin ? (isMaster ? 'Master' : 'Admin') : 'Cliente';
+  const empresaLabel = dadosCliente?.empresa || dadosCliente?.nome || currentUser.email;
+  document.getElementById('menu-user-name').textContent = isAdmin ? displayName : empresaLabel;
+  document.getElementById('menu-user-email').textContent = roleLabel;
   const menuAv = document.getElementById('menu-avatar');
-  if (menuAv) menuAv.textContent = (displayName || '?').charAt(0).toUpperCase();
+  if (menuAv) menuAv.textContent = (isAdmin ? displayName : empresaLabel).charAt(0).toUpperCase();
 
   // Iniciar polling de notificações de chat
   clearInterval(chatNotifInterval);
@@ -3182,7 +3186,7 @@ async function loadFuncionarioView() {
   const func = funcionarioLogado;
   document.getElementById('func-nome').textContent = func.nome;
   document.getElementById('menu-user-name').textContent = func.nome;
-  document.getElementById('menu-user-email').textContent = 'CPF: ' + func.cpf;
+  document.getElementById('menu-user-email').textContent = 'Funcionário';
   const menuAv2 = document.getElementById('menu-avatar');
   if (menuAv2) menuAv2.textContent = (func.nome || '?').charAt(0).toUpperCase();
 
