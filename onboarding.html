@@ -15,7 +15,7 @@
       --accent2: #7c5cfc; --green: #34d399; --red: #f87171;
       --radius: 10px; --radius-lg: 16px;
     }
-    body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 2rem; position: relative; overflow: hidden; }
+    body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; align-items: flex-start; justify-content: center; padding: 3rem 2rem; position: relative; }
     .bg-blob { position: fixed; border-radius: 50%; filter: blur(120px); pointer-events: none; }
     .bg-blob-1 { width: 600px; height: 600px; background: #1a3a7a; top: -200px; right: -100px; opacity: 0.18; }
     .bg-blob-2 { width: 400px; height: 400px; background: #7c5cfc; bottom: -100px; left: -50px; opacity: 0.12; }
@@ -34,11 +34,12 @@
     .step-dot.inactive { background: rgba(255,255,255,0.03); border: 1.5px solid rgba(255,255,255,0.08); color: rgba(221,228,240,0.2); }
     .step-line { flex: 1; height: 1px; background: rgba(78,159,255,0.15); transition: background 0.4s; }
     .step-line.done { background: rgba(52,211,153,0.4); }
-    .step-labels { display: flex; justify-content: space-between; margin-top: 10px; }
-    .step-label { font-size: 11px; color: rgba(221,228,240,0.25); text-align: center; flex: 1; transition: color 0.3s; }
+    .step-labels { display: flex; margin-top: 10px; }
+    .step-label { font-size: 11px; color: rgba(221,228,240,0.25); text-align: center; transition: color 0.3s; width: 34px; flex-shrink: 0; }
     .step-label.active { color: #4e9fff; font-weight: 500; }
     .step-label.done { color: #34d399; }
-    .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 2.25rem; backdrop-filter: blur(24px); animation: slideUp 0.35s ease; }
+    .step-label-spacer { flex: 1; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 2.25rem; backdrop-filter: blur(24px); animation: slideUp 0.35s ease; margin-bottom: 2rem; }
     @keyframes slideUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
     .card-eyebrow { font-size: 11px; color: rgba(78,159,255,0.6); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 8px; font-weight: 500; }
     .card-title { font-size: 20px; font-weight: 600; margin-bottom: 8px; }
@@ -103,9 +104,11 @@
       <div class="step-dot inactive" id="dot-3">3</div>
     </div>
     <div class="step-labels">
-      <span class="step-label active" id="lbl-1">Escritório</span>
-      <span class="step-label" id="lbl-2">Administrador</span>
-      <span class="step-label" id="lbl-3">Equipe</span>
+      <span class="step-label active" id="lbl-1" style="white-space:nowrap;width:auto;">Escritório</span>
+      <div class="step-label-spacer"></div>
+      <span class="step-label" id="lbl-2" style="white-space:nowrap;width:auto;">Administrador</span>
+      <div class="step-label-spacer"></div>
+      <span class="step-label" id="lbl-3" style="white-space:nowrap;width:auto;">Equipe</span>
     </div>
   </div>
 
