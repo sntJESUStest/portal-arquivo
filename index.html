@@ -633,6 +633,10 @@
       <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
       Atividade
     </button>
+    <button class="sb-item" id="sb-master" onclick="openPanel('master')" style="display:none;background:rgba(124,92,252,0.08);color:#a78bfa;border-left-color:rgba(124,92,252,0.3);">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+      Painel Master
+    </button>
 
     <div class="sb-bottom">
       <div class="sb-user">
@@ -1136,6 +1140,8 @@ async function showApp() {
     if (sbName) sbName.textContent = adminName;
     if (sbRole) sbRole.textContent = isMaster ? 'Master' : 'Admin';
     if (sbAtiv) sbAtiv.style.display = isMaster ? 'flex' : 'none';
+    const sbMaster = document.getElementById('sb-master');
+    if (sbMaster) sbMaster.style.display = isMaster ? 'flex' : 'none';
     if (sbRel) sbRel.style.display = isAdmin ? 'flex' : 'none';
     // Sincronizar badge do chat
     const sbBadge = document.getElementById('sb-chat-badge');
@@ -1200,7 +1206,7 @@ function filterSetor(setor) {
 function openPanel(type) {
   closeMenu();
   document.getElementById('panel-overlay').classList.remove('hidden');
-  const title = { perfil:'Perfil', dados:'Dados do Cliente', chat:'Chat', certificados:'Certificados', calendario:'Calendario de Guias', relatorios:'Relatorios', avisos:'Avisos', funcionarios:'Funcionários', atividade:'Atividade dos Admins' }[type];
+  const title = { perfil:'Perfil', dados:'Dados do Cliente', chat:'Chat', certificados:'Certificados', calendario:'Calendario de Guias', relatorios:'Relatorios', avisos:'Avisos', funcionarios:'Funcionários', atividade:'Atividade dos Admins', master:'⚡ Painel Master' }[type];
   document.getElementById('panel-title').textContent = title;
   const body = document.getElementById('panel-body');
   body.innerHTML = '<div class="loading">Carregando...</div>';
@@ -1213,6 +1219,7 @@ function openPanel(type) {
   if (type === 'avisos') renderPanelAvisos(body);
   if (type === 'funcionarios') renderPanelFuncionarios(body);
   if (type === 'atividade') renderPanelAtividade(body);
+  if (type === 'master') renderPanelMaster(body);
 }
 
 function closePanel(e) {
@@ -4444,6 +4451,95 @@ async function registrarLog(acao, detalhe = '') {
       criado_em: new Date().toISOString()
     });
   } catch(e) { /* silencioso */ }
+}
+
+async function renderPanelMaster(body) {
+  if (!isMaster) { body.innerHTML = '<div class="empty-state">Acesso restrito.</div>'; return; }
+  body.innerHTML = '<div class="loading">Carregando painel master...</div>';
+
+  const { data: escritorios } = await sb.from('escritorios').select('*').order('criado_em', { ascending: false });
+
+  body.innerHTML = `
+    <div style="margin-bottom:1.5rem;">
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:1.5rem;">
+        <div style="background:rgba(78,159,255,0.08);border:1px solid rgba(78,159,255,0.15);border-radius:12px;padding:16px;">
+          <div style="color:rgba(221,228,240,0.35);font-size:11px;margin-bottom:6px;">Escritórios</div>
+          <div style="color:#4e9fff;font-size:24px;font-weight:700;">${escritorios?.length || 0}</div>
+        </div>
+        <div style="background:rgba(52,211,153,0.08);border:1px solid rgba(52,211,153,0.15);border-radius:12px;padding:16px;">
+          <div style="color:rgba(221,228,240,0.35);font-size:11px;margin-bottom:6px;">Ativos</div>
+          <div style="color:#34d399;font-size:24px;font-weight:700;">${escritorios?.filter(e=>e.ativo).length || 0}</div>
+        </div>
+        <div style="background:rgba(124,92,252,0.08);border:1px solid rgba(124,92,252,0.15);border-radius:12px;padding:16px;">
+          <div style="color:rgba(221,228,240,0.35);font-size:11px;margin-bottom:6px;">Planos</div>
+          <div style="color:#a78bfa;font-size:24px;font-weight:700;">${[...new Set(escritorios?.map(e=>e.plano))].length || 0}</div>
+        </div>
+      </div>
+
+      <!-- Novo escritório -->
+      <div style="background:rgba(15,20,36,0.7);border:1px solid rgba(78,159,255,0.12);border-radius:12px;padding:1.25rem;margin-bottom:1.25rem;">
+        <div style="color:rgba(78,159,255,0.6);font-size:11px;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:12px;">Novo Escritório</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;margin-bottom:10px;">
+          <div class="field" style="margin:0;"><label>Nome</label><input id="m-nome" placeholder="HP Contabilidade" /></div>
+          <div class="field" style="margin:0;"><label>CNPJ</label><input id="m-cnpj" placeholder="00.000.000/0001-00" /></div>
+          <div class="field" style="margin:0;"><label>Slug (URL)</label><input id="m-slug" placeholder="hp" /></div>
+          <div class="field" style="margin:0;"><label>Plano</label>
+            <select id="m-plano">
+              <option value="basico">Básico</option>
+              <option value="pro">Pro</option>
+              <option value="enterprise">Enterprise</option>
+            </select>
+          </div>
+        </div>
+        <div id="m-msg" class="hidden" style="font-size:13px;margin-bottom:8px;"></div>
+        <button class="btn btn-primary" onclick="criarEscritorio()" style="background:linear-gradient(135deg,#4e9fff,#7c5cfc);border:none;">+ Criar Escritório</button>
+      </div>
+
+      <!-- Lista de escritórios -->
+      <div style="background:rgba(15,20,36,0.7);border:1px solid rgba(78,159,255,0.12);border-radius:12px;overflow:hidden;">
+        <div style="padding:14px 18px;border-bottom:1px solid rgba(78,159,255,0.08);font-size:14px;font-weight:600;color:#dde4f0;">Escritórios Cadastrados</div>
+        ${(escritorios || []).length === 0 ? '<div class="empty-state">Nenhum escritório cadastrado.</div>' : (escritorios || []).map(e => `
+          <div style="display:flex;align-items:center;gap:14px;padding:14px 18px;border-bottom:1px solid rgba(78,159,255,0.05);">
+            <div style="width:38px;height:38px;background:linear-gradient(135deg,#4e9fff,#7c5cfc);border-radius:10px;display:grid;place-items:center;color:#fff;font-weight:600;font-size:14px;flex-shrink:0;">${(e.nome||'?')[0].toUpperCase()}</div>
+            <div style="flex:1;">
+              <div style="color:#dde4f0;font-size:14px;font-weight:500;">${e.nome}</div>
+              <div style="color:rgba(221,228,240,0.3);font-size:12px;margin-top:2px;">
+                ${e.cnpj || 'CNPJ não informado'} · slug: <code style="color:#4e9fff;">?escritorio=${e.slug}</code>
+              </div>
+            </div>
+            <span style="padding:3px 10px;border-radius:99px;font-size:11px;font-weight:500;background:${e.plano==='enterprise'?'rgba(124,92,252,0.2)':e.plano==='pro'?'rgba(78,159,255,0.15)':'rgba(52,211,153,0.1)'};color:${e.plano==='enterprise'?'#a78bfa':e.plano==='pro'?'#4e9fff':'#34d399'};">${e.plano}</span>
+            <span style="padding:3px 10px;border-radius:99px;font-size:11px;background:${e.ativo?'rgba(52,211,153,0.1)':'rgba(244,63,94,0.1)'};color:${e.ativo?'#34d399':'#f87171'};">${e.ativo?'Ativo':'Inativo'}</span>
+            <div style="display:flex;gap:6px;">
+              <button onclick="window.open('/?escritorio=${e.slug}','_blank')" style="background:rgba(78,159,255,0.1);border:1px solid rgba(78,159,255,0.2);color:#4e9fff;padding:5px 12px;border-radius:7px;font-size:12px;cursor:pointer;">Abrir</button>
+              <button onclick="toggleEscritorio('${e.id}',${e.ativo})" style="background:${e.ativo?'rgba(244,63,94,0.1)':'rgba(52,211,153,0.1)'};border:1px solid ${e.ativo?'rgba(244,63,94,0.2)':'rgba(52,211,153,0.2)'};color:${e.ativo?'#f87171':'#34d399'};padding:5px 12px;border-radius:7px;font-size:12px;cursor:pointer;">${e.ativo?'Desativar':'Ativar'}</button>
+            </div>
+          </div>`).join('')}
+      </div>
+    </div>`;
+}
+
+async function criarEscritorio() {
+  const nome = document.getElementById('m-nome').value.trim();
+  const cnpj = document.getElementById('m-cnpj').value.trim();
+  const slug = document.getElementById('m-slug').value.trim().toLowerCase().replace(/[^a-z0-9-]/g,'');
+  const plano = document.getElementById('m-plano').value;
+  const msg = document.getElementById('m-msg');
+
+  msg.classList.add('hidden');
+  if (!nome || !slug) { msg.style.color='#f87171'; msg.textContent='Nome e slug são obrigatórios.'; msg.classList.remove('hidden'); return; }
+
+  const { error } = await sb.from('escritorios').insert({ nome, cnpj: cnpj||null, slug, plano, ativo: true });
+  if (error) { msg.style.color='#f87171'; msg.textContent='Erro: ' + (error.message.includes('unique')? 'Slug já existe.' : error.message); msg.classList.remove('hidden'); return; }
+
+  msg.style.color='#34d399'; msg.textContent='✓ Escritório criado! URL: ?escritorio=' + slug;
+  msg.classList.remove('hidden');
+  document.getElementById('m-nome').value=''; document.getElementById('m-cnpj').value=''; document.getElementById('m-slug').value='';
+  setTimeout(() => renderPanelMaster(document.getElementById('panel-body')), 1200);
+}
+
+async function toggleEscritorio(id, ativo) {
+  await sb.from('escritorios').update({ ativo: !ativo }).eq('id', id);
+  renderPanelMaster(document.getElementById('panel-body'));
 }
 
 async function renderPanelAtividade(body) {
