@@ -863,6 +863,32 @@ const SUBCATEGORIAS_PESSOAL = ['Encargos', 'Admissões', 'Rescisões', 'Férias'
 const SETOR_CLASS = { 'Fiscal':'setor-fiscal','Pessoal':'setor-pessoal','Contabil':'setor-contabil','Financeiro':'setor-financeiro','Avisos':'setor-avisos' };
 
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// ── MULTI-TENANT: ESCRITÓRIO ─────────────────────────
+// Detectar escritório pela URL: ?escritorio=hp ou /empresas?escritorio=hp
+const urlParams = new URLSearchParams(window.location.search);
+const ESCRITORIO_SLUG = urlParams.get('escritorio') || 'hp'; // padrão: hp
+let escritorioAtual = null; // preenchido no init
+
+async function initEscritorio() {
+  const { data } = await sb.from('escritorios')
+    .select('*')
+    .eq('slug', ESCRITORIO_SLUG)
+    .eq('ativo', true)
+    .maybeSingle();
+  escritorioAtual = data;
+  if (data) {
+    // Atualizar título da página
+    document.title = data.nome + ' — orbita';
+  }
+  return data;
+}
+
+// Helper para filtrar queries pelo escritório atual
+function comEscritorio(query) {
+  if (escritorioAtual?.id) return query.eq('escritorio_id', escritorioAtual.id);
+  return query;
+}
 let currentUser = null;
 let allClientFiles = [];
 let activeSetor = 'Todos';
@@ -879,7 +905,7 @@ let chatClientEmail = null;
 let clientesCache = [];
 
 async function carregarClientesSelect() {
-  const { data } = await sb.from('clientes').select('email, nome, codigo, whatsapp').order('codigo');
+  const { data } = await comEscritorio(sb.from('clientes').select('email, nome, codigo, whatsapp')).order('codigo');
   clientesCache = data || [];
   const sel = document.getElementById('f-client-select');
   if (!sel) return;
@@ -1288,7 +1314,7 @@ async function renderPanelDados(body) {
   }
   if (isAdmin) {
     // Admin vê lista de clientes e pode editar
-    const { data: lista } = await sb.from('clientes').select('*').order('criado_em', { ascending: false });
+    const { data: lista } = await comEscritorio(sb.from('clientes').select('*')).order('criado_em', { ascending: false });
     let html = `<div class="section-title" style="margin-bottom:10px;">Cadastrar / Editar Cliente</div>
     <div class="card" style="margin-bottom:1rem;">
       <div class="form-row" style="margin-bottom:10px;">
@@ -1626,7 +1652,7 @@ async function salvarDados() {
   const codigoDados = document.getElementById('d-codigo') ? document.getElementById('d-codigo').value.trim() : null;
   const tipoDados = document.getElementById('d-tipo') ? document.getElementById('d-tipo').value : 'matriz';
   const matrizDados = document.getElementById('d-matriz') ? document.getElementById('d-matriz').value.trim() : null;
-  const { error } = await sb.from('clientes').upsert({ email, nome, empresa, whatsapp: whatsappDados||null, codigo: codigoDados||null, tipo: tipoDados, matriz_email: tipoDados === 'filial' ? matrizDados : null }, { onConflict: 'email' });
+  const { error } = await sb.from('clientes').upsert({ email, nome, empresa, whatsapp: whatsappDados||null, codigo: codigoDados||null, tipo: tipoDados, matriz_email: tipoDados === 'filial' ? matrizDados : null, escritorio_id: escritorioAtual?.id || null }, { onConflict: 'email' });
   if (error) { msg.className = 'error-msg'; msg.textContent = 'Erro: ' + error.message; msg.classList.remove('hidden'); return; }
 
   // Salvar modelo de guias e lançar no calendário
@@ -2239,7 +2265,7 @@ async function deleteCert(id) {
 
 // ── ADMIN VIEW ────────────────────────────────────────
 async function loadAdminView() {
-  const { data: files } = await sb.from('notificacoes').select('*').order('criado_em', { ascending: false });
+  const { data: files } = await comEscritorio(sb.from('notificacoes').select('*')).order('criado_em', { ascending: false });
   if (!files) return;
   const unread = files.filter(f => !f.lido).length;
   document.getElementById('count-files').textContent = files.length;
@@ -2256,7 +2282,7 @@ async function loadAdminView() {
   const container = document.getElementById('admin-files-list');
   if (files.length === 0) { container.innerHTML = '<div class="empty-state">Nenhum arquivo enviado ainda.</div>'; return; }
   // Buscar nomes dos clientes para exibir
-  const { data: clientesInfo } = await sb.from('clientes').select('email, nome, empresa, codigo');
+  const { data: clientesInfo } = await comEscritorio(sb.from('clientes').select('email, nome, empresa, codigo'));
   window.adminFilesData = { byClient, clientEmails, clientesInfo };
 
   renderAdminFilesList(clientEmails, byClient, clientesInfo);
@@ -2627,7 +2653,7 @@ async function buscarGuiasPendentes() {
   el.innerHTML = '<div class="loading">Carregando...</div>';
 
   const { data: todasGuias } = await sb.from('guias').select('*').order('vencimento');
-  const { data: clientesGuias } = await sb.from('clientes').select('nome, empresa, codigo, email');
+  const { data: clientesGuias } = await comEscritorio(sb.from('clientes').select('nome, empresa, codigo, email'));
 
   let guias = (todasGuias || [])
     .filter(g => g.status !== 'pago' && g.status !== 'disponivel')
@@ -4380,13 +4406,16 @@ async function definirSenha() {
 
 // ── INICIALIZAÇÃO DE AUTENTICAÇÃO ────────────────────
 // Auth simples e direto
-sb.auth.getSession().then(({ data }) => {
-  if (data.session) {
-    currentUser = data.session.user;
-    showApp();
-  } else {
-    document.getElementById('login-screen').classList.remove('hidden');
-  }
+// Inicializar escritório antes de tudo
+initEscritorio().then(() => {
+  sb.auth.getSession().then(({ data }) => {
+    if (data.session) {
+      currentUser = data.session.user;
+      showApp();
+    } else {
+      document.getElementById('login-screen').classList.remove('hidden');
+    }
+  });
 });
 
 sb.auth.onAuthStateChange((event, session) => {
