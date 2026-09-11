@@ -899,6 +899,7 @@ let activeSetor = 'Todos';
 let activeSubcat = null;
 let isAdmin = false;
 let isMaster = false;
+let isColaborador = false;
 let isFuncionario = false;
 let funcionarioLogado = null;
 let chatInterval = null;
@@ -1083,6 +1084,7 @@ async function showApp() {
     if (adminRec) {
       isAdmin = true;
       isMaster = adminRec.role === 'master';
+      isColaborador = adminRec.role === 'colaborador';
     }
   }
   document.getElementById('role-badge').textContent = isAdmin ? 'Admin' : isFuncionario ? 'Funcionário' : 'Cliente';
@@ -1110,7 +1112,7 @@ async function showApp() {
   const { data: dadosCliente } = await sb.from('clientes').select('*').eq('email', currentUser.email).maybeSingle();
   const adminInfo = ADMINS.find(a => a.email === currentUser.email);
   const displayName = adminInfo?.nome || dadosCliente?.nome || dadosCliente?.empresa || currentUser.email.split('@')[0];
-  const roleLabel = isAdmin ? (isMaster ? 'Master' : 'Admin') : 'Cliente';
+  const roleLabel = isAdmin ? (isMaster ? 'Master' : isColaborador ? 'Colaborador' : 'Admin') : 'Cliente';
   const empresaLabel = dadosCliente?.empresa || dadosCliente?.nome || currentUser.email;
   document.getElementById('menu-user-name').textContent = isAdmin ? displayName : empresaLabel;
   document.getElementById('menu-user-email').textContent = roleLabel;
@@ -1152,11 +1154,15 @@ async function showApp() {
     const sbRel = document.getElementById('sb-relatorios');
     if (sbAv) sbAv.textContent = adminName.charAt(0).toUpperCase();
     if (sbName) sbName.textContent = adminName;
-    if (sbRole) sbRole.textContent = isMaster ? 'Master' : 'Admin';
+    if (sbRole) sbRole.textContent = isMaster ? 'Master' : isColaborador ? 'Colaborador' : 'Admin';
     if (sbAtiv) sbAtiv.style.display = isMaster ? 'flex' : 'none';
     const sbMaster = document.getElementById('sb-master');
     if (sbMaster) sbMaster.style.display = isMaster ? 'flex' : 'none';
     if (sbRel) sbRel.style.display = isAdmin ? 'flex' : 'none';
+    // Colaboradores: ocultar botões destrutivos
+    if (isColaborador) {
+      document.querySelectorAll('.btn-delete, .btn-danger, [onclick*="excluirCliente"], [onclick*="excluirFuncionario"]').forEach(b => b.style.display = 'none');
+    }
     // Sincronizar badge do chat
     const sbBadge = document.getElementById('sb-chat-badge');
     const topBadge = document.getElementById('chat-notif-count');
@@ -3533,7 +3539,41 @@ async function renderPanelFuncionarios(body) {
   const { data: lista } = await sb.from('funcionarios').select('*').order('nome');
   const { data: empresasList } = await sb.from('clientes').select('email, empresa, nome').order('empresa');
 
+  // Buscar colaboradores do escritório
+  let colaboradores = [];
+  if (escritorioAtual?.id) {
+    const { data: cols } = await sb.from('escritorio_admins')
+      .select('*').eq('escritorio_id', escritorioAtual.id).eq('role', 'colaborador').order('nome');
+    colaboradores = cols || [];
+  }
+
   let html = `
+    <!-- Colaboradores do escritório -->
+    <div class="section-title" style="margin-bottom:10px;">Colaboradores do Escritório</div>
+    <div class="card" style="margin-bottom:1.5rem;">
+      <p style="font-size:13px;color:rgba(221,228,240,0.45);margin-bottom:14px;">
+        Funcionários internos que podem enviar documentos e gerenciar clientes.
+      </p>
+      <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+        <input id="col-email" placeholder="email@colaborador.com" style="flex:1;min-width:180px;" />
+        <input id="col-nome" placeholder="Nome completo" style="flex:1;min-width:140px;" />
+        <button class="btn btn-primary" onclick="adicionarColaborador()" style="white-space:nowrap;">+ Adicionar</button>
+      </div>
+      <div id="col-msg" class="hidden" style="font-size:13px;margin-bottom:8px;"></div>
+      ${colaboradores.length === 0 
+        ? '<div style="text-align:center;color:rgba(221,228,240,0.25);font-size:13px;padding:1rem 0;">Nenhum colaborador ainda.</div>' 
+        : colaboradores.map(c => `
+          <div class="cert-row">
+            <div class="cert-info">
+              <div class="cert-name">${c.nome || c.email}</div>
+              <div class="cert-date">${c.email} · Colaborador</div>
+            </div>
+            <button class="btn-delete" onclick="removerColaborador('${c.id}')" title="Remover">
+              <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+            </button>
+          </div>`).join('')}
+    </div>
+
     <!-- Importar Excel -->
     <div class="section-title" style="margin-bottom:10px;">Importar Relatório</div>
     <div class="card" style="margin-bottom:1.5rem;">
@@ -3692,6 +3732,61 @@ async function salvarFuncionario() {
   if (error) { msg.className='error-msg'; msg.textContent='Erro: '+error.message; msg.classList.remove('hidden'); return; }
   msg.className='success-msg'; msg.textContent='✓ Cadastrado! Senha inicial: '+cpf; msg.classList.remove('hidden');
   document.getElementById('fn-nome').value=''; document.getElementById('fn-cpf').value='';
+  renderPanelFuncionarios(document.getElementById('panel-body'));
+}
+
+async function adicionarColaborador() {
+  const email = document.getElementById('col-email').value.trim();
+  const nome = document.getElementById('col-nome').value.trim();
+  const msg = document.getElementById('col-msg');
+  msg.classList.add('hidden');
+
+  if (!email || !email.includes('@')) { msg.style.color='#f87171'; msg.textContent='E-mail inválido.'; msg.classList.remove('hidden'); return; }
+  if (!escritorioAtual?.id) { msg.style.color='#f87171'; msg.textContent='Escritório não identificado.'; msg.classList.remove('hidden'); return; }
+
+  // Criar usuário no Supabase Auth
+  await fetch('https://nacdezqdsouhxgftqaku.supabase.co/auth/v1/signup', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY },
+    body: JSON.stringify({ email, password: Math.random().toString(36).slice(-10).toUpperCase() })
+  });
+
+  // Inserir na tabela escritorio_admins como colaborador
+  const { error } = await sb.from('escritorio_admins').upsert({
+    escritorio_id: escritorioAtual.id,
+    email, nome: nome || email.split('@')[0],
+    role: 'colaborador'
+  }, { onConflict: 'escritorio_id,email' });
+
+  if (error) { msg.style.color='#f87171'; msg.textContent='Erro: ' + error.message; msg.classList.remove('hidden'); return; }
+
+  // Enviar convite por email
+  await fetch('/api/send-email', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      destinatario: email, nomeCliente: nome || email,
+      assunto: 'Acesso ao sistema Orbita — ' + (escritorioAtual.nome || ''),
+      mensagemCustom: `<h2 style="color:#4e9fff;">Orbita</h2>
+        <p>Olá, <strong>${nome || email}</strong>!</p>
+        <p>Você foi adicionado como colaborador em <strong>${escritorioAtual.nome || ''}</strong>.</p>
+        <p>Acesse o sistema e defina sua senha:</p>
+        <a href="${window.location.origin}/set-password.html?email=${encodeURIComponent(email)}" 
+           style="display:inline-block;background:#4e9fff;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;margin-top:12px;">
+          Criar minha senha
+        </a>`
+    })
+  });
+
+  msg.style.color='#34d399'; msg.textContent='✓ Colaborador adicionado! Convite enviado para ' + email;
+  msg.classList.remove('hidden');
+  document.getElementById('col-email').value = '';
+  document.getElementById('col-nome').value = '';
+  setTimeout(() => renderPanelFuncionarios(document.getElementById('panel-body')), 1500);
+}
+
+async function removerColaborador(id) {
+  if (!confirm('Remover este colaborador?')) return;
+  await sb.from('escritorio_admins').delete().eq('id', id);
   renderPanelFuncionarios(document.getElementById('panel-body'));
 }
 
@@ -4118,42 +4213,7 @@ async function uploadHolerites(empresaEmail) {
   fileInput.click();
 }
 
-async function renderPanelFuncionarios(body) {
-  body.innerHTML = '<div class="loading">Carregando...</div>';
-  const { data: lista } = await sb.from('funcionarios').select('*').order('nome');
-  let html = `
-    <div class="section-title" style="margin-bottom:10px;">Cadastrar Funcionário</div>
-    <div class="card" style="margin-bottom:1rem;">
-      <div class="form-row" style="margin-bottom:10px;">
-        <div class="field" style="margin:0;"><label>Nome completo</label><input id="fn-nome" type="text" placeholder="JOAO SILVA" style="text-transform:uppercase;" /></div>
-        <div class="field" style="margin:0;"><label>CPF (só números)</label><input id="fn-cpf" type="text" placeholder="12345678901" maxlength="11" /></div>
-      </div>
-      <div class="form-row" style="margin-bottom:10px;">
-        <div class="field" style="margin:0;"><label>Empresa</label><select id="fn-empresa"><option value="">Selecione...</option></select></div>
-        <div class="field" style="margin:0;"><label>E-mail (opcional)</label><input id="fn-email" type="email" placeholder="func@email.com" /></div>
-      </div>
-      <div id="fn-msg" class="hidden"></div>
-      <button class="btn btn-primary" onclick="salvarFuncionario()">Cadastrar</button>
-    </div>
-    <div class="section-title" style="margin-bottom:10px;">Funcionários (${(lista||[]).length})</div>`;
-  html += (!lista || lista.length === 0) ? '<div class="empty-state">Nenhum funcionário cadastrado.</div>' :
-    lista.map(f => `<div class="cert-row">
-      <div class="cert-info"><div class="cert-name">${f.nome}</div><div class="cert-date">CPF: ${f.cpf} · ${f.empresa_email||'Sem empresa'}</div></div>
-      <div style="display:flex;gap:6px;align-items:center;">
-        ${f.email ? `<button class="btn" style="font-size:12px;padding:5px 10px;background:var(--green-bg,rgba(52,211,153,0.08));color:#34d399;border-color:rgba(52,211,153,0.2);" onclick="enviarConviteFuncionario('${f.cpf}','${f.nome}','${f.email}')">✉ Convidar</button>` : `<span style="font-size:11px;color:var(--text-tertiary);">Sem e-mail</span>`}
-        <button class="btn-delete" onclick="excluirFuncionario('${f.id}')"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg></button>
-      </div>
-    </div>`).join('');
-  body.innerHTML = html;
-  const { data: clientes } = await sb.from('clientes').select('email, nome, empresa, codigo').order('codigo');
-  const sel = document.getElementById('fn-empresa');
-  if (sel && clientes) clientes.forEach(c => {
-    const opt = document.createElement('option');
-    opt.value = c.email;
-    opt.textContent = c.codigo ? `${c.codigo} - ${c.empresa||c.nome}` : (c.empresa||c.nome||c.email);
-    sel.appendChild(opt);
-  });
-}
+
 
 async function salvarFuncionario() {
   const nome = document.getElementById('fn-nome').value.trim().toUpperCase();
@@ -4166,6 +4226,61 @@ async function salvarFuncionario() {
   if (error) { msg.className='error-msg'; msg.textContent='Erro: '+error.message; msg.classList.remove('hidden'); return; }
   msg.className='success-msg'; msg.textContent='✓ Cadastrado! Senha inicial: '+cpf; msg.classList.remove('hidden');
   document.getElementById('fn-nome').value=''; document.getElementById('fn-cpf').value='';
+  renderPanelFuncionarios(document.getElementById('panel-body'));
+}
+
+async function adicionarColaborador() {
+  const email = document.getElementById('col-email').value.trim();
+  const nome = document.getElementById('col-nome').value.trim();
+  const msg = document.getElementById('col-msg');
+  msg.classList.add('hidden');
+
+  if (!email || !email.includes('@')) { msg.style.color='#f87171'; msg.textContent='E-mail inválido.'; msg.classList.remove('hidden'); return; }
+  if (!escritorioAtual?.id) { msg.style.color='#f87171'; msg.textContent='Escritório não identificado.'; msg.classList.remove('hidden'); return; }
+
+  // Criar usuário no Supabase Auth
+  await fetch('https://nacdezqdsouhxgftqaku.supabase.co/auth/v1/signup', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY },
+    body: JSON.stringify({ email, password: Math.random().toString(36).slice(-10).toUpperCase() })
+  });
+
+  // Inserir na tabela escritorio_admins como colaborador
+  const { error } = await sb.from('escritorio_admins').upsert({
+    escritorio_id: escritorioAtual.id,
+    email, nome: nome || email.split('@')[0],
+    role: 'colaborador'
+  }, { onConflict: 'escritorio_id,email' });
+
+  if (error) { msg.style.color='#f87171'; msg.textContent='Erro: ' + error.message; msg.classList.remove('hidden'); return; }
+
+  // Enviar convite por email
+  await fetch('/api/send-email', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      destinatario: email, nomeCliente: nome || email,
+      assunto: 'Acesso ao sistema Orbita — ' + (escritorioAtual.nome || ''),
+      mensagemCustom: `<h2 style="color:#4e9fff;">Orbita</h2>
+        <p>Olá, <strong>${nome || email}</strong>!</p>
+        <p>Você foi adicionado como colaborador em <strong>${escritorioAtual.nome || ''}</strong>.</p>
+        <p>Acesse o sistema e defina sua senha:</p>
+        <a href="${window.location.origin}/set-password.html?email=${encodeURIComponent(email)}" 
+           style="display:inline-block;background:#4e9fff;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;margin-top:12px;">
+          Criar minha senha
+        </a>`
+    })
+  });
+
+  msg.style.color='#34d399'; msg.textContent='✓ Colaborador adicionado! Convite enviado para ' + email;
+  msg.classList.remove('hidden');
+  document.getElementById('col-email').value = '';
+  document.getElementById('col-nome').value = '';
+  setTimeout(() => renderPanelFuncionarios(document.getElementById('panel-body')), 1500);
+}
+
+async function removerColaborador(id) {
+  if (!confirm('Remover este colaborador?')) return;
+  await sb.from('escritorio_admins').delete().eq('id', id);
   renderPanelFuncionarios(document.getElementById('panel-body'));
 }
 
