@@ -4,7 +4,8 @@
     "api/send-notification.js": { "memory": 256, "maxDuration": 10 },
     "api/check-guias.js": { "memory": 256, "maxDuration": 30 },
     "api/send-email.js": { "memory": 256, "maxDuration": 10 },
-    "api/split-holerite.js": { "memory": 1024, "maxDuration": 60 }
+    "api/split-holerite.js": { "memory": 1024, "maxDuration": 60 },
+    "api/set-user-password.js": { "memory": 256, "maxDuration": 10 }
   },
   "crons": [
     { "path": "/api/check-guias", "schedule": "0 8 * * *" }
