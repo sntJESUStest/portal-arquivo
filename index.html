@@ -3745,20 +3745,29 @@ async function adicionarColaborador() {
   if (!escritorioAtual?.id) { msg.style.color='#f87171'; msg.textContent='Escritório não identificado.'; msg.classList.remove('hidden'); return; }
 
   // Criar usuário no Supabase Auth
+  // Gerar senha temporária
+  const senhaTemp = Math.random().toString(36).slice(-8).toUpperCase();
+
+  // Criar usuário com a senha temporária
   await fetch('https://nacdezqdsouhxgftqaku.supabase.co/auth/v1/signup', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY },
-    body: JSON.stringify({ email, password: Math.random().toString(36).slice(-10).toUpperCase() })
+    body: JSON.stringify({ email, password: senhaTemp })
   });
 
-  // Inserir na tabela escritorio_admins como colaborador
+  // Inserir na tabela escritorio_admins como colaborador com senha_tmp
   const { error } = await sb.from('escritorio_admins').upsert({
     escritorio_id: escritorioAtual.id,
     email, nome: nome || email.split('@')[0],
-    role: 'colaborador'
+    role: 'colaborador',
+    senha_tmp: senhaTemp,
+    senha_definida: false
   }, { onConflict: 'escritorio_id,email' });
 
   if (error) { msg.style.color='#f87171'; msg.textContent='Erro: ' + error.message; msg.classList.remove('hidden'); return; }
+
+  // Link com email + senha temporária
+  const link = window.location.origin + '/set-password.html?email=' + encodeURIComponent(email) + '&tmp=' + encodeURIComponent(senhaTemp);
 
   // Enviar convite por email
   await fetch('/api/send-email', {
@@ -3769,11 +3778,13 @@ async function adicionarColaborador() {
       mensagemCustom: `<h2 style="color:#4e9fff;">Orbita</h2>
         <p>Olá, <strong>${nome || email}</strong>!</p>
         <p>Você foi adicionado como colaborador em <strong>${escritorioAtual.nome || ''}</strong>.</p>
-        <p>Acesse o sistema e defina sua senha:</p>
-        <a href="${window.location.origin}/set-password.html?email=${encodeURIComponent(email)}" 
-           style="display:inline-block;background:#4e9fff;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;margin-top:12px;">
-          Criar minha senha
-        </a>`
+        <p>Clique no botão abaixo para criar sua senha de acesso:</p>
+        <div style="margin:20px 0;">
+          <a href="${link}" style="display:inline-block;background:#4e9fff;color:#fff;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:600;font-size:15px;">
+            Criar minha senha
+          </a>
+        </div>
+        <p style="color:#888;font-size:12px;">Se o botão não funcionar, acesse: ${link}</p>`
     })
   });
 
@@ -4239,20 +4250,29 @@ async function adicionarColaborador() {
   if (!escritorioAtual?.id) { msg.style.color='#f87171'; msg.textContent='Escritório não identificado.'; msg.classList.remove('hidden'); return; }
 
   // Criar usuário no Supabase Auth
+  // Gerar senha temporária
+  const senhaTemp = Math.random().toString(36).slice(-8).toUpperCase();
+
+  // Criar usuário com a senha temporária
   await fetch('https://nacdezqdsouhxgftqaku.supabase.co/auth/v1/signup', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY },
-    body: JSON.stringify({ email, password: Math.random().toString(36).slice(-10).toUpperCase() })
+    body: JSON.stringify({ email, password: senhaTemp })
   });
 
-  // Inserir na tabela escritorio_admins como colaborador
+  // Inserir na tabela escritorio_admins como colaborador com senha_tmp
   const { error } = await sb.from('escritorio_admins').upsert({
     escritorio_id: escritorioAtual.id,
     email, nome: nome || email.split('@')[0],
-    role: 'colaborador'
+    role: 'colaborador',
+    senha_tmp: senhaTemp,
+    senha_definida: false
   }, { onConflict: 'escritorio_id,email' });
 
   if (error) { msg.style.color='#f87171'; msg.textContent='Erro: ' + error.message; msg.classList.remove('hidden'); return; }
+
+  // Link com email + senha temporária
+  const link = window.location.origin + '/set-password.html?email=' + encodeURIComponent(email) + '&tmp=' + encodeURIComponent(senhaTemp);
 
   // Enviar convite por email
   await fetch('/api/send-email', {
@@ -4263,11 +4283,13 @@ async function adicionarColaborador() {
       mensagemCustom: `<h2 style="color:#4e9fff;">Orbita</h2>
         <p>Olá, <strong>${nome || email}</strong>!</p>
         <p>Você foi adicionado como colaborador em <strong>${escritorioAtual.nome || ''}</strong>.</p>
-        <p>Acesse o sistema e defina sua senha:</p>
-        <a href="${window.location.origin}/set-password.html?email=${encodeURIComponent(email)}" 
-           style="display:inline-block;background:#4e9fff;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;margin-top:12px;">
-          Criar minha senha
-        </a>`
+        <p>Clique no botão abaixo para criar sua senha de acesso:</p>
+        <div style="margin:20px 0;">
+          <a href="${link}" style="display:inline-block;background:#4e9fff;color:#fff;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:600;font-size:15px;">
+            Criar minha senha
+          </a>
+        </div>
+        <p style="color:#888;font-size:12px;">Se o botão não funcionar, acesse: ${link}</p>`
     })
   });
 
