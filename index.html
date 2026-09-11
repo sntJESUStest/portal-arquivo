@@ -1087,6 +1087,18 @@ async function showApp() {
       isColaborador = adminRec.role === 'colaborador';
     }
   }
+
+  // Bloquear colaborador de acessar portal de funcionários (CPF) ou outros escritórios
+  if (isColaborador && isFuncionario) {
+    // Colaborador tentou logar com CPF — negar
+    errEl = document.getElementById('login-error');
+    if (errEl) errEl.textContent = 'Use seu e-mail para acessar o sistema.';
+    await sb.auth.signOut();
+    currentUser = null; isAdmin = false; isColaborador = false;
+    document.getElementById('login-screen').classList.remove('hidden');
+    document.getElementById('main-screen').classList.add('hidden');
+    return;
+  }
   document.getElementById('role-badge').textContent = isAdmin ? 'Admin' : isFuncionario ? 'Funcionário' : 'Cliente';
   const menuRel = document.getElementById('menu-relatorios');
   if (menuRel) menuRel.style.display = isAdmin ? 'flex' : 'none';
@@ -4768,6 +4780,11 @@ function filtrarLog() {
   });
   const lista = document.getElementById('log-lista');
   if (lista) lista.innerHTML = renderLogLista(logs);
+}
+
+// Bloquear colaboradores de acessar /funcionario
+if (window.location.pathname === '/funcionario' && isColaborador) {
+  history.replaceState({}, '', '/?escritorio=' + (escritorioAtual?.slug || ''));
 }
 
 if (window.location.pathname === '/funcionario') {
