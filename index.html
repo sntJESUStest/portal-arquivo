@@ -1594,13 +1594,13 @@ async function enviarConvite(email, nome) {
   const senha = Math.random().toString(36).slice(-8).toUpperCase();
 
   try {
-    // 1. Criar usuário via fetch direto (não afeta sessão do admin)
-    await fetch('https://nacdezqdsouhxgftqaku.supabase.co/auth/v1/signup', {
+    // 1. Criar ou atualizar usuário via API admin (funciona para usuários novos e existentes)
+    await fetch('/api/set-user-password', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password: senha })
     });
-    // Ignorar erros — usuário pode já existir, mas a senha_tmp será salva de qualquer forma
+    // Garante que a senha temporária está correta mesmo para usuários existentes
 
     // 2. Salvar senha temporária na tabela clientes
     await sb.from('clientes').update({
@@ -3748,10 +3748,10 @@ async function adicionarColaborador() {
   // Gerar senha temporária
   const senhaTemp = Math.random().toString(36).slice(-8).toUpperCase();
 
-  // Criar usuário com a senha temporária
-  await fetch('https://nacdezqdsouhxgftqaku.supabase.co/auth/v1/signup', {
+  // Criar ou atualizar usuário com a senha temporária (usando API admin)
+  await fetch('/api/set-user-password', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password: senhaTemp })
   });
 
@@ -4253,10 +4253,10 @@ async function adicionarColaborador() {
   // Gerar senha temporária
   const senhaTemp = Math.random().toString(36).slice(-8).toUpperCase();
 
-  // Criar usuário com a senha temporária
-  await fetch('https://nacdezqdsouhxgftqaku.supabase.co/auth/v1/signup', {
+  // Criar ou atualizar usuário com a senha temporária (usando API admin)
+  await fetch('/api/set-user-password', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password: senhaTemp })
   });
 
