@@ -68,15 +68,24 @@
     /* TOPBAR */
     #main-screen { min-height: 100vh; display: flex; flex-direction: column; }
     #main-screen.admin-mode { flex-direction: row; }
-    #main-screen.admin-mode .topbar { display: none; }
     .admin-sidebar {
       width: 240px; min-width: 240px; height: 100vh; position: sticky; top: 0;
       background: rgba(8,12,24,0.98); border-right: 1px solid rgba(78,159,255,0.1);
-      display: flex; flex-direction: column; overflow-y: auto;
-      backdrop-filter: blur(24px); z-index: 10; display: none;
+      display: none; flex-direction: column; overflow-y: auto;
+      backdrop-filter: blur(24px); z-index: 10;
     }
-    #main-screen.admin-mode .admin-sidebar { display: flex; }
     #main-screen.admin-mode .content { flex: 1; overflow-y: auto; }
+    /* Sidebar fixa só no desktop */
+    @media (min-width: 900px) {
+      #main-screen.admin-mode .topbar { display: none; }
+      #main-screen.admin-mode .admin-sidebar { display: flex; }
+    }
+    /* No mobile mantém topbar e esconde sidebar */
+    @media (max-width: 899px) {
+      #main-screen.admin-mode { flex-direction: column; }
+      #main-screen.admin-mode .topbar { display: flex; }
+      #main-screen.admin-mode .admin-sidebar { display: none !important; }
+    }
     .admin-sidebar .sb-logo { display: flex; align-items: center; gap: 10px; padding: 20px 18px 14px; border-bottom: 1px solid rgba(78,159,255,0.08); }
     .admin-sidebar .sb-brand { color: #dde4f0; font-weight: 300; letter-spacing: 2px; font-size: 16px; }
     .admin-sidebar .sb-orb { position: relative; width: 28px; height: 28px; flex-shrink: 0; }
@@ -4677,6 +4686,7 @@ async function renderPanelMaster(body) {
             <span style="padding:3px 10px;border-radius:99px;font-size:11px;background:${e.ativo?'rgba(52,211,153,0.1)':'rgba(244,63,94,0.1)'};color:${e.ativo?'#34d399':'#f87171'};">${e.ativo?'Ativo':'Inativo'}</span>
             <div style="display:flex;gap:6px;">
               <button onclick="window.open('/?escritorio=${e.slug}','_blank')" style="background:rgba(78,159,255,0.1);border:1px solid rgba(78,159,255,0.2);color:#4e9fff;padding:5px 12px;border-radius:7px;font-size:12px;cursor:pointer;">Abrir</button>
+              <button onclick="gerenciarAdmins('${e.id}','${e.nome}','${e.slug}')" style="background:rgba(124,92,252,0.1);border:1px solid rgba(124,92,252,0.2);color:#a78bfa;padding:5px 12px;border-radius:7px;font-size:12px;cursor:pointer;">+ Admin</button>
               <button onclick="toggleEscritorio('${e.id}',${e.ativo})" style="background:${e.ativo?'rgba(244,63,94,0.1)':'rgba(52,211,153,0.1)'};border:1px solid ${e.ativo?'rgba(244,63,94,0.2)':'rgba(52,211,153,0.2)'};color:${e.ativo?'#f87171':'#34d399'};padding:5px 12px;border-radius:7px;font-size:12px;cursor:pointer;">${e.ativo?'Desativar':'Ativar'}</button>
             </div>
           </div>`).join('')}
@@ -4706,6 +4716,109 @@ async function criarEscritorio() {
 async function toggleEscritorio(id, ativo) {
   await sb.from('escritorios').update({ ativo: !ativo }).eq('id', id);
   renderPanelMaster(document.getElementById('panel-body'));
+}
+
+let _adminModalEscritorioId = null;
+let _adminModalEscritorioSlug = null;
+
+async function gerenciarAdmins(escritorioId, nome, slug) {
+  _adminModalEscritorioId = escritorioId;
+  _adminModalEscritorioSlug = slug;
+  document.getElementById('modal-admins-titulo').textContent = 'Admins — ' + nome;
+  document.getElementById('modal-admins-slug').textContent = '?escritorio=' + slug;
+  document.getElementById('modal-admins').classList.remove('hidden');
+  document.getElementById('ma-nome').value = '';
+  document.getElementById('ma-email').value = '';
+  document.getElementById('ma-msg').classList.add('hidden');
+  await carregarAdminsModal();
+}
+
+function fecharModalAdmins() {
+  document.getElementById('modal-admins').classList.add('hidden');
+}
+
+async function carregarAdminsModal() {
+  const lista = document.getElementById('modal-admins-lista');
+  lista.innerHTML = '<div style="color:rgba(221,228,240,0.3);font-size:13px;">Carregando...</div>';
+  const { data: admins } = await sb.from('escritorio_admins')
+    .select('*').eq('escritorio_id', _adminModalEscritorioId).order('nome');
+  
+  if (!admins || admins.length === 0) {
+    lista.innerHTML = '<div style="color:rgba(221,228,240,0.25);font-size:13px;">Nenhum admin cadastrado.</div>';
+    return;
+  }
+  lista.innerHTML = admins.map(a => `
+    <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid rgba(78,159,255,0.06);">
+      <div style="width:32px;height:32px;background:${a.role==='colaborador'?'rgba(124,92,252,0.15)':'rgba(78,159,255,0.15)'};border-radius:50%;display:grid;place-items:center;color:${a.role==='colaborador'?'#a78bfa':'#4e9fff'};font-size:11px;font-weight:600;flex-shrink:0;">
+        ${(a.nome||a.email).charAt(0).toUpperCase()}
+      </div>
+      <div style="flex:1;">
+        <div style="color:#dde4f0;font-size:13px;font-weight:500;">${a.nome || '—'}</div>
+        <div style="color:rgba(221,228,240,0.3);font-size:12px;">${a.email} · ${a.role}</div>
+      </div>
+      <button onclick="removerAdminEscritorio('${a.id}')" style="background:rgba(244,63,94,0.08);border:1px solid rgba(244,63,94,0.2);color:#f87171;padding:4px 10px;border-radius:7px;font-size:12px;cursor:pointer;">Remover</button>
+    </div>`).join('');
+}
+
+async function adicionarAdminEscritorio() {
+  const nome = document.getElementById('ma-nome').value.trim();
+  const email = document.getElementById('ma-email').value.trim();
+  const msg = document.getElementById('ma-msg');
+  msg.classList.add('hidden');
+
+  if (!email || !email.includes('@')) {
+    msg.style.cssText = 'background:rgba(244,63,94,0.08);color:#f87171;border:1px solid rgba(244,63,94,0.2);';
+    msg.textContent = 'E-mail inválido.'; msg.classList.remove('hidden'); return;
+  }
+
+  // Gerar senha temporária e criar/atualizar usuário
+  const senhaTemp = Math.random().toString(36).slice(-8).toUpperCase();
+  await fetch('/api/set-user-password', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password: senhaTemp })
+  });
+
+  // Inserir na tabela escritorio_admins
+  const { error } = await sb.from('escritorio_admins').upsert({
+    escritorio_id: _adminModalEscritorioId,
+    email, nome: nome || email.split('@')[0],
+    role: 'admin', senha_tmp: senhaTemp, senha_definida: false
+  }, { onConflict: 'escritorio_id,email' });
+
+  if (error) {
+    msg.style.cssText = 'background:rgba(244,63,94,0.08);color:#f87171;border:1px solid rgba(244,63,94,0.2);';
+    msg.textContent = 'Erro: ' + error.message; msg.classList.remove('hidden'); return;
+  }
+
+  // Enviar convite por email
+  const link = window.location.origin + '/set-password.html?email=' + encodeURIComponent(email) + '&tmp=' + encodeURIComponent(senhaTemp) + '&escritorio=' + encodeURIComponent(_adminModalEscritorioSlug);
+  await fetch('/api/send-email', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      destinatario: email, nomeCliente: nome || email,
+      assunto: 'Acesso ao sistema Orbita',
+      mensagemCustom: `<h2 style="color:#4e9fff;">orbita</h2>
+        <p>Olá, <strong>${nome || email}</strong>!</p>
+        <p>Você foi adicionado como administrador. Clique abaixo para criar sua senha:</p>
+        <div style="margin:20px 0;">
+          <a href="${link}" style="display:inline-block;background:#4e9fff;color:#fff;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:600;">Criar minha senha</a>
+        </div>
+        <p style="color:#888;font-size:12px;">Link: ${link}</p>`
+    })
+  });
+
+  msg.style.cssText = 'background:rgba(52,211,153,0.08);color:#34d399;border:1px solid rgba(52,211,153,0.2);';
+  msg.textContent = '✓ Admin adicionado! Convite enviado para ' + email;
+  msg.classList.remove('hidden');
+  document.getElementById('ma-nome').value = '';
+  document.getElementById('ma-email').value = '';
+  await carregarAdminsModal();
+}
+
+async function removerAdminEscritorio(id) {
+  if (!confirm('Remover este admin?')) return;
+  await sb.from('escritorio_admins').delete().eq('id', id);
+  await carregarAdminsModal();
 }
 
 async function renderPanelAtividade(body) {
