@@ -839,6 +839,24 @@
 </div>
 
 <!-- PAINÉIS -->
+<!-- MODAL GERENCIAR ADMINS -->
+  <div id="modal-admins" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);z-index:500;display:flex;align-items:center;justify-content:center;padding:1rem;">
+    <div style="background:rgba(10,14,26,0.98);border:1px solid rgba(78,159,255,0.15);border-radius:16px;padding:2rem;width:100%;max-width:520px;position:relative;max-height:90vh;overflow-y:auto;">
+      <button onclick="fecharModalAdmins()" style="position:absolute;top:14px;right:16px;background:none;border:none;color:rgba(221,228,240,0.4);font-size:24px;cursor:pointer;line-height:1;">×</button>
+      <div style="font-size:16px;font-weight:600;color:#dde4f0;margin-bottom:4px;" id="modal-admins-titulo">Gerenciar Admins</div>
+      <div style="font-size:12px;color:rgba(221,228,240,0.3);margin-bottom:1.5rem;" id="modal-admins-slug"></div>
+      <div style="font-size:11px;color:rgba(78,159,255,0.6);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:10px;">Adicionar Admin</div>
+      <div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
+        <input id="ma-nome" placeholder="Nome do admin" style="flex:1;min-width:140px;padding:10px 12px;background:rgba(255,255,255,0.04);border:1px solid rgba(78,159,255,0.15);border-radius:10px;color:#dde4f0;font-family:Inter,sans-serif;font-size:13px;outline:none;" />
+        <input id="ma-email" placeholder="email@escritorio.com" type="email" style="flex:1;min-width:180px;padding:10px 12px;background:rgba(255,255,255,0.04);border:1px solid rgba(78,159,255,0.15);border-radius:10px;color:#dde4f0;font-family:Inter,sans-serif;font-size:13px;outline:none;" />
+      </div>
+      <div id="ma-msg" class="hidden" style="font-size:13px;margin-bottom:8px;padding:8px 12px;border-radius:8px;"></div>
+      <button onclick="adicionarAdminEscritorio()" style="width:100%;padding:11px;background:linear-gradient(135deg,#4e9fff,#7c5cfc);border:none;border-radius:10px;color:#fff;font-family:Inter,sans-serif;font-size:13px;font-weight:500;cursor:pointer;margin-bottom:1.5rem;">+ Adicionar Admin</button>
+      <div style="font-size:11px;color:rgba(78,159,255,0.6);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:10px;">Admins Atuais</div>
+      <div id="modal-admins-lista"><div style="color:rgba(221,228,240,0.3);font-size:13px;">Carregando...</div></div>
+    </div>
+  </div>
+
 <div id="panel-overlay" class="panel-overlay hidden" onclick="closePanel(event)">
   <div class="panel" onclick="event.stopPropagation()">
     <div class="panel-header">
