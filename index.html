@@ -4831,6 +4831,7 @@ async function renderPanelMaster(body) {
               <button onclick="window.open('/?escritorio=${e.slug}','_blank')" style="background:rgba(78,159,255,0.1);border:1px solid rgba(78,159,255,0.2);color:#4e9fff;padding:5px 12px;border-radius:7px;font-size:12px;cursor:pointer;">Abrir</button>
               <button onclick="gerenciarAdmins('${e.id}','${e.nome}','${e.slug}')" style="background:rgba(124,92,252,0.1);border:1px solid rgba(124,92,252,0.2);color:#a78bfa;padding:5px 12px;border-radius:7px;font-size:12px;cursor:pointer;">+ Admin</button>
               <button onclick="toggleEscritorio('${e.id}',${e.ativo})" style="background:${e.ativo?'rgba(244,63,94,0.1)':'rgba(52,211,153,0.1)'};border:1px solid ${e.ativo?'rgba(244,63,94,0.2)':'rgba(52,211,153,0.2)'};color:${e.ativo?'#f87171':'#34d399'};padding:5px 12px;border-radius:7px;font-size:12px;cursor:pointer;">${e.ativo?'Desativar':'Ativar'}</button>
+              <button onclick="excluirEscritorio('${e.id}','${e.nome}')" style="background:rgba(244,63,94,0.08);border:1px solid rgba(244,63,94,0.2);color:#f87171;padding:5px 12px;border-radius:7px;font-size:12px;cursor:pointer;" title="Excluir escritório">🗑</button>
             </div>
           </div>`).join('')}
       </div>
@@ -4858,6 +4859,17 @@ async function criarEscritorio() {
 
 async function toggleEscritorio(id, ativo) {
   await sb.from('escritorios').update({ ativo: !ativo }).eq('id', id);
+  renderPanelMaster(document.getElementById('panel-body'));
+}
+
+async function excluirEscritorio(id, nome) {
+  if (!confirm('Excluir "' + nome + '"? Isso vai remover o escritório e todos os admins vinculados.')) return;
+  
+  // Remover admins do escritório
+  await sb.from('escritorio_admins').delete().eq('escritorio_id', id);
+  // Remover escritório
+  await sb.from('escritorios').delete().eq('id', id);
+  
   renderPanelMaster(document.getElementById('panel-body'));
 }
 
